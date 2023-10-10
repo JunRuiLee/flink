@@ -79,9 +79,10 @@ public class CheckpointingOptions {
      */
     @Documentation.Section(value = Documentation.Sections.COMMON_STATE_BACKENDS, position = 2)
     public static final ConfigOption<String> CHECKPOINT_STORAGE =
-            ConfigOptions.key("state.checkpoint-storage")
+            ConfigOptions.key("state.storage.type")
                     .stringType()
                     .noDefaultValue()
+                    .withDeprecatedKeys("state.checkpoint-storage")
                     .withDescription(
                             Description.builder()
                                     .text(
@@ -100,6 +101,8 @@ public class CheckpointingOptions {
                                     .text(
                                             "Recognized shortcut names are 'jobmanager' and 'filesystem'.")
                                     .build());
+
+    public static final String CHECKPOINT_STORAGE_OPTIONS_PREFIX = "state.storage";
 
     /** The maximum number of completed checkpoints to retain. */
     @Documentation.Section(Documentation.Sections.COMMON_STATE_BACKENDS)

@@ -22,8 +22,12 @@ import org.apache.flink.annotation.docs.Documentation;
 import org.apache.flink.configuration.description.Description;
 import org.apache.flink.configuration.description.TextElement;
 
+import java.util.Map;
+
 /** A collection of all configuration options that relate to state backend. */
 public class StateBackendOptions {
+
+    public static final String STATE_BACKEND_OPTIONS_PREFIX = "state.backend";
 
     // ------------------------------------------------------------------------
     //  general state backend options
@@ -62,6 +66,9 @@ public class StateBackendOptions {
                                     .linebreak()
                                     .text("Recognized shortcut names are 'hashmap' and 'rocksdb'.")
                                     .build());
+
+    public static final ConfigOption<Map<String, String>> STATE_BACKEND_ADDITIONAL =
+            ConfigOptions.key("state.backend.additional").mapType().noDefaultValue();
 
     @Documentation.Section(Documentation.Sections.STATE_BACKEND_LATENCY_TRACKING)
     public static final ConfigOption<Boolean> LATENCY_TRACK_ENABLED =

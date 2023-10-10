@@ -43,7 +43,9 @@ import javax.annotation.Nullable;
 
 import java.net.URI;
 import java.time.Duration;
+import java.util.Map;
 
+import static org.apache.flink.configuration.StateBackendOptions.STATE_BACKEND_OPTIONS_PREFIX;
 import static org.apache.flink.configuration.description.TextElement.text;
 import static org.apache.flink.runtime.checkpoint.CheckpointFailureManager.UNLIMITED_TOLERABLE_FAILURE_NUMBER;
 import static org.apache.flink.runtime.jobgraph.tasks.CheckpointCoordinatorConfiguration.MINIMAL_CHECKPOINT_TIME;
@@ -151,6 +153,11 @@ public class CheckpointConfig implements java.io.Serializable {
 
     public CheckpointConfig() {
         configuration = new Configuration();
+    }
+
+    @Internal
+    public CheckpointConfig(Configuration configuration) {
+        this.configuration = configuration;
     }
 
     // ------------------------------------------------------------------------
@@ -944,7 +951,44 @@ public class CheckpointConfig implements java.io.Serializable {
                 .ifPresent(this::setForceUnalignedCheckpoints);
         configuration
                 .getOptional(CheckpointingOptions.CHECKPOINTS_DIRECTORY)
-                .ifPresent(this::setCheckpointStorage);
+                .ifPresent(
+                        dir ->
+                                this.configuration.set(
+                                        CheckpointingOptions.CHECKPOINTS_DIRECTORY, dir));
+        configuration
+                .getOptional(CheckpointingOptions.SAVEPOINT_DIRECTORY)
+                .ifPresent(
+                        dir ->
+                                this.configuration.set(
+                                        CheckpointingOptions.SAVEPOINT_DIRECTORY, dir));
+
+        configureStorage(configuration);
+        configureStateBackend(configuration);
+    }
+
+    private void configureStorage(ReadableConfig config) {
+        configuration
+                .getOptional(CheckpointingOptions.FS_SMALL_FILE_THRESHOLD)
+                .ifPresent(
+                        threshold ->
+                                this.configuration.set(
+                                        CheckpointingOptions.FS_SMALL_FILE_THRESHOLD, threshold));
+        configuration
+                .getOptional(CheckpointingOptions.FS_WRITE_BUFFER_SIZE)
+                .ifPresent(
+                        size ->
+                                this.configuration.set(
+                                        CheckpointingOptions.FS_WRITE_BUFFER_SIZE, size));
+        Map<String, String> storageProp =
+                configuration.getPropWithPrefix(
+                        CheckpointingOptions.CHECKPOINT_STORAGE_OPTIONS_PREFIX);
+        storageProp.forEach(this.configuration::setString);
+    }
+
+    private void configureStateBackend(ReadableConfig configuration) {
+        Map<String, String> stateBackendProps =
+                configuration.getPropWithPrefix(STATE_BACKEND_OPTIONS_PREFIX);
+        stateBackendProps.forEach(this.configuration::setString);
     }
 
     /**

@@ -28,4 +28,7 @@ export interface JobConfig {
       [key: string]: string;
     };
   };
+  'job-config': {
+    [key: string]: string;
+  };
 }

@@ -19,6 +19,7 @@
 package org.apache.flink.runtime.scheduler;
 
 import org.apache.flink.api.common.JobID;
+import org.apache.flink.configuration.Configuration;
 import org.apache.flink.runtime.concurrent.ComponentMainThreadExecutorServiceAdapter;
 import org.apache.flink.runtime.executiongraph.DefaultExecutionGraph;
 import org.apache.flink.runtime.executiongraph.ExecutionGraph;
@@ -103,7 +104,7 @@ public class DefaultOperatorCoordinatorHandlerTest {
 
     private DefaultExecutionGraph createDynamicGraph(JobVertex... jobVertices) throws Exception {
         return TestingDefaultExecutionGraphBuilder.newBuilder()
-                .setJobGraph(new JobGraph(new JobID(), "TestJob", jobVertices))
+                .setJobGraph(new JobGraph(new JobID(), "TestJob", new Configuration(), jobVertices))
                 .buildDynamicGraph(EXECUTOR_RESOURCE.getExecutor());
     }
 }

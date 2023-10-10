@@ -178,6 +178,14 @@ public final class TableConfig implements WritableConfig, ReadableConfig {
         return configuration.getOptional(option).orElseGet(() -> rootConfiguration.get(option));
     }
 
+    @Internal
+    @Override
+    public Map<String, String> getPropWithPrefix(String prefix) {
+        Map<String, String> propWithPrefix = rootConfiguration.getPropWithPrefix(prefix);
+        propWithPrefix.putAll(configuration.getPropWithPrefix(prefix));
+        return propWithPrefix;
+    }
+
     /**
      * {@inheritDoc}
      *

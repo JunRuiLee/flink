@@ -20,6 +20,7 @@ package org.apache.flink.runtime.rest.messages;
 
 import org.apache.flink.api.common.JobID;
 
+import java.util.Collections;
 import java.util.HashMap;
 import java.util.Map;
 
@@ -41,6 +42,7 @@ public class JobConfigInfoTest extends RestResponseMarshallingTestBase<JobConfig
         final JobConfigInfo.ExecutionConfigInfo executionConfigInfo =
                 new JobConfigInfo.ExecutionConfigInfo(
                         "foobar", "always", 42, false, globalJobParameters);
-        return new JobConfigInfo(new JobID(), "testJob", executionConfigInfo);
+        return new JobConfigInfo(
+                new JobID(), "testJob", Collections.emptyMap(), executionConfigInfo);
     }
 }

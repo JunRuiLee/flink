@@ -33,6 +33,7 @@ import org.apache.flink.configuration.JobManagerOptions.SchedulerType;
 import org.apache.flink.configuration.MetricOptions;
 import org.apache.flink.configuration.PipelineOptions;
 import org.apache.flink.configuration.ReadableConfig;
+import org.apache.flink.configuration.RestartStrategyOptions;
 import org.apache.flink.configuration.StateChangelogOptions;
 import org.apache.flink.configuration.TaskManagerOptions;
 import org.apache.flink.configuration.description.InlineElement;
@@ -142,7 +143,7 @@ public class ExecutionConfig implements Serializable, Archiveable<ArchivedExecut
      * In the long run, this field should be somehow merged with the {@link Configuration} from
      * StreamExecutionEnvironment.
      */
-    private final Configuration configuration = new Configuration();
+    private Configuration configuration;
 
     /**
      * @deprecated Should no longer be used because it is subsumed by RestartStrategyConfiguration
@@ -176,6 +177,15 @@ public class ExecutionConfig implements Serializable, Archiveable<ArchivedExecut
     private LinkedHashSet<Class<?>> registeredPojoTypes = new LinkedHashSet<>();
 
     // --------------------------------------------------------------------------------------------
+
+    public ExecutionConfig() {
+        this.configuration = new Configuration();
+    }
+
+    @Internal
+    public ExecutionConfig(Configuration configuration) {
+        this.configuration = configuration;
+    }
 
     /**
      * Enables the ClosureCleaner. This analyzes user code functions and sets fields to null that
@@ -1181,7 +1191,9 @@ public class ExecutionConfig implements Serializable, Archiveable<ArchivedExecut
         configuration
                 .getOptional(ExecutionOptions.SNAPSHOT_COMPRESSION)
                 .ifPresent(this::setUseSnapshotCompression);
-        RestartStrategies.fromConfiguration(configuration).ifPresent(this::setRestartStrategy);
+
+        configureRestartConfig(configuration);
+        RestartStrategies.fromConfiguration(this.configuration).ifPresent(this::setRestartStrategy);
         configuration
                 .getOptional(PipelineOptions.KRYO_DEFAULT_SERIALIZERS)
                 .map(s -> parseKryoSerializersWithExceptionHandling(classLoader, s))
@@ -1200,6 +1212,83 @@ public class ExecutionConfig implements Serializable, Archiveable<ArchivedExecut
         configuration
                 .getOptional(JobManagerOptions.SCHEDULER)
                 .ifPresent(t -> this.configuration.set(JobManagerOptions.SCHEDULER, t));
+    }
+
+    private void configureRestartConfig(ReadableConfig config) {
+        config.getOptional(RestartStrategyOptions.RESTART_STRATEGY)
+                .ifPresent(confName -> configureRestartConfig(confName, config));
+    }
+
+    private void configureRestartConfig(String restartStrategyKind, ReadableConfig configuration) {
+        this.configuration.set(RestartStrategyOptions.RESTART_STRATEGY, restartStrategyKind);
+        switch (restartStrategyKind.toLowerCase()) {
+            case "none":
+            case "off":
+            case "disable":
+                return;
+            case "fixeddelay":
+            case "fixed-delay":
+                this.configuration.set(
+                        RestartStrategyOptions.RESTART_STRATEGY_FIXED_DELAY_ATTEMPTS,
+                        configuration.get(
+                                RestartStrategyOptions.RESTART_STRATEGY_FIXED_DELAY_ATTEMPTS));
+                this.configuration.set(
+                        RestartStrategyOptions.RESTART_STRATEGY_FIXED_DELAY_DELAY,
+                        configuration.get(
+                                RestartStrategyOptions.RESTART_STRATEGY_FIXED_DELAY_DELAY));
+                return;
+            case "exponentialdelay":
+            case "exponential-delay":
+                this.configuration.set(
+                        RestartStrategyOptions.RESTART_STRATEGY_EXPONENTIAL_DELAY_INITIAL_BACKOFF,
+                        configuration.get(
+                                RestartStrategyOptions
+                                        .RESTART_STRATEGY_EXPONENTIAL_DELAY_INITIAL_BACKOFF));
+                this.configuration.set(
+                        RestartStrategyOptions.RESTART_STRATEGY_EXPONENTIAL_DELAY_MAX_BACKOFF,
+                        configuration.get(
+                                RestartStrategyOptions
+                                        .RESTART_STRATEGY_EXPONENTIAL_DELAY_MAX_BACKOFF));
+                this.configuration.set(
+                        RestartStrategyOptions
+                                .RESTART_STRATEGY_EXPONENTIAL_DELAY_BACKOFF_MULTIPLIER,
+                        configuration.get(
+                                RestartStrategyOptions
+                                        .RESTART_STRATEGY_EXPONENTIAL_DELAY_BACKOFF_MULTIPLIER));
+                this.configuration.set(
+                        RestartStrategyOptions
+                                .RESTART_STRATEGY_EXPONENTIAL_DELAY_RESET_BACKOFF_THRESHOLD,
+                        configuration.get(
+                                RestartStrategyOptions
+                                        .RESTART_STRATEGY_EXPONENTIAL_DELAY_RESET_BACKOFF_THRESHOLD));
+                this.configuration.set(
+                        RestartStrategyOptions.RESTART_STRATEGY_EXPONENTIAL_DELAY_JITTER_FACTOR,
+                        configuration.get(
+                                RestartStrategyOptions
+                                        .RESTART_STRATEGY_EXPONENTIAL_DELAY_JITTER_FACTOR));
+                return;
+            case "failurerate":
+            case "failure-rate":
+                this.configuration.set(
+                        RestartStrategyOptions
+                                .RESTART_STRATEGY_FAILURE_RATE_MAX_FAILURES_PER_INTERVAL,
+                        configuration.get(
+                                RestartStrategyOptions
+                                        .RESTART_STRATEGY_FAILURE_RATE_MAX_FAILURES_PER_INTERVAL));
+                this.configuration.set(
+                        RestartStrategyOptions.RESTART_STRATEGY_FAILURE_RATE_FAILURE_RATE_INTERVAL,
+                        configuration.get(
+                                RestartStrategyOptions
+                                        .RESTART_STRATEGY_FAILURE_RATE_FAILURE_RATE_INTERVAL));
+                this.configuration.set(
+                        RestartStrategyOptions.RESTART_STRATEGY_FAILURE_RATE_DELAY,
+                        configuration.get(
+                                RestartStrategyOptions.RESTART_STRATEGY_FAILURE_RATE_DELAY));
+                return;
+            default:
+                throw new IllegalArgumentException(
+                        "Unknown restart strategy " + restartStrategyKind + ".");
+        }
     }
 
     /**

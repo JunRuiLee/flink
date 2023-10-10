@@ -21,6 +21,7 @@ package org.apache.flink.runtime.rest.handler.legacy.utils;
 import org.apache.flink.api.common.ArchivedExecutionConfig;
 import org.apache.flink.api.common.JobID;
 import org.apache.flink.api.common.JobStatus;
+import org.apache.flink.configuration.Configuration;
 import org.apache.flink.runtime.accumulators.StringifiedAccumulatorResult;
 import org.apache.flink.runtime.executiongraph.ArchivedExecutionGraph;
 import org.apache.flink.runtime.executiongraph.ArchivedExecutionJobVertex;
@@ -52,6 +53,7 @@ public class ArchivedExecutionGraphBuilder {
     private String jsonPlan;
     private StringifiedAccumulatorResult[] archivedUserAccumulators;
     private ArchivedExecutionConfig archivedExecutionConfig;
+    private Configuration jobConfiguration = new Configuration();
     private boolean isStoppable;
     private Map<String, SerializedValue<OptionalFailure<Object>>> serializedUserAccumulators;
 
@@ -110,6 +112,11 @@ public class ArchivedExecutionGraphBuilder {
         return this;
     }
 
+    public ArchivedExecutionGraphBuilder setJobConfiguration(Configuration jobConfiguration) {
+        this.jobConfiguration = jobConfiguration;
+        return this;
+    }
+
     public ArchivedExecutionGraphBuilder setStoppable(boolean stoppable) {
         isStoppable = stoppable;
         return this;
@@ -152,6 +159,7 @@ public class ArchivedExecutionGraphBuilder {
                 serializedUserAccumulators != null
                         ? serializedUserAccumulators
                         : Collections.emptyMap(),
+                jobConfiguration,
                 archivedExecutionConfig != null
                         ? archivedExecutionConfig
                         : new ArchivedExecutionConfigBuilder().build(),

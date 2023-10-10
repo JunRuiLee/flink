@@ -21,6 +21,7 @@ package org.apache.flink.runtime.jobgraph;
 import org.apache.flink.api.common.ExecutionConfig;
 import org.apache.flink.api.common.JobID;
 import org.apache.flink.api.common.cache.DistributedCache;
+import org.apache.flink.configuration.Configuration;
 import org.apache.flink.runtime.jobgraph.tasks.JobCheckpointingSettings;
 import org.apache.flink.util.SerializedValue;
 
@@ -57,6 +58,8 @@ public class JobGraphBuilder {
 
     @Nullable private SavepointRestoreSettings savepointRestoreSettings = null;
 
+    private Configuration jobConfiguration = new Configuration();
+
     private JobGraphBuilder(JobType jobType) {
         this.jobType = jobType;
     }
@@ -86,6 +89,11 @@ public class JobGraphBuilder {
         return this;
     }
 
+    public JobGraphBuilder setJobConfiguration(Configuration jobConfiguration) {
+        this.jobConfiguration = jobConfiguration;
+        return this;
+    }
+
     public JobGraphBuilder addUserArtifacts(
             Map<String, DistributedCache.DistributedCacheEntry> newUserArtifacts) {
         userArtifacts.putAll(newUserArtifacts);
@@ -111,7 +119,8 @@ public class JobGraphBuilder {
 
     public JobGraph build() {
         final JobGraph jobGraph =
-                new JobGraph(jobId, jobName, jobVertices.toArray(new JobVertex[0]));
+                new JobGraph(
+                        jobId, jobName, jobConfiguration, jobVertices.toArray(new JobVertex[0]));
 
         jobGraph.setJobType(jobType);
 

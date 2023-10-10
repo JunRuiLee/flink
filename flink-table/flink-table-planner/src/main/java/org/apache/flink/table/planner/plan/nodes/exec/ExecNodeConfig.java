@@ -28,6 +28,7 @@ import org.apache.flink.table.api.config.ExecutionConfigOptions;
 import org.apache.flink.table.api.config.ExecutionConfigOptions.UidGeneration;
 import org.apache.flink.table.planner.delegation.PlannerBase;
 
+import java.util.Map;
 import java.util.Optional;
 
 /**
@@ -73,6 +74,14 @@ public final class ExecNodeConfig implements ReadableConfig {
     @Override
     public <T> T get(ConfigOption<T> option) {
         return nodeConfig.getOptional(option).orElseGet(() -> tableConfig.get(option));
+    }
+
+    @Internal
+    @Override
+    public Map<String, String> getPropWithPrefix(String prefix) {
+        Map<String, String> propWithPrefix = tableConfig.getPropWithPrefix(prefix);
+        propWithPrefix.putAll(nodeConfig.getPropWithPrefix(prefix));
+        return propWithPrefix;
     }
 
     @Override

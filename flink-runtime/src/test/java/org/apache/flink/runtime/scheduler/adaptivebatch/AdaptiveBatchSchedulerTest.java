@@ -21,6 +21,7 @@ package org.apache.flink.runtime.scheduler.adaptivebatch;
 
 import org.apache.flink.api.common.JobID;
 import org.apache.flink.configuration.BatchExecutionOptions;
+import org.apache.flink.configuration.Configuration;
 import org.apache.flink.core.failure.FailureEnricher;
 import org.apache.flink.core.failure.TestingFailureEnricher;
 import org.apache.flink.runtime.concurrent.ComponentMainThreadExecutor;
@@ -162,7 +163,8 @@ class AdaptiveBatchSchedulerTest {
 
         SchedulerBase scheduler =
                 createScheduler(
-                        new JobGraph(new JobID(), "test job", source, map, sink),
+                        new JobGraph(
+                                new JobID(), "test job", new Configuration(), source, map, sink),
                         createCustomParallelismDecider(
                                 jobVertexId -> {
                                     if (jobVertexId.equals(map.getID())) {
@@ -286,7 +288,7 @@ class AdaptiveBatchSchedulerTest {
 
         SchedulerBase scheduler =
                 createScheduler(
-                        new JobGraph(new JobID(), "test job", source, sink),
+                        new JobGraph(new JobID(), "test job", new Configuration(), source, sink),
                         createDecider(1, 16, 4 * SUBPARTITION_BYTES),
                         16);
 
@@ -309,7 +311,8 @@ class AdaptiveBatchSchedulerTest {
                 source, DistributionPattern.ALL_TO_ALL, ResultPartitionType.BLOCKING);
 
         SchedulerBase scheduler =
-                createScheduler(new JobGraph(new JobID(), "test job", source, sink));
+                createScheduler(
+                        new JobGraph(new JobID(), "test job", new Configuration(), source, sink));
         final DefaultExecutionGraph graph = (DefaultExecutionGraph) scheduler.getExecutionGraph();
         final ExecutionJobVertex sinkExecutionJobVertex = graph.getJobVertex(sink.getID());
 
@@ -341,7 +344,7 @@ class AdaptiveBatchSchedulerTest {
 
         SchedulerBase scheduler =
                 createScheduler(
-                        new JobGraph(new JobID(), "test job", source),
+                        new JobGraph(new JobID(), "test job", new Configuration(), source),
                         createDecider(1, 128, 1L, 32),
                         128);
 
@@ -367,7 +370,7 @@ class AdaptiveBatchSchedulerTest {
 
         SchedulerBase scheduler =
                 createScheduler(
-                        new JobGraph(new JobID(), "test job", source, sink),
+                        new JobGraph(new JobID(), "test job", new Configuration(), source, sink),
                         createDecider(
                                 globalMinParallelism, globalMaxParallelism, dataVolumePerTask),
                         globalMaxParallelism);
@@ -506,7 +509,7 @@ class AdaptiveBatchSchedulerTest {
                 ResultPartitionType.BLOCKING,
                 broken ? sharedDataSetId : new IntermediateDataSetID(),
                 false);
-        return new JobGraph(new JobID(), "test job", source1, source2, sink);
+        return new JobGraph(new JobID(), "test job", new Configuration(), source1, source2, sink);
     }
 
     private SchedulerBase createScheduler(JobGraph jobGraph) throws Exception {

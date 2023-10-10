@@ -18,12 +18,15 @@
 
 package org.apache.flink.streaming.examples.wordcount;
 
+import org.apache.flink.configuration.CheckpointingOptions;
 import org.apache.flink.configuration.ConfigOption;
 import org.apache.flink.configuration.IllegalConfigurationException;
 import org.apache.flink.configuration.ReadableConfig;
 import org.apache.flink.configuration.description.Description;
 import org.apache.flink.runtime.state.CheckpointStorageFactory;
 import org.apache.flink.runtime.state.storage.FileSystemCheckpointStorage;
+
+import java.util.Map;
 
 import static org.apache.flink.configuration.ConfigOptions.key;
 
@@ -34,7 +37,7 @@ public class CustomCheckpointStorage extends FileSystemCheckpointStorage {
     }
 
     private static final ConfigOption<String> PATH =
-            key("custom-checkpoint-storage.path")
+            key("state.storage.custom-checkpoint-storage.path")
                     .stringType()
                     .noDefaultValue()
                     .withDescription(new Description.DescriptionBuilder().text("test").build());
@@ -47,7 +50,10 @@ public class CustomCheckpointStorage extends FileSystemCheckpointStorage {
         public CustomCheckpointStorage createFromConfig(
                 ReadableConfig config, ClassLoader classLoader)
                 throws IllegalConfigurationException {
-            return new CustomCheckpointStorage(config.get(PATH));
+            Map<String, String> map =
+                    config.getPropWithPrefix(
+                            CheckpointingOptions.CHECKPOINT_STORAGE_OPTIONS_PREFIX);
+            return new CustomCheckpointStorage(map.get(PATH.key()));
         }
     }
 }

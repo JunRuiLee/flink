@@ -32,15 +32,18 @@ import org.apache.flink.shaded.jackson2.com.fasterxml.jackson.core.JsonGenerator
 import org.apache.flink.shaded.jackson2.com.fasterxml.jackson.core.JsonParser;
 import org.apache.flink.shaded.jackson2.com.fasterxml.jackson.databind.DeserializationContext;
 import org.apache.flink.shaded.jackson2.com.fasterxml.jackson.databind.JsonNode;
+import org.apache.flink.shaded.jackson2.com.fasterxml.jackson.databind.ObjectMapper;
 import org.apache.flink.shaded.jackson2.com.fasterxml.jackson.databind.SerializerProvider;
 import org.apache.flink.shaded.jackson2.com.fasterxml.jackson.databind.annotation.JsonDeserialize;
 import org.apache.flink.shaded.jackson2.com.fasterxml.jackson.databind.annotation.JsonSerialize;
 import org.apache.flink.shaded.jackson2.com.fasterxml.jackson.databind.deser.std.StdDeserializer;
 import org.apache.flink.shaded.jackson2.com.fasterxml.jackson.databind.ser.std.StdSerializer;
+import org.apache.flink.shaded.jackson2.com.fasterxml.jackson.databind.type.MapType;
 
 import javax.annotation.Nullable;
 
 import java.io.IOException;
+import java.util.HashMap;
 import java.util.Map;
 import java.util.Objects;
 
@@ -52,17 +55,24 @@ public class JobConfigInfo implements ResponseBody {
     public static final String FIELD_NAME_JOB_ID = "jid";
     public static final String FIELD_NAME_JOB_NAME = "name";
     public static final String FIELD_NAME_EXECUTION_CONFIG = "execution-config";
+    public static final String FIELD_NAME_JOB_CONFIG = "job-config";
 
     private final JobID jobId;
 
     private final String jobName;
 
+    private final Map<String, String> jobConfig;
+
     @Nullable private final ExecutionConfigInfo executionConfigInfo;
 
     public JobConfigInfo(
-            JobID jobId, String jobName, @Nullable ExecutionConfigInfo executionConfigInfo) {
+            JobID jobId,
+            String jobName,
+            Map<String, String> jobConfig,
+            @Nullable ExecutionConfigInfo executionConfigInfo) {
         this.jobId = Preconditions.checkNotNull(jobId);
         this.jobName = Preconditions.checkNotNull(jobName);
+        this.jobConfig = Preconditions.checkNotNull(jobConfig);
         this.executionConfigInfo = executionConfigInfo;
     }
 
@@ -77,6 +87,10 @@ public class JobConfigInfo implements ResponseBody {
     @Nullable
     public ExecutionConfigInfo getExecutionConfigInfo() {
         return executionConfigInfo;
+    }
+
+    public Map<String, String> getJobConfig() {
+        return jobConfig;
     }
 
     @Override
@@ -127,6 +141,12 @@ public class JobConfigInfo implements ResponseBody {
                         FIELD_NAME_EXECUTION_CONFIG, jobConfigInfo.getExecutionConfigInfo());
             }
 
+            jsonGenerator.writeObjectFieldStart(FIELD_NAME_JOB_CONFIG);
+            for (Map.Entry<String, String> entry : jobConfigInfo.getJobConfig().entrySet()) {
+                jsonGenerator.writeStringField(entry.getKey(), entry.getValue());
+            }
+            jsonGenerator.writeEndObject();
+
             jsonGenerator.writeEndObject();
         }
     }
@@ -135,6 +155,8 @@ public class JobConfigInfo implements ResponseBody {
     public static final class Deserializer extends StdDeserializer<JobConfigInfo> {
 
         private static final long serialVersionUID = -3580088509877177213L;
+
+        private static final ObjectMapper objectMapper = RestMapperUtils.getStrictObjectMapper();
 
         public Deserializer() {
             super(JobConfigInfo.class);
@@ -161,7 +183,16 @@ public class JobConfigInfo implements ResponseBody {
                 executionConfigInfo = null;
             }
 
-            return new JobConfigInfo(jobId, jobName, executionConfigInfo);
+            MapType mapType =
+                    objectMapper
+                            .getTypeFactory()
+                            .constructMapType(HashMap.class, String.class, String.class);
+
+            Map<String, String> jobConfig =
+                    RestMapperUtils.getStrictObjectMapper()
+                            .treeToValue(rootNode.get(FIELD_NAME_JOB_CONFIG), mapType);
+
+            return new JobConfigInfo(jobId, jobName, jobConfig, executionConfigInfo);
         }
     }
 

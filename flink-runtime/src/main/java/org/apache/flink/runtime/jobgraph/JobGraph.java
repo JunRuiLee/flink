@@ -79,7 +79,7 @@ public class JobGraph implements Serializable {
             new LinkedHashMap<JobVertexID, JobVertex>();
 
     /** The job configuration attached to this job. */
-    private final Configuration jobConfiguration = new Configuration();
+    private final Configuration jobConfiguration;
 
     /** ID of this job. May be set if specific job id is desired (e.g. session management) */
     private JobID jobID;
@@ -135,7 +135,7 @@ public class JobGraph implements Serializable {
      * @param jobName The name of the job.
      */
     public JobGraph(String jobName) {
-        this(null, jobName);
+        this(null, jobName, new Configuration());
     }
 
     /**
@@ -146,9 +146,10 @@ public class JobGraph implements Serializable {
      * @param jobId The id of the job. A random ID is generated, if {@code null} is passed.
      * @param jobName The name of the job.
      */
-    public JobGraph(@Nullable JobID jobId, String jobName) {
+    public JobGraph(@Nullable JobID jobId, String jobName, Configuration jobConfiguration) {
         this.jobID = jobId == null ? new JobID() : jobId;
         this.jobName = jobName == null ? "(unnamed job)" : jobName;
+        this.jobConfiguration = checkNotNull(jobConfiguration);
 
         try {
             setExecutionConfig(new ExecutionConfig());
@@ -167,8 +168,12 @@ public class JobGraph implements Serializable {
      * @param jobName The name of the job.
      * @param vertices The vertices to add to the graph.
      */
-    public JobGraph(@Nullable JobID jobId, String jobName, JobVertex... vertices) {
-        this(jobId, jobName);
+    public JobGraph(
+            @Nullable JobID jobId,
+            String jobName,
+            Configuration jobConfiguration,
+            JobVertex... vertices) {
+        this(jobId, jobName, jobConfiguration);
 
         for (JobVertex vertex : vertices) {
             addVertex(vertex);
@@ -642,6 +647,10 @@ public class JobGraph implements Serializable {
             DistributedCache.writeFileInfoToConfig(
                     userArtifact.getKey(), userArtifact.getValue(), jobConfiguration);
         }
+    }
+
+    public void addConfiguration(Configuration config) {
+        jobConfiguration.addAll(config);
     }
 
     public void setChangelogStateBackendEnabled(TernaryBoolean changelogStateBackendEnabled) {

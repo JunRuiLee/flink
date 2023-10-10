@@ -18,8 +18,12 @@
 
 package org.apache.flink.configuration;
 
+import org.apache.flink.annotation.Internal;
 import org.apache.flink.annotation.PublicEvolving;
 
+import javax.annotation.Nonnull;
+
+import java.util.Map;
 import java.util.Optional;
 
 /**
@@ -50,4 +54,8 @@ public interface ReadableConfig {
      * @see #get(ConfigOption)
      */
     <T> Optional<T> getOptional(ConfigOption<T> option);
+
+    @Internal
+    @Nonnull
+    Map<String, String> getPropWithPrefix(String prefix);
 }

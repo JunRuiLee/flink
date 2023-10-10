@@ -73,6 +73,14 @@ public class PythonConfig implements ReadableConfig {
                 .orElseGet(() -> configuration.get(option));
     }
 
+    @Internal
+    @Override
+    public Map<String, String> getPropWithPrefix(String prefix) {
+        Map<String, String> propWithPrefix = configuration.getPropWithPrefix(prefix);
+        propWithPrefix.putAll(pythonDependencyConfiguration.getPropWithPrefix(prefix));
+        return propWithPrefix;
+    }
+
     @Override
     public <T> Optional<T> getOptional(ConfigOption<T> option) {
         final Optional<T> value = pythonDependencyConfiguration.getOptional(option);

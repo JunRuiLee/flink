@@ -20,6 +20,7 @@ package org.apache.flink.runtime.jobmaster;
 import org.apache.flink.api.common.ExecutionConfig;
 import org.apache.flink.api.common.JobID;
 import org.apache.flink.api.common.restartstrategy.RestartStrategies;
+import org.apache.flink.configuration.Configuration;
 import org.apache.flink.runtime.execution.Environment;
 import org.apache.flink.runtime.io.network.api.reader.RecordReader;
 import org.apache.flink.runtime.io.network.api.writer.RecordWriter;
@@ -189,7 +190,7 @@ public class JobIntermediateDatasetReuseTest {
         receiver.setInvokableClass(Receiver.class);
         receiver.addIntermediateDataSetIdToConsume(intermediateDataSetID);
 
-        return new JobGraph(null, "Second Job", receiver);
+        return new JobGraph(null, "Second Job", new Configuration(), receiver);
     }
 
     private JobGraph createFirstJobGraph(
@@ -209,7 +210,7 @@ public class JobIntermediateDatasetReuseTest {
                 intermediateDataSetID,
                 false);
 
-        return new JobGraph(null, "First Job", sender, receiver);
+        return new JobGraph(null, "First Job", new Configuration(), sender, receiver);
     }
 
     /**

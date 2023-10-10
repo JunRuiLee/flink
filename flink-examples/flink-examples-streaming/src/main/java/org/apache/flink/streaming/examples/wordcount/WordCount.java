@@ -81,7 +81,7 @@ public class WordCount {
         conf.set(
                 CheckpointingOptions.CHECKPOINT_STORAGE,
                 "org.apache.flink.streaming.examples.wordcount.CustomCheckpointStorage$CustomCheckpointStorageFactory");
-        conf.setString("custom-checkpoint-storage.path", "file:///test");
+        conf.setString("state.storage.additional.custom-checkpoint-storage.path", "file:///test");
 
         conf.set(StateBackendOptions.STATE_BACKEND, "hashmap");
 

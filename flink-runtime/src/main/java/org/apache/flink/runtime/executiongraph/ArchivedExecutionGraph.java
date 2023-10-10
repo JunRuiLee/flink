@@ -22,6 +22,7 @@ import org.apache.flink.api.common.ArchivedExecutionConfig;
 import org.apache.flink.api.common.ExecutionConfig;
 import org.apache.flink.api.common.JobID;
 import org.apache.flink.api.common.JobStatus;
+import org.apache.flink.configuration.Configuration;
 import org.apache.flink.configuration.MemorySize;
 import org.apache.flink.runtime.accumulators.StringifiedAccumulatorResult;
 import org.apache.flink.runtime.checkpoint.CheckpointStatsSnapshot;
@@ -92,6 +93,7 @@ public class ArchivedExecutionGraph implements AccessExecutionGraph, Serializabl
     // ------ Fields that are only relevant for archived execution graphs ------------
     private final String jsonPlan;
     private final StringifiedAccumulatorResult[] archivedUserAccumulators;
+    private final Configuration jobConfiguration;
     private final ArchivedExecutionConfig archivedExecutionConfig;
     private final boolean isStoppable;
     private final Map<String, SerializedValue<OptionalFailure<Object>>> serializedUserAccumulators;
@@ -119,6 +121,7 @@ public class ArchivedExecutionGraph implements AccessExecutionGraph, Serializabl
             String jsonPlan,
             StringifiedAccumulatorResult[] archivedUserAccumulators,
             Map<String, SerializedValue<OptionalFailure<Object>>> serializedUserAccumulators,
+            Configuration jobConfiguration,
             ArchivedExecutionConfig executionConfig,
             boolean isStoppable,
             @Nullable CheckpointCoordinatorConfiguration jobCheckpointingConfiguration,
@@ -139,6 +142,7 @@ public class ArchivedExecutionGraph implements AccessExecutionGraph, Serializabl
         this.archivedUserAccumulators = Preconditions.checkNotNull(archivedUserAccumulators);
         this.serializedUserAccumulators = Preconditions.checkNotNull(serializedUserAccumulators);
         this.archivedExecutionConfig = Preconditions.checkNotNull(executionConfig);
+        this.jobConfiguration = Preconditions.checkNotNull(jobConfiguration);
         this.isStoppable = isStoppable;
         this.jobCheckpointingConfiguration = jobCheckpointingConfiguration;
         this.checkpointStatsSnapshot = checkpointStatsSnapshot;
@@ -252,6 +256,11 @@ public class ArchivedExecutionGraph implements AccessExecutionGraph, Serializabl
     }
 
     @Override
+    public Configuration getJobConfiguration() {
+        return jobConfiguration;
+    }
+
+    @Override
     public boolean isStoppable() {
         return isStoppable;
     }
@@ -346,6 +355,7 @@ public class ArchivedExecutionGraph implements AccessExecutionGraph, Serializabl
                 executionGraph.getJsonPlan(),
                 executionGraph.getAccumulatorResultsStringified(),
                 serializedUserAccumulators,
+                executionGraph.getJobConfiguration(),
                 executionGraph.getArchivedExecutionConfig(),
                 executionGraph.isStoppable(),
                 executionGraph.getCheckpointCoordinatorConfiguration(),
@@ -456,6 +466,7 @@ public class ArchivedExecutionGraph implements AccessExecutionGraph, Serializabl
                 jsonPlan,
                 archivedUserAccumulators,
                 serializedUserAccumulators,
+                new Configuration(),
                 new ExecutionConfig().archive(),
                 false,
                 checkpointingSettings == null
