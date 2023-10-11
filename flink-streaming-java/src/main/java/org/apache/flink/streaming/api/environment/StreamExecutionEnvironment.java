@@ -201,7 +201,7 @@ public class StreamExecutionEnvironment implements AutoCloseable {
     private final Map<AbstractID, CacheTransformation<?>> cachedTransformations = new HashMap<>();
 
     /** The state backend used for storing k/v state and state snapshots. */
-    private StateBackend defaultStateBackend;
+    @Deprecated private StateBackend defaultStateBackend;
 
     /** The time characteristic used by the data streams. */
     private TimeCharacteristic timeCharacteristic = DEFAULT_TIME_CHARACTERISTIC;

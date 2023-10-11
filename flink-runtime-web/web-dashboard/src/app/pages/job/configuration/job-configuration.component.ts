@@ -24,6 +24,7 @@ import { mergeMap, takeUntil } from 'rxjs/operators';
 import { JobConfig } from '@flink-runtime-web/interfaces';
 import { JobService } from '@flink-runtime-web/services';
 import { NzCardModule } from 'ng-zorro-antd/card';
+import { NzCollapseModule } from 'ng-zorro-antd/collapse';
 import { NzTableModule } from 'ng-zorro-antd/table';
 
 import { JobLocalService } from '../job-local.service';
@@ -33,7 +34,7 @@ import { JobLocalService } from '../job-local.service';
   templateUrl: './job-configuration.component.html',
   styleUrls: ['./job-configuration.component.less'],
   changeDetection: ChangeDetectionStrategy.OnPush,
-  imports: [NzCardModule, NzTableModule, NgIf, NgForOf],
+  imports: [NzCardModule, NzTableModule, NgIf, NgForOf, NzCollapseModule],
   standalone: true
 })
 export class JobConfigurationComponent implements OnInit, OnDestroy {

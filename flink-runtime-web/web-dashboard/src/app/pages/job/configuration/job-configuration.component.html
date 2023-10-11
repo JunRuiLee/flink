@@ -71,22 +71,26 @@
     </tbody>
   </nz-table>
 </nz-card>
-<nz-card nzType="inner" nzTitle="Job Configuration">
-  <nz-table
-    #jobTable
-    *ngIf="config"
-    class="no-border small"
-    [nzData]="listOfJobConfig"
-    [nzSize]="'small'"
-    [nzFrontPagination]="false"
-    [nzShowPagination]="false"
-    [nzWidthConfig]="['50%', '50%']"
-  >
-    <tbody>
-      <tr *ngFor="let config of jobTable.data">
-        <td>{{ config.key }}</td>
-        <td>{{ config.value }}</td>
-      </tr>
-    </tbody>
-  </nz-table>
-</nz-card>
+<nz-collapse>
+  <nz-collapse-panel nzHeader="Job Configuration">
+    <nz-card nzType="inner">
+      <nz-table
+        #jobTable
+        *ngIf="config"
+        class="no-border small"
+        [nzData]="listOfJobConfig"
+        [nzSize]="'small'"
+        [nzFrontPagination]="false"
+        [nzShowPagination]="false"
+        [nzWidthConfig]="['50%', '50%']"
+      >
+        <tbody>
+          <tr *ngFor="let config of jobTable.data">
+            <td>{{ config.key }}</td>
+            <td>{{ config.value }}</td>
+          </tr>
+        </tbody>
+      </nz-table>
+    </nz-card>
+  </nz-collapse-panel>
+</nz-collapse>

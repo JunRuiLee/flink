@@ -18,7 +18,6 @@
 
 package org.apache.flink.configuration;
 
-import org.apache.flink.annotation.Internal;
 import org.apache.flink.annotation.PublicEvolving;
 
 import javax.annotation.Nonnull;
@@ -55,7 +54,13 @@ public interface ReadableConfig {
      */
     <T> Optional<T> getOptional(ConfigOption<T> option);
 
-    @Internal
+    /**
+     * Retrieves a map of key-value pairs from the ReadableConfig that start with the specified
+     * prefix.
+     *
+     * @param prefix the prefix string to match the keys with
+     * @return a map containing the matched key-value pairs
+     */
     @Nonnull
     Map<String, String> getPropWithPrefix(String prefix);
 }

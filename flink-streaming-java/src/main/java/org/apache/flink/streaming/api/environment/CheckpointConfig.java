@@ -966,7 +966,7 @@ public class CheckpointConfig implements java.io.Serializable {
         configureStateBackend(configuration);
     }
 
-    private void configureStorage(ReadableConfig config) {
+    private void configureStorage(ReadableConfig configuration) {
         configuration
                 .getOptional(CheckpointingOptions.FS_SMALL_FILE_THRESHOLD)
                 .ifPresent(

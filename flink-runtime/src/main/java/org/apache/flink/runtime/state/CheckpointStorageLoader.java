@@ -74,7 +74,9 @@ public class CheckpointStorageLoader {
 
         Preconditions.checkNotNull(config, "config");
         Preconditions.checkNotNull(classLoader, "classLoader");
-
+        if (logger != null) {
+            logger.info("Load storage from config: {}", ((Configuration) config).toMap());
+        }
         final String storageName = config.get(CheckpointingOptions.CHECKPOINT_STORAGE);
         if (storageName == null) {
             if (logger != null) {
