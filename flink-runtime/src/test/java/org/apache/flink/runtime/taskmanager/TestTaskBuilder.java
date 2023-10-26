@@ -37,6 +37,7 @@ import org.apache.flink.runtime.externalresource.ExternalResourceInfoProvider;
 import org.apache.flink.runtime.filecache.FileCache;
 import org.apache.flink.runtime.io.disk.iomanager.IOManager;
 import org.apache.flink.runtime.io.network.TaskEventDispatcher;
+import org.apache.flink.runtime.jobgraph.JobType;
 import org.apache.flink.runtime.jobgraph.JobVertexID;
 import org.apache.flink.runtime.jobgraph.tasks.AbstractInvokable;
 import org.apache.flink.runtime.jobgraph.tasks.TaskInvokable;
@@ -188,6 +189,7 @@ public final class TestTaskBuilder {
                 new JobInformation(
                         jobId,
                         "Test Job",
+                        JobType.UNKNOWN.name(),
                         serializedExecutionConfig,
                         new Configuration(),
                         requiredJarFileBlobKeys,

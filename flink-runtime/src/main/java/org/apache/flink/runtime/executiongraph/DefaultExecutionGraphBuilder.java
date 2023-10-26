@@ -51,6 +51,7 @@ import org.apache.flink.runtime.state.StateBackend;
 import org.apache.flink.runtime.state.StateBackendLoader;
 import org.apache.flink.util.DynamicCodeLoadingException;
 import org.apache.flink.util.SerializedValue;
+import org.apache.flink.util.WrappingRuntimeException;
 
 import org.slf4j.Logger;
 
@@ -108,6 +109,7 @@ public class DefaultExecutionGraphBuilder {
                 new JobInformation(
                         jobId,
                         jobName,
+                        jobGraph.getJobType().name(),
                         jobGraph.getSerializedExecutionConfig(),
                         jobGraph.getJobConfiguration(),
                         jobGraph.getUserJarBlobKeys(),
@@ -233,13 +235,26 @@ public class DefaultExecutionGraphBuilder {
             JobCheckpointingSettings snapshotSettings = jobGraph.getCheckpointingSettings();
 
             // load the state backend from the application settings
-            final StateBackend applicationConfiguredBackend;
+            StateBackend applicationConfiguredBackend;
             final SerializedValue<StateBackend> serializedAppConfigured =
                     snapshotSettings.getDefaultStateBackend();
 
-            if (serializedAppConfigured == null) {
-                applicationConfiguredBackend = null;
-            } else {
+            /**
+             * TODO here we always hope the statebackend get from application is null because we
+             * want the job-level side storage is generate in the server instead of the client.
+             *
+             * <p>Note the most important thing is that we can assume the job configuration get from
+             * graph is valid!
+             */
+            try {
+                applicationConfiguredBackend =
+                        StateBackendLoader.loadStateBackendFromConfig(
+                                executionGraph.getJobConfiguration(), classLoader, log);
+            } catch (DynamicCodeLoadingException | IOException e) {
+                throw new WrappingRuntimeException(e);
+            }
+
+            if (applicationConfiguredBackend == null && serializedAppConfigured != null) {
                 try {
                     applicationConfiguredBackend =
                             serializedAppConfigured.deserializeValue(classLoader);
@@ -264,13 +279,27 @@ public class DefaultExecutionGraphBuilder {
             }
 
             // load the checkpoint storage from the application settings
-            final CheckpointStorage applicationConfiguredStorage;
+            CheckpointStorage applicationConfiguredStorage;
             final SerializedValue<CheckpointStorage> serializedAppConfiguredStorage =
                     snapshotSettings.getDefaultCheckpointStorage();
 
-            if (serializedAppConfiguredStorage == null) {
-                applicationConfiguredStorage = null;
-            } else {
+            /**
+             * TODO here we always hope the storage get from application is null because we want the
+             * job-level side storage is generate in the server instead of the client.
+             *
+             * <p>Note the most important thing is that we can assume the job configuration get from
+             * graph is valid!
+             */
+            try {
+                applicationConfiguredStorage =
+                        CheckpointStorageLoader.fromConfig(
+                                        executionGraph.getJobConfiguration(), classLoader, log)
+                                .orElse(null);
+            } catch (DynamicCodeLoadingException e) {
+                throw new RuntimeException(e);
+            }
+
+            if (applicationConfiguredStorage == null && serializedAppConfiguredStorage != null) {
                 try {
                     applicationConfiguredStorage =
                             serializedAppConfiguredStorage.deserializeValue(classLoader);

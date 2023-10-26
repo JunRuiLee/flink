@@ -50,6 +50,7 @@ import org.apache.flink.runtime.executiongraph.TaskExecutionStateTransition;
 import org.apache.flink.runtime.executiongraph.failover.flip1.ResultPartitionAvailabilityChecker;
 import org.apache.flink.runtime.jobgraph.IntermediateDataSetID;
 import org.apache.flink.runtime.jobgraph.IntermediateResultPartitionID;
+import org.apache.flink.runtime.jobgraph.JobType;
 import org.apache.flink.runtime.jobgraph.JobVertex;
 import org.apache.flink.runtime.jobgraph.JobVertexID;
 import org.apache.flink.runtime.jobgraph.tasks.CheckpointCoordinatorConfiguration;
@@ -187,6 +188,11 @@ class StateTrackingMockExecutionGraph implements ExecutionGraph {
     @Override
     public String getJobName() {
         return "testJob";
+    }
+
+    @Override
+    public String getJobType() {
+        return JobType.UNKNOWN.name();
     }
 
     @Nullable

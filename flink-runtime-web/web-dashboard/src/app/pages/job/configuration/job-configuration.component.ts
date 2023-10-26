@@ -24,6 +24,7 @@ import { mergeMap, takeUntil } from 'rxjs/operators';
 import { JobConfig } from '@flink-runtime-web/interfaces';
 import { JobService } from '@flink-runtime-web/services';
 import { NzCardModule } from 'ng-zorro-antd/card';
+import { NzCollapseModule } from 'ng-zorro-antd/collapse';
 import { NzTableModule } from 'ng-zorro-antd/table';
 
 import { JobLocalService } from '../job-local.service';
@@ -33,12 +34,13 @@ import { JobLocalService } from '../job-local.service';
   templateUrl: './job-configuration.component.html',
   styleUrls: ['./job-configuration.component.less'],
   changeDetection: ChangeDetectionStrategy.OnPush,
-  imports: [NzCardModule, NzTableModule, NgIf, NgForOf],
+  imports: [NzCardModule, NzTableModule, NgIf, NgForOf, NzCollapseModule],
   standalone: true
 })
 export class JobConfigurationComponent implements OnInit, OnDestroy {
   public config: JobConfig;
   public listOfUserConfig: Array<{ key: string; value: string }> = [];
+  public listOfJobConfig: Array<{ key: string; value: string }> = [];
 
   private destroy$ = new Subject<void>();
 
@@ -58,14 +60,23 @@ export class JobConfigurationComponent implements OnInit, OnDestroy {
       .subscribe(data => {
         this.config = data;
         const userConfig = this.config['execution-config']['user-config'];
-        const array = [];
+        const userConfigArray = [];
         for (const key in userConfig) {
-          array.push({
+          userConfigArray.push({
             key,
             value: userConfig[key]
           });
         }
-        this.listOfUserConfig = array.sort((pre, next) => (pre.key > next.key ? 1 : -1));
+        this.listOfUserConfig = userConfigArray.sort((pre, next) => (pre.key > next.key ? 1 : -1));
+        const jobConfig2 = this.config['job-config'];
+        const jobConfigArray = [];
+        for (const key in jobConfig2) {
+          jobConfigArray.push({
+            key,
+            value: jobConfig2[key]
+          });
+        }
+        this.listOfJobConfig = jobConfigArray.sort((pre, next) => (pre.key > next.key ? 1 : -1));
         this.cdr.markForCheck();
       });
   }

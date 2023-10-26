@@ -229,7 +229,7 @@ public class StreamingJobGraphGenerator {
         this.chainInfos = new HashMap<>();
         this.opNonChainableOutputsCache = new LinkedHashMap<>();
 
-        jobGraph = new JobGraph(jobID, streamGraph.getJobName());
+        jobGraph = new JobGraph(jobID, streamGraph.getJobName(), streamGraph.getJobConfiguration());
     }
 
     private JobGraph createJobGraph() {

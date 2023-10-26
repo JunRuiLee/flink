@@ -100,6 +100,10 @@ public class PluginLoader implements AutoCloseable {
         }
     }
 
+    public Class<?> load(String className) throws ClassNotFoundException {
+        return pluginClassLoader.loadClass(className);
+    }
+
     @Override
     public void close() {
         try {

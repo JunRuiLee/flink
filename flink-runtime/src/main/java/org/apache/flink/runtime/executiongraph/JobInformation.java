@@ -22,6 +22,7 @@ import org.apache.flink.api.common.ExecutionConfig;
 import org.apache.flink.api.common.JobID;
 import org.apache.flink.configuration.Configuration;
 import org.apache.flink.runtime.blob.PermanentBlobKey;
+import org.apache.flink.runtime.jobgraph.JobType;
 import org.apache.flink.util.Preconditions;
 import org.apache.flink.util.SerializedValue;
 
@@ -39,6 +40,8 @@ public class JobInformation implements Serializable {
 
     /** Job name. */
     private final String jobName;
+
+    private final String jobType;
 
     /** Serialized execution config because it can contain user code classes. */
     private final SerializedValue<ExecutionConfig> serializedExecutionConfig;
@@ -59,8 +62,27 @@ public class JobInformation implements Serializable {
             Configuration jobConfiguration,
             Collection<PermanentBlobKey> requiredJarFileBlobKeys,
             Collection<URL> requiredClasspathURLs) {
+        this(
+                jobId,
+                jobName,
+                JobType.UNKNOWN.name(),
+                serializedExecutionConfig,
+                jobConfiguration,
+                requiredJarFileBlobKeys,
+                requiredClasspathURLs);
+    }
+
+    public JobInformation(
+            JobID jobId,
+            String jobName,
+            String jobType,
+            SerializedValue<ExecutionConfig> serializedExecutionConfig,
+            Configuration jobConfiguration,
+            Collection<PermanentBlobKey> requiredJarFileBlobKeys,
+            Collection<URL> requiredClasspathURLs) {
         this.jobId = Preconditions.checkNotNull(jobId);
         this.jobName = Preconditions.checkNotNull(jobName);
+        this.jobType = Preconditions.checkNotNull(jobType);
         this.serializedExecutionConfig = Preconditions.checkNotNull(serializedExecutionConfig);
         this.jobConfiguration = Preconditions.checkNotNull(jobConfiguration);
         this.requiredJarFileBlobKeys = Preconditions.checkNotNull(requiredJarFileBlobKeys);
@@ -73,6 +95,10 @@ public class JobInformation implements Serializable {
 
     public String getJobName() {
         return jobName;
+    }
+
+    public String getJobType() {
+        return jobType;
     }
 
     public SerializedValue<ExecutionConfig> getSerializedExecutionConfig() {

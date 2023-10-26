@@ -52,6 +52,7 @@ import org.apache.flink.api.java.typeutils.PojoTypeInfo;
 import org.apache.flink.api.java.typeutils.ResultTypeQueryable;
 import org.apache.flink.api.java.typeutils.TypeExtractor;
 import org.apache.flink.configuration.BatchExecutionOptions;
+import org.apache.flink.configuration.CheckpointingOptions;
 import org.apache.flink.configuration.ConfigOption;
 import org.apache.flink.configuration.Configuration;
 import org.apache.flink.configuration.CoreOptions;
@@ -114,12 +115,15 @@ import org.apache.flink.util.TernaryBoolean;
 import org.apache.flink.util.WrappingRuntimeException;
 
 import com.esotericsoftware.kryo.Serializer;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import javax.annotation.Nullable;
 
 import java.io.IOException;
 import java.io.Serializable;
 import java.net.URI;
+import java.time.Duration;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collection;
@@ -150,6 +154,8 @@ import static org.apache.flink.util.Preconditions.checkNotNull;
  */
 @Public
 public class StreamExecutionEnvironment implements AutoCloseable {
+
+    static final Logger LOG = LoggerFactory.getLogger(StreamExecutionEnvironment.class);
 
     private final List<CollectResultIterator<?>> collectIterators = new ArrayList<>();
 
@@ -185,29 +191,20 @@ public class StreamExecutionEnvironment implements AutoCloseable {
     // ------------------------------------------------------------------------
 
     /** The execution configuration for this environment. */
-    protected final ExecutionConfig config = new ExecutionConfig();
+    protected final ExecutionConfig config;
 
     /** Settings that control the checkpointing behavior. */
-    protected final CheckpointConfig checkpointCfg = new CheckpointConfig();
+    protected final CheckpointConfig checkpointCfg;
 
     protected final List<Transformation<?>> transformations = new ArrayList<>();
 
     private final Map<AbstractID, CacheTransformation<?>> cachedTransformations = new HashMap<>();
-
-    private long bufferTimeout = ExecutionOptions.BUFFER_TIMEOUT.defaultValue().toMillis();
-
-    private boolean isChainingEnabled = true;
-
-    private boolean isChainingOfOperatorsWithDifferentMaxParallelismEnabled = true;
 
     /** The state backend used for storing k/v state and state snapshots. */
     private StateBackend defaultStateBackend;
 
     /** Whether to enable ChangelogStateBackend, default value is unset. */
     private TernaryBoolean changelogStateBackendEnabled = TernaryBoolean.UNDEFINED;
-
-    /** The default savepoint directory used by the job. */
-    private Path defaultSavepointDirectory;
 
     /** The time characteristic used by the data streams. */
     private TimeCharacteristic timeCharacteristic = DEFAULT_TIME_CHARACTERISTIC;
@@ -281,6 +278,10 @@ public class StreamExecutionEnvironment implements AutoCloseable {
             final ClassLoader userClassloader) {
         this.executorServiceLoader = checkNotNull(executorServiceLoader);
         this.configuration = new Configuration(checkNotNull(configuration));
+        this.configuration.toMap().forEach((key, value) -> LOG.info("1111 {} {}", key, value));
+
+        this.config = new ExecutionConfig(this.configuration);
+        this.checkpointCfg = new CheckpointConfig(this.configuration);
         this.userClassloader =
                 userClassloader == null ? getClass().getClassLoader() : userClassloader;
 
@@ -296,6 +297,7 @@ public class StreamExecutionEnvironment implements AutoCloseable {
         // other ways assume
         // that the env is already instantiated so they will overwrite the value passed here.
         this.configure(this.configuration, this.userClassloader);
+        this.configuration.toMap().forEach((key, value) -> LOG.info("1111 {} {}", key, value));
     }
 
     protected ClassLoader getUserClassloader() {
@@ -442,7 +444,7 @@ public class StreamExecutionEnvironment implements AutoCloseable {
             throw new IllegalArgumentException("Timeout of buffer must be non-negative or -1");
         }
 
-        this.bufferTimeout = timeoutMillis;
+        this.configuration.set(ExecutionOptions.BUFFER_TIMEOUT, Duration.ofMillis(timeoutMillis));
         return this;
     }
 
@@ -453,7 +455,7 @@ public class StreamExecutionEnvironment implements AutoCloseable {
      * @return The timeout of the buffer.
      */
     public long getBufferTimeout() {
-        return this.bufferTimeout;
+        return this.configuration.get(ExecutionOptions.BUFFER_TIMEOUT).toMillis();
     }
 
     /**
@@ -465,7 +467,7 @@ public class StreamExecutionEnvironment implements AutoCloseable {
      */
     @PublicEvolving
     public StreamExecutionEnvironment disableOperatorChaining() {
-        this.isChainingEnabled = false;
+        this.configuration.set(PipelineOptions.OPERATOR_CHAINING, false);
         return this;
     }
 
@@ -476,12 +478,13 @@ public class StreamExecutionEnvironment implements AutoCloseable {
      */
     @PublicEvolving
     public boolean isChainingEnabled() {
-        return isChainingEnabled;
+        return configuration.get(PipelineOptions.OPERATOR_CHAINING);
     }
 
     @PublicEvolving
     public boolean isChainingOfOperatorsWithDifferentMaxParallelismEnabled() {
-        return isChainingOfOperatorsWithDifferentMaxParallelismEnabled;
+        return this.configuration.get(
+                PipelineOptions.OPERATOR_CHAINING_CHAIN_OPERATORS_WITH_DIFFERENT_MAX_PARALLELISM);
     }
 
     // ------------------------------------------------------------------------
@@ -717,6 +720,7 @@ public class StreamExecutionEnvironment implements AutoCloseable {
      */
     @PublicEvolving
     public StreamExecutionEnvironment enableChangelogStateBackend(boolean enabled) {
+        this.configuration.set(StateChangelogOptions.ENABLE_STATE_CHANGE_LOG, enabled);
         this.changelogStateBackendEnabled = TernaryBoolean.fromBoolean(enabled);
         return this;
     }
@@ -769,7 +773,9 @@ public class StreamExecutionEnvironment implements AutoCloseable {
      */
     @PublicEvolving
     public StreamExecutionEnvironment setDefaultSavepointDirectory(Path savepointDirectory) {
-        this.defaultSavepointDirectory = Preconditions.checkNotNull(savepointDirectory);
+        this.configuration.set(
+                CheckpointingOptions.SAVEPOINT_DIRECTORY,
+                Preconditions.checkNotNull(savepointDirectory.toString()));
         return this;
     }
 
@@ -781,7 +787,10 @@ public class StreamExecutionEnvironment implements AutoCloseable {
     @Nullable
     @PublicEvolving
     public Path getDefaultSavepointDirectory() {
-        return defaultSavepointDirectory;
+        return this.configuration
+                .getOptional(CheckpointingOptions.SAVEPOINT_DIRECTORY)
+                .map(Path::new)
+                .orElse(null);
     }
 
     /**
@@ -944,7 +953,8 @@ public class StreamExecutionEnvironment implements AutoCloseable {
     @PublicEvolving
     @Deprecated
     public void setStreamTimeCharacteristic(TimeCharacteristic characteristic) {
-        this.timeCharacteristic = Preconditions.checkNotNull(characteristic);
+        this.configuration.set(StreamPipelineOptions.TIME_CHARACTERISTIC, timeCharacteristic);
+        timeCharacteristic = Preconditions.checkNotNull(characteristic);
         if (characteristic == TimeCharacteristic.ProcessingTime) {
             getConfig().setAutoWatermarkInterval(0);
         } else {
@@ -1002,12 +1012,17 @@ public class StreamExecutionEnvironment implements AutoCloseable {
                 .ifPresent(this::setStateBackend);
         configuration
                 .getOptional(PipelineOptions.OPERATOR_CHAINING)
-                .ifPresent(c -> this.isChainingEnabled = c);
+                .ifPresent(c -> this.configuration.set(PipelineOptions.OPERATOR_CHAINING, c));
         configuration
                 .getOptional(
                         PipelineOptions
                                 .OPERATOR_CHAINING_CHAIN_OPERATORS_WITH_DIFFERENT_MAX_PARALLELISM)
-                .ifPresent(c -> this.isChainingOfOperatorsWithDifferentMaxParallelismEnabled = c);
+                .ifPresent(
+                        c ->
+                                this.configuration.set(
+                                        PipelineOptions
+                                                .OPERATOR_CHAINING_CHAIN_OPERATORS_WITH_DIFFERENT_MAX_PARALLELISM,
+                                        c));
         configuration
                 .getOptional(DeploymentOptions.JOB_LISTENERS)
                 .ifPresent(listeners -> registerCustomListeners(classLoader, listeners));
@@ -1069,17 +1084,18 @@ public class StreamExecutionEnvironment implements AutoCloseable {
 
         configBufferTimeout(configuration);
 
-        config.configure(configuration, classLoader);
-        checkpointCfg.configure(configuration);
-
         // here we should make sure the configured checkpoint storage will take effect
         // this needs to happen after checkpointCfg#configure(...) to override the effect of
         // checkpointCfg#setCheckpointStorage(checkpointDirectory)
         configCheckpointStorage(configuration, checkpointCfg);
+
+        config.configure(configuration, classLoader);
+        checkpointCfg.configure(configuration);
     }
 
     private void registerCustomListeners(
             final ClassLoader classLoader, final List<String> listeners) {
+        this.configuration.set(DeploymentOptions.JOB_LISTENERS, listeners);
         for (String listener : listeners) {
             try {
                 final JobListener jobListener =
@@ -2351,13 +2367,13 @@ public class StreamExecutionEnvironment implements AutoCloseable {
                         new ArrayList<>(transformations), config, checkpointCfg, configuration)
                 .setStateBackend(defaultStateBackend)
                 .setChangelogStateBackendEnabled(changelogStateBackendEnabled)
-                .setSavepointDir(defaultSavepointDirectory)
-                .setChaining(isChainingEnabled)
+                .setSavepointDir(getDefaultSavepointDirectory())
+                .setChaining(isChainingEnabled())
                 .setChainingOfOperatorsWithDifferentMaxParallelism(
-                        isChainingOfOperatorsWithDifferentMaxParallelismEnabled)
+                        isChainingOfOperatorsWithDifferentMaxParallelismEnabled())
                 .setUserArtifacts(cacheFile)
                 .setTimeCharacteristic(timeCharacteristic)
-                .setDefaultBufferTimeout(bufferTimeout)
+                .setDefaultBufferTimeout(getBufferTimeout())
                 .setSlotSharingGroupResource(slotSharingGroupResources);
     }
 

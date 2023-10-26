@@ -82,6 +82,14 @@ public class PythonConfig implements ReadableConfig {
         return configuration.getOptional(option);
     }
 
+    @Override
+    public Map<String, String> getAllConfigOptions() {
+        // the data of pythonDependencyConfiguration is prior than configuration
+        Map<String, String> map = configuration.getAllConfigOptions();
+        map.putAll(pythonDependencyConfiguration.getAllConfigOptions());
+        return map;
+    }
+
     public Configuration toConfiguration() {
         final Configuration config = new Configuration();
         PYTHON_CONFIG_OPTIONS.forEach(

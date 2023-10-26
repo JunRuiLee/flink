@@ -20,6 +20,7 @@ package org.apache.flink.core.plugin;
 
 import org.apache.flink.annotation.Internal;
 import org.apache.flink.annotation.VisibleForTesting;
+import org.apache.flink.api.common.FlinkClusterConfigManager;
 
 import org.apache.flink.shaded.guava31.com.google.common.base.Joiner;
 import org.apache.flink.shaded.guava31.com.google.common.collect.Iterators;
@@ -94,6 +95,7 @@ public class DefaultPluginManager implements PluginManager {
     @Override
     public <P> Iterator<P> load(Class<P> service) {
         ArrayList<Iterator<P>> combinedIterators = new ArrayList<>(pluginDescriptors.size());
+        LOG.error("The thread stack is : ", new RuntimeException());
         for (PluginDescriptor pluginDescriptor : pluginDescriptors) {
             PluginLoader pluginLoader;
             String pluginId = pluginDescriptor.getPluginId();
@@ -112,7 +114,16 @@ public class DefaultPluginManager implements PluginManager {
             } finally {
                 pluginLoadersLock.unlock();
             }
-            combinedIterators.add(pluginLoader.load(service));
+            LOG.info("Using {} load {}", pluginId, service.getName());
+            Iterator<P> load = pluginLoader.load(service);
+            int count = 0;
+            while (load.hasNext()) {
+                load.next();
+                count++;
+            }
+            LOG.info("The loaded data size is {}", count);
+            combinedIterators.add(load);
+            FlinkClusterConfigManager.attemptAddPluginOptionKeys(service, pluginLoader, pluginId);
         }
         return Iterators.concat(combinedIterators.iterator());
     }

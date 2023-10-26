@@ -419,6 +419,7 @@ class StreamingJobGraphGeneratorTest {
     void generatorForwardsSavepointRestoreSettings() {
         StreamGraph streamGraph =
                 new StreamGraph(
+                        new Configuration(),
                         new ExecutionConfig(),
                         new CheckpointConfig(),
                         SavepointRestoreSettings.forPath("hello"));

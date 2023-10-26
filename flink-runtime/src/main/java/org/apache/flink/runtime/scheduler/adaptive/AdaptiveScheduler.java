@@ -887,6 +887,7 @@ public class AdaptiveScheduler
         return ArchivedExecutionGraph.createSparseArchivedExecutionGraphWithJobVertices(
                 jobInformation.getJobID(),
                 jobInformation.getName(),
+                jobInformation.getJobType().name(),
                 jobStatus,
                 cause,
                 jobInformation.getCheckpointingSettings(),

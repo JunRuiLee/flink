@@ -601,6 +601,11 @@ public class DefaultExecutionGraph implements ExecutionGraph, InternalExecutionG
     }
 
     @Override
+    public String getJobType() {
+        return jobInformation.getJobType();
+    }
+
+    @Override
     public boolean isStoppable() {
         return this.isStoppable;
     }

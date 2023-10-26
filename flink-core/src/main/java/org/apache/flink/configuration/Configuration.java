@@ -741,6 +741,11 @@ public class Configuration extends ExecutionConfig.GlobalJobParameters
     }
 
     @Override
+    public Map<String, String> getAllConfigOptions() {
+        return toMap();
+    }
+
+    @Override
     public <T> Configuration set(ConfigOption<T> option, T value) {
         final boolean canBePrefixMap = canBePrefixMap(option);
         setValueInternal(option.key(), value, canBePrefixMap);

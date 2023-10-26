@@ -32,15 +32,18 @@ import org.apache.flink.shaded.jackson2.com.fasterxml.jackson.core.JsonGenerator
 import org.apache.flink.shaded.jackson2.com.fasterxml.jackson.core.JsonParser;
 import org.apache.flink.shaded.jackson2.com.fasterxml.jackson.databind.DeserializationContext;
 import org.apache.flink.shaded.jackson2.com.fasterxml.jackson.databind.JsonNode;
+import org.apache.flink.shaded.jackson2.com.fasterxml.jackson.databind.ObjectMapper;
 import org.apache.flink.shaded.jackson2.com.fasterxml.jackson.databind.SerializerProvider;
 import org.apache.flink.shaded.jackson2.com.fasterxml.jackson.databind.annotation.JsonDeserialize;
 import org.apache.flink.shaded.jackson2.com.fasterxml.jackson.databind.annotation.JsonSerialize;
 import org.apache.flink.shaded.jackson2.com.fasterxml.jackson.databind.deser.std.StdDeserializer;
 import org.apache.flink.shaded.jackson2.com.fasterxml.jackson.databind.ser.std.StdSerializer;
+import org.apache.flink.shaded.jackson2.com.fasterxml.jackson.databind.type.MapType;
 
 import javax.annotation.Nullable;
 
 import java.io.IOException;
+import java.util.HashMap;
 import java.util.Map;
 import java.util.Objects;
 
@@ -52,17 +55,29 @@ public class JobConfigInfo implements ResponseBody {
     public static final String FIELD_NAME_JOB_ID = "jid";
     public static final String FIELD_NAME_JOB_NAME = "name";
     public static final String FIELD_NAME_EXECUTION_CONFIG = "execution-config";
+    public static final String FIELD_NAME_JOB_CONFIG = "job-config";
+    public static final String FIELD_NAME_JOB_TYPE = "job-type";
 
     private final JobID jobId;
 
     private final String jobName;
 
+    private final Map<String, String> jobConfig;
+
+    private final String jobType;
+
     @Nullable private final ExecutionConfigInfo executionConfigInfo;
 
     public JobConfigInfo(
-            JobID jobId, String jobName, @Nullable ExecutionConfigInfo executionConfigInfo) {
+            JobID jobId,
+            String jobName,
+            Map<String, String> jobConfig,
+            String jobType,
+            @Nullable ExecutionConfigInfo executionConfigInfo) {
         this.jobId = Preconditions.checkNotNull(jobId);
         this.jobName = Preconditions.checkNotNull(jobName);
+        this.jobConfig = Preconditions.checkNotNull(jobConfig);
+        this.jobType = Preconditions.checkNotNull(jobType);
         this.executionConfigInfo = executionConfigInfo;
     }
 
@@ -79,6 +94,14 @@ public class JobConfigInfo implements ResponseBody {
         return executionConfigInfo;
     }
 
+    public Map<String, String> getJobConfig() {
+        return jobConfig;
+    }
+
+    public String getJobType() {
+        return jobType;
+    }
+
     @Override
     public boolean equals(Object o) {
         if (this == o) {
@@ -90,12 +113,14 @@ public class JobConfigInfo implements ResponseBody {
         JobConfigInfo that = (JobConfigInfo) o;
         return Objects.equals(jobId, that.jobId)
                 && Objects.equals(jobName, that.jobName)
+                && Objects.equals(jobType, that.jobType)
+                && Objects.equals(jobConfig, that.jobConfig)
                 && Objects.equals(executionConfigInfo, that.executionConfigInfo);
     }
 
     @Override
     public int hashCode() {
-        return Objects.hash(jobId, jobName, executionConfigInfo);
+        return Objects.hash(jobId, jobName, jobType, jobConfig, executionConfigInfo);
     }
 
     // ---------------------------------------------------------------------------------
@@ -121,11 +146,18 @@ public class JobConfigInfo implements ResponseBody {
 
             jsonGenerator.writeStringField(FIELD_NAME_JOB_ID, jobConfigInfo.getJobId().toString());
             jsonGenerator.writeStringField(FIELD_NAME_JOB_NAME, jobConfigInfo.getJobName());
+            jsonGenerator.writeStringField(FIELD_NAME_JOB_TYPE, jobConfigInfo.getJobType());
 
             if (jobConfigInfo.getExecutionConfigInfo() != null) {
                 jsonGenerator.writeObjectField(
                         FIELD_NAME_EXECUTION_CONFIG, jobConfigInfo.getExecutionConfigInfo());
             }
+
+            jsonGenerator.writeObjectFieldStart(FIELD_NAME_JOB_CONFIG);
+            for (Map.Entry<String, String> entry : jobConfigInfo.getJobConfig().entrySet()) {
+                jsonGenerator.writeStringField(entry.getKey(), entry.getValue());
+            }
+            jsonGenerator.writeEndObject();
 
             jsonGenerator.writeEndObject();
         }
@@ -135,6 +167,8 @@ public class JobConfigInfo implements ResponseBody {
     public static final class Deserializer extends StdDeserializer<JobConfigInfo> {
 
         private static final long serialVersionUID = -3580088509877177213L;
+
+        private static final ObjectMapper objectMapper = RestMapperUtils.getStrictObjectMapper();
 
         public Deserializer() {
             super(JobConfigInfo.class);
@@ -148,6 +182,7 @@ public class JobConfigInfo implements ResponseBody {
 
             final JobID jobId = JobID.fromHexString(rootNode.get(FIELD_NAME_JOB_ID).asText());
             final String jobName = rootNode.get(FIELD_NAME_JOB_NAME).asText();
+            final String jobType = rootNode.get(FIELD_NAME_JOB_TYPE).asText();
 
             final ExecutionConfigInfo executionConfigInfo;
 
@@ -161,7 +196,16 @@ public class JobConfigInfo implements ResponseBody {
                 executionConfigInfo = null;
             }
 
-            return new JobConfigInfo(jobId, jobName, executionConfigInfo);
+            MapType mapType =
+                    objectMapper
+                            .getTypeFactory()
+                            .constructMapType(HashMap.class, String.class, String.class);
+
+            Map<String, String> jobConfig =
+                    RestMapperUtils.getStrictObjectMapper()
+                            .treeToValue(rootNode.get(FIELD_NAME_JOB_CONFIG), mapType);
+
+            return new JobConfigInfo(jobId, jobName, jobConfig, jobType, executionConfigInfo);
         }
     }
 

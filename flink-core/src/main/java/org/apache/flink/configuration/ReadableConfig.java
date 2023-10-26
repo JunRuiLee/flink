@@ -18,8 +18,10 @@
 
 package org.apache.flink.configuration;
 
+import org.apache.flink.annotation.Internal;
 import org.apache.flink.annotation.PublicEvolving;
 
+import java.util.Map;
 import java.util.Optional;
 
 /**
@@ -50,4 +52,7 @@ public interface ReadableConfig {
      * @see #get(ConfigOption)
      */
     <T> Optional<T> getOptional(ConfigOption<T> option);
+
+    @Internal
+    Map<String, String> getAllConfigOptions();
 }

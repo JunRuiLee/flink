@@ -79,9 +79,10 @@ public class CheckpointingOptions {
      */
     @Documentation.Section(value = Documentation.Sections.COMMON_STATE_BACKENDS, position = 2)
     public static final ConfigOption<String> CHECKPOINT_STORAGE =
-            ConfigOptions.key("state.checkpoint-storage")
+            ConfigOptions.key("state.storage.type")
                     .stringType()
                     .noDefaultValue()
+                    .withDeprecatedKeys("state.checkpoint-storage")
                     .withDescription(
                             Description.builder()
                                     .text(

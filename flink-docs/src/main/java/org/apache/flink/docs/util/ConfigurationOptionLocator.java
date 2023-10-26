@@ -49,7 +49,8 @@ public class ConfigurationOptionLocator {
 
     private static final OptionsClassLocation[] LOCATIONS =
             new OptionsClassLocation[] {
-                new OptionsClassLocation("flink-core", "org.apache.flink.configuration"),
+                new OptionsClassLocation(
+                        "flink-filesystems/flink-s3-fs-base", "org.apache.flink.fs.s3.common"),
                 new OptionsClassLocation("flink-runtime", "org.apache.flink.runtime.shuffle"),
                 new OptionsClassLocation("flink-runtime", "org.apache.flink.runtime.jobgraph"),
                 new OptionsClassLocation(

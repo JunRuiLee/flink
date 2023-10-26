@@ -41,6 +41,11 @@ import org.slf4j.LoggerFactory;
 
 import javax.annotation.Nullable;
 
+import java.io.BufferedReader;
+import java.io.BufferedWriter;
+import java.io.FileReader;
+import java.io.FileWriter;
+import java.io.IOException;
 import java.lang.reflect.Field;
 import java.lang.reflect.Method;
 import java.nio.charset.StandardCharsets;
@@ -78,7 +83,7 @@ public class ConfigOptionsDocGenerator {
                             + CLASS_NAME_GROUP
                             + ">(?<"
                             + CLASS_PREFIX_GROUP
-                            + ">[a-zA-Z]*)(?:Options|Config|Parameters))(?:\\.java)?");
+                            + ">[a-zA-Z]*)(?:Options|Config|Parameters|AbstractS3FileSystemFactory))(?:\\.java)?");
 
     private static final Formatter formatter = new HtmlFormatter();
     /**
@@ -95,12 +100,31 @@ public class ConfigOptionsDocGenerator {
      * @param args [0] output directory for the generated files [1] project root directory
      */
     public static void main(String[] args) throws Exception {
-        String outputDirectory = args[0];
-        String rootDir = args[1];
+        String fileName =
+                "/Users/jrl/work/configuration_2.0/flink-docs/src/main/java/org/apache/flink/docs/configuration/keys.txt";
+        try {
+            BufferedReader reader = new BufferedReader(new FileReader(fileName));
+            BufferedWriter writer = new BufferedWriter(new FileWriter(fileName + "_quoted"));
 
-        createTables(rootDir, outputDirectory);
+            String line;
+            while ((line = reader.readLine()) != null) {
+                System.out.println("Parse line : " + line);
+                int commaIndex = line.indexOf(",");
+                String beforeComma = line.substring(0, commaIndex);
+                String afterComma = line.substring(commaIndex);
 
-        generateCommonSection(rootDir, new ConfigurationOptionLocator(), outputDirectory);
+                String quotedLine = "\"" + beforeComma + "\"" + afterComma;
+                writer.write(quotedLine);
+                writer.newLine();
+            }
+
+            reader.close();
+            writer.close();
+
+            System.out.println("Content has been quoted to " + fileName + "_quoted");
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
     }
 
     @VisibleForTesting

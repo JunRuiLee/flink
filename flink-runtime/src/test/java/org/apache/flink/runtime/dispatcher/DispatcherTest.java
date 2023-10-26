@@ -1122,7 +1122,7 @@ public class DispatcherTest extends AbstractDispatcherTest {
         v2.setParallelism(2);
         JobVertex v3 = new JobVertex("v3");
         v3.setParallelism(3);
-        jobGraph = new JobGraph(jobGraph.getJobID(), "job", v1, v2, v3);
+        jobGraph = new JobGraph(jobGraph.getJobID(), "job", new Configuration(), v1, v2, v3);
 
         configuration.set(
                 PipelineOptions.PARALLELISM_OVERRIDES,
@@ -1202,7 +1202,9 @@ public class DispatcherTest extends AbstractDispatcherTest {
 
         dispatcher =
                 createTestingDispatcherBuilder()
-                        .setRecoveredJobs(Collections.singleton(new JobGraph(jobId1, "foobar")))
+                        .setRecoveredJobs(
+                                Collections.singleton(
+                                        new JobGraph(jobId1, "foobar", new Configuration())))
                         .build(rpcService);
 
         Assertions.assertThat(blobServer.getFile(jobId1, blobKey1)).hasBinaryContent(fileContent);
@@ -1499,6 +1501,7 @@ public class DispatcherTest extends AbstractDispatcherTest {
                                                 .createSparseArchivedExecutionGraphWithJobVertices(
                                                         jobGraph.getJobID(),
                                                         jobGraph.getName(),
+                                                        jobGraph.getJobType().name(),
                                                         JobStatus.RUNNING,
                                                         null,
                                                         null,

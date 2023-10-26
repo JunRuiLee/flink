@@ -81,7 +81,7 @@ public class ExecutionConfig implements Serializable, Archiveable<ArchivedExecut
     // NOTE TO IMPLEMENTERS:
     // Please do not add further fields to this class. Use the ConfigOption stack instead!
     // It is currently very tricky to keep this kind of POJO classes in sync with instances of
-    // org.apache.flink.configuration.Configuration. Instances of Configuration are way easier to
+    // org.apache.flink.jobConfiguration.Configuration. Instances of Configuration are way easier to
     // pass, layer, merge, restrict, copy, filter, etc.
     // See ExecutionOptions.RUNTIME_MODE for a reference implementation. If the option is very
     // crucial for the API, we can add a dedicated setter to StreamExecutionEnvironment. Otherwise,
@@ -112,7 +112,7 @@ public class ExecutionConfig implements Serializable, Archiveable<ArchivedExecut
     /**
      * Internal {@link ConfigOption}s, that are not exposed and it's not possible to configure them
      * via config files. We are defining them here, so that we can store them in the {@link
-     * #configuration}.
+     * #jobConfiguration}.
      *
      * <p>If you decide to expose any of those {@link ConfigOption}s, please double-check if the
      * key, type and descriptions are sensible, as the initial values are arbitrary.
@@ -142,7 +142,7 @@ public class ExecutionConfig implements Serializable, Archiveable<ArchivedExecut
      * In the long run, this field should be somehow merged with the {@link Configuration} from
      * StreamExecutionEnvironment.
      */
-    private final Configuration configuration = new Configuration();
+    private Configuration jobConfiguration;
 
     /**
      * @deprecated Should no longer be used because it is subsumed by RestartStrategyConfiguration
@@ -177,6 +177,15 @@ public class ExecutionConfig implements Serializable, Archiveable<ArchivedExecut
 
     // --------------------------------------------------------------------------------------------
 
+    public ExecutionConfig() {
+        this.jobConfiguration = new Configuration();
+    }
+
+    @Internal
+    public ExecutionConfig(Configuration jobConfiguration) {
+        this.jobConfiguration = jobConfiguration;
+    }
+
     /**
      * Enables the ClosureCleaner. This analyzes user code functions and sets fields to null that
      * are not used. This will in most cases make closures or anonymous inner classes serializable
@@ -210,13 +219,13 @@ public class ExecutionConfig implements Serializable, Archiveable<ArchivedExecut
      * different settings.
      */
     public ExecutionConfig setClosureCleanerLevel(ClosureCleanerLevel level) {
-        configuration.set(PipelineOptions.CLOSURE_CLEANER_LEVEL, level);
+        jobConfiguration.set(PipelineOptions.CLOSURE_CLEANER_LEVEL, level);
         return this;
     }
 
     /** Returns the configured {@link ClosureCleanerLevel}. */
     public ClosureCleanerLevel getClosureCleanerLevel() {
-        return configuration.get(PipelineOptions.CLOSURE_CLEANER_LEVEL);
+        return jobConfiguration.get(PipelineOptions.CLOSURE_CLEANER_LEVEL);
     }
 
     /**
@@ -235,7 +244,7 @@ public class ExecutionConfig implements Serializable, Archiveable<ArchivedExecut
     }
 
     private ExecutionConfig setAutoWatermarkInterval(Duration autoWatermarkInterval) {
-        configuration.set(PipelineOptions.AUTO_WATERMARK_INTERVAL, autoWatermarkInterval);
+        jobConfiguration.set(PipelineOptions.AUTO_WATERMARK_INTERVAL, autoWatermarkInterval);
         return this;
     }
 
@@ -246,7 +255,7 @@ public class ExecutionConfig implements Serializable, Archiveable<ArchivedExecut
      */
     @PublicEvolving
     public long getAutoWatermarkInterval() {
-        return configuration.get(PipelineOptions.AUTO_WATERMARK_INTERVAL).toMillis();
+        return jobConfiguration.get(PipelineOptions.AUTO_WATERMARK_INTERVAL).toMillis();
     }
 
     /**
@@ -259,7 +268,7 @@ public class ExecutionConfig implements Serializable, Archiveable<ArchivedExecut
      */
     @PublicEvolving
     public ExecutionConfig setLatencyTrackingInterval(long interval) {
-        configuration.set(MetricOptions.LATENCY_INTERVAL, interval);
+        jobConfiguration.set(MetricOptions.LATENCY_INTERVAL, interval);
         return this;
     }
 
@@ -270,36 +279,36 @@ public class ExecutionConfig implements Serializable, Archiveable<ArchivedExecut
      */
     @PublicEvolving
     public long getLatencyTrackingInterval() {
-        return configuration.get(MetricOptions.LATENCY_INTERVAL);
+        return jobConfiguration.get(MetricOptions.LATENCY_INTERVAL);
     }
 
     @Internal
     public boolean isLatencyTrackingConfigured() {
-        return configuration.getOptional(MetricOptions.LATENCY_INTERVAL).isPresent();
+        return jobConfiguration.getOptional(MetricOptions.LATENCY_INTERVAL).isPresent();
     }
 
     @Internal
     public long getPeriodicMaterializeIntervalMillis() {
-        return configuration
+        return jobConfiguration
                 .get(StateChangelogOptions.PERIODIC_MATERIALIZATION_INTERVAL)
                 .toMillis();
     }
 
     @Internal
     public void setPeriodicMaterializeIntervalMillis(Duration periodicMaterializeInterval) {
-        configuration.set(
+        jobConfiguration.set(
                 StateChangelogOptions.PERIODIC_MATERIALIZATION_INTERVAL,
                 periodicMaterializeInterval);
     }
 
     @Internal
     public int getMaterializationMaxAllowedFailures() {
-        return configuration.get(StateChangelogOptions.MATERIALIZATION_MAX_FAILURES_ALLOWED);
+        return jobConfiguration.get(StateChangelogOptions.MATERIALIZATION_MAX_FAILURES_ALLOWED);
     }
 
     @Internal
     public void setMaterializationMaxAllowedFailures(int materializationMaxAllowedFailures) {
-        configuration.set(
+        jobConfiguration.set(
                 StateChangelogOptions.MATERIALIZATION_MAX_FAILURES_ALLOWED,
                 materializationMaxAllowedFailures);
     }
@@ -317,7 +326,7 @@ public class ExecutionConfig implements Serializable, Archiveable<ArchivedExecut
      *     used.
      */
     public int getParallelism() {
-        return configuration.get(CoreOptions.DEFAULT_PARALLELISM);
+        return jobConfiguration.get(CoreOptions.DEFAULT_PARALLELISM);
     }
 
     /**
@@ -338,14 +347,14 @@ public class ExecutionConfig implements Serializable, Archiveable<ArchivedExecut
                 throw new IllegalArgumentException(
                         "Parallelism must be at least one, or ExecutionConfig.PARALLELISM_DEFAULT (use system default).");
             }
-            configuration.set(CoreOptions.DEFAULT_PARALLELISM, parallelism);
+            jobConfiguration.set(CoreOptions.DEFAULT_PARALLELISM, parallelism);
         }
         return this;
     }
 
     @Internal
     public void resetParallelism() {
-        configuration.removeConfig(CoreOptions.DEFAULT_PARALLELISM);
+        jobConfiguration.removeConfig(CoreOptions.DEFAULT_PARALLELISM);
     }
 
     /**
@@ -358,7 +367,7 @@ public class ExecutionConfig implements Serializable, Archiveable<ArchivedExecut
      */
     @PublicEvolving
     public int getMaxParallelism() {
-        return configuration.get(PipelineOptions.MAX_PARALLELISM);
+        return jobConfiguration.get(PipelineOptions.MAX_PARALLELISM);
     }
 
     /**
@@ -372,24 +381,24 @@ public class ExecutionConfig implements Serializable, Archiveable<ArchivedExecut
     @PublicEvolving
     public void setMaxParallelism(int maxParallelism) {
         checkArgument(maxParallelism > 0, "The maximum parallelism must be greater than 0.");
-        configuration.set(PipelineOptions.MAX_PARALLELISM, maxParallelism);
+        jobConfiguration.set(PipelineOptions.MAX_PARALLELISM, maxParallelism);
     }
 
     /**
      * Gets the interval (in milliseconds) between consecutive attempts to cancel a running task.
      */
     public long getTaskCancellationInterval() {
-        return configuration.get(TaskManagerOptions.TASK_CANCELLATION_INTERVAL);
+        return jobConfiguration.get(TaskManagerOptions.TASK_CANCELLATION_INTERVAL);
     }
 
     /**
-     * Sets the configuration parameter specifying the interval (in milliseconds) between
+     * Sets the jobConfiguration parameter specifying the interval (in milliseconds) between
      * consecutive attempts to cancel a running task.
      *
      * @param interval the interval (in milliseconds).
      */
     public ExecutionConfig setTaskCancellationInterval(long interval) {
-        configuration.set(TaskManagerOptions.TASK_CANCELLATION_INTERVAL, interval);
+        jobConfiguration.set(TaskManagerOptions.TASK_CANCELLATION_INTERVAL, interval);
         return this;
     }
 
@@ -402,7 +411,7 @@ public class ExecutionConfig implements Serializable, Archiveable<ArchivedExecut
      */
     @PublicEvolving
     public long getTaskCancellationTimeout() {
-        return configuration.get(TaskManagerOptions.TASK_CANCELLATION_TIMEOUT);
+        return jobConfiguration.get(TaskManagerOptions.TASK_CANCELLATION_TIMEOUT);
     }
 
     /**
@@ -420,7 +429,7 @@ public class ExecutionConfig implements Serializable, Archiveable<ArchivedExecut
     @PublicEvolving
     public ExecutionConfig setTaskCancellationTimeout(long timeout) {
         checkArgument(timeout >= 0, "Timeout needs to be >= 0.");
-        configuration.set(TaskManagerOptions.TASK_CANCELLATION_TIMEOUT, timeout);
+        jobConfiguration.set(TaskManagerOptions.TASK_CANCELLATION_TIMEOUT, timeout);
         return this;
     }
 
@@ -448,7 +457,7 @@ public class ExecutionConfig implements Serializable, Archiveable<ArchivedExecut
     /**
      * Returns the restart strategy which has been set for the current job.
      *
-     * @return The specified restart configuration
+     * @return The specified restart jobConfiguration
      */
     @Deprecated
     @PublicEvolving
@@ -472,19 +481,20 @@ public class ExecutionConfig implements Serializable, Archiveable<ArchivedExecut
 
     @Internal
     public Optional<SchedulerType> getSchedulerType() {
-        return configuration.getOptional(JobManagerOptions.SCHEDULER);
+        return jobConfiguration.getOptional(JobManagerOptions.SCHEDULER);
     }
 
     /**
      * Gets the number of times the system will try to re-execute failed tasks. A value of {@code
-     * -1} indicates that the system default value (as defined in the configuration) should be used.
+     * -1} indicates that the system default value (as defined in the jobConfiguration) should be
+     * used.
      *
      * @return The number of times the system will try to re-execute failed tasks.
      * @deprecated Should no longer be used because it is subsumed by RestartStrategyConfiguration
      */
     @Deprecated
     public int getNumberOfExecutionRetries() {
-        return configuration.get(EXECUTION_RETRIES);
+        return jobConfiguration.get(EXECUTION_RETRIES);
     }
 
     /**
@@ -501,11 +511,11 @@ public class ExecutionConfig implements Serializable, Archiveable<ArchivedExecut
     /**
      * Sets the number of times that failed tasks are re-executed. A value of zero effectively
      * disables fault tolerance. A value of {@code -1} indicates that the system default value (as
-     * defined in the configuration) should be used.
+     * defined in the jobConfiguration) should be used.
      *
      * @param numberOfExecutionRetries The number of times the system will try to re-execute failed
      *     tasks.
-     * @return The current execution configuration
+     * @return The current execution jobConfiguration
      * @deprecated This method will be replaced by {@link #setRestartStrategy}. The {@link
      *     RestartStrategies.FixedDelayRestartStrategyConfiguration} contains the number of
      *     execution retries.
@@ -516,7 +526,7 @@ public class ExecutionConfig implements Serializable, Archiveable<ArchivedExecut
             throw new IllegalArgumentException(
                     "The number of execution retries must be non-negative, or -1 (use system default)");
         }
-        configuration.set(EXECUTION_RETRIES, numberOfExecutionRetries);
+        jobConfiguration.set(EXECUTION_RETRIES, numberOfExecutionRetries);
         return this;
     }
 
@@ -524,7 +534,7 @@ public class ExecutionConfig implements Serializable, Archiveable<ArchivedExecut
      * Sets the delay between executions.
      *
      * @param executionRetryDelay The number of milliseconds the system will wait to retry.
-     * @return The current execution configuration
+     * @return The current execution jobConfiguration
      * @deprecated This method will be replaced by {@link #setRestartStrategy}. The {@link
      *     RestartStrategies.FixedDelayRestartStrategyConfiguration} contains the delay between
      *     successive execution attempts.
@@ -555,7 +565,7 @@ public class ExecutionConfig implements Serializable, Archiveable<ArchivedExecut
      */
     @Deprecated
     public void setExecutionMode(ExecutionMode executionMode) {
-        configuration.set(EXECUTION_MODE, executionMode);
+        jobConfiguration.set(EXECUTION_MODE, executionMode);
     }
 
     /**
@@ -575,7 +585,7 @@ public class ExecutionConfig implements Serializable, Archiveable<ArchivedExecut
      */
     @Deprecated
     public ExecutionMode getExecutionMode() {
-        return configuration.get(EXECUTION_MODE);
+        return jobConfiguration.get(EXECUTION_MODE);
     }
 
     /**
@@ -619,11 +629,11 @@ public class ExecutionConfig implements Serializable, Archiveable<ArchivedExecut
     }
 
     private void setForceKryo(boolean forceKryo) {
-        configuration.set(PipelineOptions.FORCE_KRYO, forceKryo);
+        jobConfiguration.set(PipelineOptions.FORCE_KRYO, forceKryo);
     }
 
     public boolean isForceKryoEnabled() {
-        return configuration.get(PipelineOptions.FORCE_KRYO);
+        return jobConfiguration.get(PipelineOptions.FORCE_KRYO);
     }
 
     /**
@@ -658,7 +668,7 @@ public class ExecutionConfig implements Serializable, Archiveable<ArchivedExecut
     }
 
     private void setGenericTypes(boolean genericTypes) {
-        configuration.set(PipelineOptions.GENERIC_TYPES, genericTypes);
+        jobConfiguration.set(PipelineOptions.GENERIC_TYPES, genericTypes);
     }
 
     /**
@@ -671,7 +681,7 @@ public class ExecutionConfig implements Serializable, Archiveable<ArchivedExecut
      * @see #disableGenericTypes()
      */
     public boolean hasGenericTypesDisabled() {
-        return !configuration.get(PipelineOptions.GENERIC_TYPES);
+        return !jobConfiguration.get(PipelineOptions.GENERIC_TYPES);
     }
 
     /**
@@ -697,7 +707,7 @@ public class ExecutionConfig implements Serializable, Archiveable<ArchivedExecut
     }
 
     private void setAutoGeneratedUids(boolean autoGeneratedUids) {
-        configuration.set(PipelineOptions.AUTO_GENERATE_UIDS, autoGeneratedUids);
+        jobConfiguration.set(PipelineOptions.AUTO_GENERATE_UIDS, autoGeneratedUids);
     }
 
     /**
@@ -709,7 +719,7 @@ public class ExecutionConfig implements Serializable, Archiveable<ArchivedExecut
      * @see #disableAutoGeneratedUIDs()
      */
     public boolean hasAutoGeneratedUIDsEnabled() {
-        return configuration.get(PipelineOptions.AUTO_GENERATE_UIDS);
+        return jobConfiguration.get(PipelineOptions.AUTO_GENERATE_UIDS);
     }
 
     /**
@@ -727,12 +737,12 @@ public class ExecutionConfig implements Serializable, Archiveable<ArchivedExecut
     }
 
     private void setForceAvro(boolean forceAvro) {
-        configuration.set(PipelineOptions.FORCE_AVRO, forceAvro);
+        jobConfiguration.set(PipelineOptions.FORCE_AVRO, forceAvro);
     }
 
     /** Returns whether the Apache Avro is the default serializer for POJOs. */
     public boolean isForceAvroEnabled() {
-        return configuration.get(PipelineOptions.FORCE_AVRO);
+        return jobConfiguration.get(PipelineOptions.FORCE_AVRO);
     }
 
     /**
@@ -753,26 +763,26 @@ public class ExecutionConfig implements Serializable, Archiveable<ArchivedExecut
     }
 
     private ExecutionConfig setObjectReuse(boolean objectReuse) {
-        configuration.set(PipelineOptions.OBJECT_REUSE, objectReuse);
+        jobConfiguration.set(PipelineOptions.OBJECT_REUSE, objectReuse);
         return this;
     }
 
     /** Returns whether object reuse has been enabled or disabled. @see #enableObjectReuse() */
     public boolean isObjectReuseEnabled() {
-        return configuration.get(PipelineOptions.OBJECT_REUSE);
+        return jobConfiguration.get(PipelineOptions.OBJECT_REUSE);
     }
 
     public GlobalJobParameters getGlobalJobParameters() {
-        return configuration
+        return jobConfiguration
                 .getOptional(PipelineOptions.GLOBAL_JOB_PARAMETERS)
                 .map(parameters -> new MapBasedJobParameters(parameters))
                 .orElse(new MapBasedJobParameters(Collections.emptyMap()));
     }
 
     /**
-     * Register a custom, serializable user configuration object.
+     * Register a custom, serializable user jobConfiguration object.
      *
-     * @param globalJobParameters Custom user configuration object
+     * @param globalJobParameters Custom user jobConfiguration object
      */
     public void setGlobalJobParameters(GlobalJobParameters globalJobParameters) {
         Preconditions.checkNotNull(globalJobParameters, "globalJobParameters shouldn't be null");
@@ -780,7 +790,7 @@ public class ExecutionConfig implements Serializable, Archiveable<ArchivedExecut
     }
 
     private void setGlobalJobParameters(Map<String, String> parameters) {
-        configuration.set(PipelineOptions.GLOBAL_JOB_PARAMETERS, parameters);
+        jobConfiguration.set(PipelineOptions.GLOBAL_JOB_PARAMETERS, parameters);
     }
 
     // --------------------------------------------------------------------------------------------
@@ -951,7 +961,7 @@ public class ExecutionConfig implements Serializable, Archiveable<ArchivedExecut
      */
     @Deprecated
     public boolean isAutoTypeRegistrationDisabled() {
-        return !configuration.get(PipelineOptions.AUTO_TYPE_REGISTRATION);
+        return !jobConfiguration.get(PipelineOptions.AUTO_TYPE_REGISTRATION);
     }
 
     /**
@@ -971,15 +981,15 @@ public class ExecutionConfig implements Serializable, Archiveable<ArchivedExecut
     }
 
     private void setAutoTypeRegistration(Boolean autoTypeRegistration) {
-        configuration.set(PipelineOptions.AUTO_TYPE_REGISTRATION, autoTypeRegistration);
+        jobConfiguration.set(PipelineOptions.AUTO_TYPE_REGISTRATION, autoTypeRegistration);
     }
 
     public boolean isUseSnapshotCompression() {
-        return configuration.get(ExecutionOptions.SNAPSHOT_COMPRESSION);
+        return jobConfiguration.get(ExecutionOptions.SNAPSHOT_COMPRESSION);
     }
 
     public void setUseSnapshotCompression(boolean useSnapshotCompression) {
-        configuration.set(ExecutionOptions.SNAPSHOT_COMPRESSION, useSnapshotCompression);
+        jobConfiguration.set(ExecutionOptions.SNAPSHOT_COMPRESSION, useSnapshotCompression);
     }
 
     @Override
@@ -987,7 +997,7 @@ public class ExecutionConfig implements Serializable, Archiveable<ArchivedExecut
         if (obj instanceof ExecutionConfig) {
             ExecutionConfig other = (ExecutionConfig) obj;
 
-            return Objects.equals(configuration, other.configuration)
+            return Objects.equals(jobConfiguration, other.jobConfiguration)
                     && ((restartStrategyConfiguration == null
                                     && other.restartStrategyConfiguration == null)
                             || (null != restartStrategyConfiguration
@@ -1007,7 +1017,7 @@ public class ExecutionConfig implements Serializable, Archiveable<ArchivedExecut
     @Override
     public int hashCode() {
         return Objects.hash(
-                configuration,
+                jobConfiguration,
                 restartStrategyConfiguration,
                 registeredTypesWithKryoSerializerClasses,
                 defaultKryoSerializerClasses,
@@ -1018,8 +1028,8 @@ public class ExecutionConfig implements Serializable, Archiveable<ArchivedExecut
     @Override
     public String toString() {
         return "ExecutionConfig{"
-                + "configuration="
-                + configuration
+                + "jobConfiguration="
+                + jobConfiguration
                 + ", executionRetryDelay="
                 + executionRetryDelay
                 + ", restartStrategyConfiguration="
@@ -1073,7 +1083,7 @@ public class ExecutionConfig implements Serializable, Archiveable<ArchivedExecut
     }
 
     /**
-     * Abstract class for a custom user configuration object registered at the execution config.
+     * Abstract class for a custom user jobConfiguration object registered at the execution config.
      *
      * <p>This user config is accessible at runtime through
      * getRuntimeContext().getExecutionConfig().GlobalJobParameters()
@@ -1131,9 +1141,10 @@ public class ExecutionConfig implements Serializable, Archiveable<ArchivedExecut
      * PipelineOptions#CLOSURE_CLEANER_LEVEL}.
      *
      * <p>It will change the value of a setting only if a corresponding option was set in the {@code
-     * configuration}. If a key is not present, the current value of a field will remain untouched.
+     * jobConfiguration}. If a key is not present, the current value of a field will remain
+     * untouched.
      *
-     * @param configuration a configuration to read the values from
+     * @param configuration a jobConfiguration to read the values from
      * @param classLoader a class loader to use when loading classes
      */
     public void configure(ReadableConfig configuration, ClassLoader classLoader) {
@@ -1199,17 +1210,17 @@ public class ExecutionConfig implements Serializable, Archiveable<ArchivedExecut
 
         configuration
                 .getOptional(JobManagerOptions.SCHEDULER)
-                .ifPresent(t -> this.configuration.set(JobManagerOptions.SCHEDULER, t));
+                .ifPresent(t -> this.jobConfiguration.set(JobManagerOptions.SCHEDULER, t));
     }
 
     /**
-     * @return A copy of internal {@link #configuration}. Note it is missing all options that are
+     * @return A copy of internal {@link #jobConfiguration}. Note it is missing all options that are
      *     stored as plain java fields in {@link ExecutionConfig}, for example {@link
      *     #registeredKryoTypes}.
      */
     @Internal
     public Configuration toConfiguration() {
-        return new Configuration(configuration);
+        return new Configuration(jobConfiguration);
     }
 
     private LinkedHashSet<Class<?>> loadClasses(

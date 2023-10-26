@@ -16,7 +16,7 @@
   ~ limitations under the License.
   -->
 
-<nz-card nzType="inner" nzTitle="Execution Configuration">
+<nz-card nzType="inner" nzTitle="Job Core Configuration">
   <nz-table
     *ngIf="config"
     class="no-border small"
@@ -28,8 +28,8 @@
   >
     <tbody>
       <tr>
-        <td><strong>Execution mode</strong></td>
-        <td>{{ config['execution-config']['execution-mode'] }}</td>
+        <td><strong>Job Type</strong></td>
+        <td>{{ config['job-type'] }}</td>
       </tr>
       <tr>
         <td><strong>Max. number of execution retries</strong></td>
@@ -71,3 +71,26 @@
     </tbody>
   </nz-table>
 </nz-card>
+<nz-collapse>
+  <nz-collapse-panel nzHeader="Show all configuration">
+    <nz-card nzType="inner">
+      <nz-table
+        #jobTable
+        *ngIf="config"
+        class="no-border small"
+        [nzData]="listOfJobConfig"
+        [nzSize]="'small'"
+        [nzFrontPagination]="false"
+        [nzShowPagination]="false"
+        [nzWidthConfig]="['50%', '50%']"
+      >
+        <tbody>
+          <tr *ngFor="let config of jobTable.data">
+            <td>{{ config.key }}</td>
+            <td>{{ config.value }}</td>
+          </tr>
+        </tbody>
+      </nz-table>
+    </nz-card>
+  </nz-collapse-panel>
+</nz-collapse>

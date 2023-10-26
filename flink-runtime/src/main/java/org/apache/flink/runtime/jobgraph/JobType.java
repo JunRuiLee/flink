@@ -26,5 +26,8 @@ public enum JobType {
      * Streaming jobs are infinite jobs, consisting of one large pipelined region, not separated by
      * any blocking data exchanges.
      */
-    STREAMING
+    STREAMING,
+
+    /** A job type which will be used when archive execution graph. */
+    UNKNOWN
 }

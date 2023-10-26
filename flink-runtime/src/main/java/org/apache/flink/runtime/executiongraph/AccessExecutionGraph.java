@@ -21,6 +21,7 @@ package org.apache.flink.runtime.executiongraph;
 import org.apache.flink.api.common.ArchivedExecutionConfig;
 import org.apache.flink.api.common.JobID;
 import org.apache.flink.api.common.JobStatus;
+import org.apache.flink.configuration.Configuration;
 import org.apache.flink.runtime.accumulators.StringifiedAccumulatorResult;
 import org.apache.flink.runtime.checkpoint.CheckpointStatsSnapshot;
 import org.apache.flink.runtime.jobgraph.JobVertexID;
@@ -59,6 +60,8 @@ public interface AccessExecutionGraph extends JobStatusProvider {
      * @return job name for this execution graph
      */
     String getJobName();
+
+    String getJobType();
 
     /**
      * Returns the current {@link JobStatus} for this execution graph.
@@ -141,6 +144,8 @@ public interface AccessExecutionGraph extends JobStatusProvider {
      */
     @Nullable
     ArchivedExecutionConfig getArchivedExecutionConfig();
+
+    Configuration getJobConfiguration();
 
     /**
      * Returns whether the job for this execution graph is stoppable.

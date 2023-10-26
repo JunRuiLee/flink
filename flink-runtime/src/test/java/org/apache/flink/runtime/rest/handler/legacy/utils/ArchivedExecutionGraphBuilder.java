@@ -21,10 +21,12 @@ package org.apache.flink.runtime.rest.handler.legacy.utils;
 import org.apache.flink.api.common.ArchivedExecutionConfig;
 import org.apache.flink.api.common.JobID;
 import org.apache.flink.api.common.JobStatus;
+import org.apache.flink.configuration.Configuration;
 import org.apache.flink.runtime.accumulators.StringifiedAccumulatorResult;
 import org.apache.flink.runtime.executiongraph.ArchivedExecutionGraph;
 import org.apache.flink.runtime.executiongraph.ArchivedExecutionJobVertex;
 import org.apache.flink.runtime.executiongraph.ErrorInfo;
+import org.apache.flink.runtime.jobgraph.JobType;
 import org.apache.flink.runtime.jobgraph.JobVertexID;
 import org.apache.flink.util.OptionalFailure;
 import org.apache.flink.util.Preconditions;
@@ -44,6 +46,7 @@ public class ArchivedExecutionGraphBuilder {
 
     private JobID jobID;
     private String jobName;
+    private String jobType = JobType.UNKNOWN.name();
     private Map<JobVertexID, ArchivedExecutionJobVertex> tasks;
     private List<ArchivedExecutionJobVertex> verticesInCreationOrder;
     private long[] stateTimestamps;
@@ -52,6 +55,7 @@ public class ArchivedExecutionGraphBuilder {
     private String jsonPlan;
     private StringifiedAccumulatorResult[] archivedUserAccumulators;
     private ArchivedExecutionConfig archivedExecutionConfig;
+    private Configuration jobConfiguration = new Configuration();
     private boolean isStoppable;
     private Map<String, SerializedValue<OptionalFailure<Object>>> serializedUserAccumulators;
 
@@ -62,6 +66,11 @@ public class ArchivedExecutionGraphBuilder {
 
     public ArchivedExecutionGraphBuilder setJobName(String jobName) {
         this.jobName = jobName;
+        return this;
+    }
+
+    public ArchivedExecutionGraphBuilder setJobType(String jobType) {
+        this.jobType = jobType;
         return this;
     }
 
@@ -110,6 +119,11 @@ public class ArchivedExecutionGraphBuilder {
         return this;
     }
 
+    public ArchivedExecutionGraphBuilder setJobConfiguration(Configuration jobConfiguration) {
+        this.jobConfiguration = jobConfiguration;
+        return this;
+    }
+
     public ArchivedExecutionGraphBuilder setStoppable(boolean stoppable) {
         isStoppable = stoppable;
         return this;
@@ -131,6 +145,7 @@ public class ArchivedExecutionGraphBuilder {
 
         return new ArchivedExecutionGraph(
                 jobID,
+                jobType,
                 jobName,
                 tasks,
                 verticesInCreationOrder != null
@@ -152,6 +167,7 @@ public class ArchivedExecutionGraphBuilder {
                 serializedUserAccumulators != null
                         ? serializedUserAccumulators
                         : Collections.emptyMap(),
+                jobConfiguration,
                 archivedExecutionConfig != null
                         ? archivedExecutionConfig
                         : new ArchivedExecutionConfigBuilder().build(),

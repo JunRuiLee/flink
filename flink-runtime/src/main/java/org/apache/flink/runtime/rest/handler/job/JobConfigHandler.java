@@ -20,6 +20,7 @@ package org.apache.flink.runtime.rest.handler.job;
 
 import org.apache.flink.api.common.ArchivedExecutionConfig;
 import org.apache.flink.api.common.time.Time;
+import org.apache.flink.configuration.ConfigurationUtils;
 import org.apache.flink.runtime.executiongraph.AccessExecutionGraph;
 import org.apache.flink.runtime.rest.handler.HandlerRequest;
 import org.apache.flink.runtime.rest.handler.legacy.ExecutionGraphCache;
@@ -89,7 +90,15 @@ public class JobConfigHandler
             executionConfigInfo = null;
         }
 
+        final Map<String, String> configurationWithHiddenSensitiveValues =
+                ConfigurationUtils.hideSensitiveValues(
+                        executionGraph.getJobConfiguration().toMap());
+
         return new JobConfigInfo(
-                executionGraph.getJobID(), executionGraph.getJobName(), executionConfigInfo);
+                executionGraph.getJobID(),
+                executionGraph.getJobName(),
+                configurationWithHiddenSensitiveValues,
+                executionGraph.getJobType(),
+                executionConfigInfo);
     }
 }

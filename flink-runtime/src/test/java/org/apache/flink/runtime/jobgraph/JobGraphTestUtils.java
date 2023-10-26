@@ -18,6 +18,7 @@
 
 package org.apache.flink.runtime.jobgraph;
 
+import org.apache.flink.configuration.Configuration;
 import org.apache.flink.runtime.testtasks.NoOpInvokable;
 
 import java.util.Arrays;
@@ -39,6 +40,14 @@ public class JobGraphTestUtils {
 
     public static JobGraph streamingJobGraph(JobVertex... jobVertices) {
         return JobGraphBuilder.newStreamingJobGraphBuilder()
+                .addJobVertices(Arrays.asList(jobVertices))
+                .build();
+    }
+
+    public static JobGraph streamingJobGraph(
+            Configuration jobConfiguration, JobVertex... jobVertices) {
+        return JobGraphBuilder.newStreamingJobGraphBuilder()
+                .setJobConfiguration(jobConfiguration)
                 .addJobVertices(Arrays.asList(jobVertices))
                 .build();
     }

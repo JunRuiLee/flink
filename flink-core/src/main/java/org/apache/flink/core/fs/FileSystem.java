@@ -1069,7 +1069,9 @@ public abstract class FileSystem {
         for (Supplier<Iterator<FileSystemFactory>> factoryIteratorsSupplier :
                 factoryIteratorsSuppliers) {
             try {
+                LOG.info("Loading fs 111111");
                 addAllFactoriesToList(factoryIteratorsSupplier.get(), list);
+                LOG.info("The factory {} size is {}", list.get(list.size() - 1), list.size());
             } catch (Throwable t) {
                 // catching Throwable here to handle various forms of class loading
                 // and initialization errors

@@ -22,10 +22,12 @@ import org.apache.flink.api.common.ArchivedExecutionConfig;
 import org.apache.flink.api.common.ExecutionConfig;
 import org.apache.flink.api.common.JobID;
 import org.apache.flink.api.common.JobStatus;
+import org.apache.flink.configuration.Configuration;
 import org.apache.flink.configuration.MemorySize;
 import org.apache.flink.runtime.accumulators.StringifiedAccumulatorResult;
 import org.apache.flink.runtime.checkpoint.CheckpointStatsSnapshot;
 import org.apache.flink.runtime.clusterframework.types.ResourceProfile;
+import org.apache.flink.runtime.jobgraph.JobType;
 import org.apache.flink.runtime.jobgraph.JobVertex;
 import org.apache.flink.runtime.jobgraph.JobVertexID;
 import org.apache.flink.runtime.jobgraph.tasks.CheckpointCoordinatorConfiguration;
@@ -92,6 +94,7 @@ public class ArchivedExecutionGraph implements AccessExecutionGraph, Serializabl
     // ------ Fields that are only relevant for archived execution graphs ------------
     private final String jsonPlan;
     private final StringifiedAccumulatorResult[] archivedUserAccumulators;
+    private final Configuration jobConfiguration;
     private final ArchivedExecutionConfig archivedExecutionConfig;
     private final boolean isStoppable;
     private final Map<String, SerializedValue<OptionalFailure<Object>>> serializedUserAccumulators;
@@ -108,8 +111,11 @@ public class ArchivedExecutionGraph implements AccessExecutionGraph, Serializabl
 
     @Nullable private final String changelogStorageName;
 
+    private final String jobType;
+
     public ArchivedExecutionGraph(
             JobID jobID,
+            String jobType,
             String jobName,
             Map<JobVertexID, ArchivedExecutionJobVertex> tasks,
             List<ArchivedExecutionJobVertex> verticesInCreationOrder,
@@ -119,6 +125,7 @@ public class ArchivedExecutionGraph implements AccessExecutionGraph, Serializabl
             String jsonPlan,
             StringifiedAccumulatorResult[] archivedUserAccumulators,
             Map<String, SerializedValue<OptionalFailure<Object>>> serializedUserAccumulators,
+            Configuration jobConfiguration,
             ArchivedExecutionConfig executionConfig,
             boolean isStoppable,
             @Nullable CheckpointCoordinatorConfiguration jobCheckpointingConfiguration,
@@ -130,6 +137,7 @@ public class ArchivedExecutionGraph implements AccessExecutionGraph, Serializabl
 
         this.jobID = Preconditions.checkNotNull(jobID);
         this.jobName = Preconditions.checkNotNull(jobName);
+        this.jobType = Preconditions.checkNotNull(jobType);
         this.tasks = Preconditions.checkNotNull(tasks);
         this.verticesInCreationOrder = Preconditions.checkNotNull(verticesInCreationOrder);
         this.stateTimestamps = Preconditions.checkNotNull(stateTimestamps);
@@ -139,6 +147,7 @@ public class ArchivedExecutionGraph implements AccessExecutionGraph, Serializabl
         this.archivedUserAccumulators = Preconditions.checkNotNull(archivedUserAccumulators);
         this.serializedUserAccumulators = Preconditions.checkNotNull(serializedUserAccumulators);
         this.archivedExecutionConfig = Preconditions.checkNotNull(executionConfig);
+        this.jobConfiguration = Preconditions.checkNotNull(jobConfiguration);
         this.isStoppable = isStoppable;
         this.jobCheckpointingConfiguration = jobCheckpointingConfiguration;
         this.checkpointStatsSnapshot = checkpointStatsSnapshot;
@@ -163,6 +172,11 @@ public class ArchivedExecutionGraph implements AccessExecutionGraph, Serializabl
     @Override
     public String getJobName() {
         return jobName;
+    }
+
+    @Override
+    public String getJobType() {
+        return jobType;
     }
 
     @Override
@@ -252,6 +266,11 @@ public class ArchivedExecutionGraph implements AccessExecutionGraph, Serializabl
     }
 
     @Override
+    public Configuration getJobConfiguration() {
+        return jobConfiguration;
+    }
+
+    @Override
     public boolean isStoppable() {
         return isStoppable;
     }
@@ -337,6 +356,7 @@ public class ArchivedExecutionGraph implements AccessExecutionGraph, Serializabl
 
         return new ArchivedExecutionGraph(
                 executionGraph.getJobID(),
+                executionGraph.getJobType(),
                 executionGraph.getJobName(),
                 archivedTasks,
                 archivedVerticesInCreationOrder,
@@ -346,6 +366,7 @@ public class ArchivedExecutionGraph implements AccessExecutionGraph, Serializabl
                 executionGraph.getJsonPlan(),
                 executionGraph.getAccumulatorResultsStringified(),
                 serializedUserAccumulators,
+                executionGraph.getJobConfiguration(),
                 executionGraph.getArchivedExecutionConfig(),
                 executionGraph.isStoppable(),
                 executionGraph.getCheckpointCoordinatorConfiguration(),
@@ -370,6 +391,7 @@ public class ArchivedExecutionGraph implements AccessExecutionGraph, Serializabl
         return createSparseArchivedExecutionGraph(
                 jobId,
                 jobName,
+                JobType.UNKNOWN.name(),
                 jobStatus,
                 Collections.emptyMap(),
                 Collections.emptyList(),
@@ -381,6 +403,7 @@ public class ArchivedExecutionGraph implements AccessExecutionGraph, Serializabl
     public static ArchivedExecutionGraph createSparseArchivedExecutionGraphWithJobVertices(
             JobID jobId,
             String jobName,
+            String jobType,
             JobStatus jobStatus,
             @Nullable Throwable throwable,
             @Nullable JobCheckpointingSettings checkpointingSettings,
@@ -409,6 +432,7 @@ public class ArchivedExecutionGraph implements AccessExecutionGraph, Serializabl
         return createSparseArchivedExecutionGraph(
                 jobId,
                 jobName,
+                jobType,
                 jobStatus,
                 archivedJobVertices,
                 archivedVerticesInCreationOrder,
@@ -420,6 +444,7 @@ public class ArchivedExecutionGraph implements AccessExecutionGraph, Serializabl
     private static ArchivedExecutionGraph createSparseArchivedExecutionGraph(
             JobID jobId,
             String jobName,
+            String jobType,
             JobStatus jobStatus,
             Map<JobVertexID, ArchivedExecutionJobVertex> archivedTasks,
             List<ArchivedExecutionJobVertex> archivedVerticesInCreationOrder,
@@ -448,6 +473,7 @@ public class ArchivedExecutionGraph implements AccessExecutionGraph, Serializabl
         return new ArchivedExecutionGraph(
                 jobId,
                 jobName,
+                jobType,
                 archivedTasks,
                 archivedVerticesInCreationOrder,
                 timestamps,
@@ -456,6 +482,7 @@ public class ArchivedExecutionGraph implements AccessExecutionGraph, Serializabl
                 jsonPlan,
                 archivedUserAccumulators,
                 serializedUserAccumulators,
+                new Configuration(),
                 new ExecutionConfig().archive(),
                 false,
                 checkpointingSettings == null

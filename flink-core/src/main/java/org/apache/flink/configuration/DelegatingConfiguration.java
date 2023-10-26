@@ -350,6 +350,11 @@ public final class DelegatingConfiguration extends Configuration {
     }
 
     @Override
+    public Map<String, String> getAllConfigOptions() {
+        return toMap();
+    }
+
+    @Override
     public <T> Configuration set(ConfigOption<T> option, T value) {
         backingConfig.set(prefixOption(option, prefix), value);
         return this;

@@ -41,6 +41,7 @@ import org.apache.flink.runtime.io.network.partition.PartitionNotFoundException;
 import org.apache.flink.runtime.io.network.partition.ResultPartitionType;
 import org.apache.flink.runtime.jobgraph.IntermediateDataSetID;
 import org.apache.flink.runtime.jobgraph.IntermediateResultPartitionID;
+import org.apache.flink.runtime.jobgraph.JobType;
 import org.apache.flink.runtime.jobgraph.tasks.AbstractInvokable;
 import org.apache.flink.runtime.jobmaster.JobMasterId;
 import org.apache.flink.runtime.jobmaster.TestingAbstractInvokables;
@@ -663,6 +664,7 @@ class TaskExecutorSubmissionTest {
                 new JobInformation(
                         jobId,
                         jobName,
+                        JobType.UNKNOWN.name(),
                         serializedExecutionConfig,
                         jobConfiguration,
                         requiredJarFiles,

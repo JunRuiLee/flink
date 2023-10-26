@@ -19,6 +19,7 @@
 export interface JobConfig {
   jid: string;
   name: string;
+  'job-type': string;
   'execution-config': {
     'execution-mode': string;
     'restart-strategy': string;
@@ -27,5 +28,8 @@ export interface JobConfig {
     'user-config': {
       [key: string]: string;
     };
+  };
+  'job-config': {
+    [key: string]: string;
   };
 }

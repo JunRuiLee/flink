@@ -104,6 +104,7 @@ import org.apache.flink.streaming.runtime.tasks.mailbox.MailboxProcessor;
 import org.apache.flink.streaming.runtime.tasks.mailbox.PeriodTimer;
 import org.apache.flink.streaming.runtime.tasks.mailbox.TaskMailbox;
 import org.apache.flink.streaming.runtime.tasks.mailbox.TaskMailboxImpl;
+import org.apache.flink.util.DynamicCodeLoadingException;
 import org.apache.flink.util.ExceptionUtils;
 import org.apache.flink.util.FatalExitExceptionHandler;
 import org.apache.flink.util.FlinkException;
@@ -1501,8 +1502,14 @@ public abstract class StreamTask<OUT, OP extends StreamOperator<OUT>>
     // ------------------------------------------------------------------------
 
     private StateBackend createStateBackend() throws Exception {
-        final StateBackend fromApplication =
-                configuration.getStateBackend(getUserCodeClassLoader());
+        StateBackend fromApplication =
+                StateBackendLoader.loadStateBackendFromConfig(
+                        environment.getJobConfiguration(), getUserCodeClassLoader(), null);
+
+        if (fromApplication == null) {
+            fromApplication = configuration.getStateBackend(getUserCodeClassLoader());
+        }
+
         final Optional<Boolean> isChangelogEnabledOptional =
                 environment
                         .getJobConfiguration()
@@ -1522,8 +1529,20 @@ public abstract class StreamTask<OUT, OP extends StreamOperator<OUT>>
     }
 
     private CheckpointStorage createCheckpointStorage(StateBackend backend) throws Exception {
-        final CheckpointStorage fromApplication =
-                configuration.getCheckpointStorage(getUserCodeClassLoader());
+        Optional<CheckpointStorage> storageFromConfigOptional;
+        try {
+            storageFromConfigOptional =
+                    CheckpointStorageLoader.fromConfig(
+                            environment.getJobConfiguration(), getUserCodeClassLoader(), null);
+        } catch (DynamicCodeLoadingException e) {
+            throw new RuntimeException(e);
+        }
+
+        final CheckpointStorage fromApplication;
+        fromApplication =
+                storageFromConfigOptional.orElseGet(
+                        () -> configuration.getCheckpointStorage(getUserCodeClassLoader()));
+
         final Path savepointDir = configuration.getSavepointDir(getUserCodeClassLoader());
 
         return CheckpointStorageLoader.load(
