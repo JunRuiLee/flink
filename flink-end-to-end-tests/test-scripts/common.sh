@@ -164,7 +164,7 @@ function create_ha_config() {
 
     # create the masters file (only one currently).
     # This must have all the masters to be used in HA.
-    echo "localhost:8081" > ${FLINK_DIR}/conf/masters
+    echo "localhost:8084" > ${FLINK_DIR}/conf/masters
 
     # then move on to create the flink-conf.yaml
     #==============================================================================
@@ -191,7 +191,7 @@ function create_ha_config() {
     # Web Frontend
     #==============================================================================
 
-    set_config_key "rest.port" "8081"
+    set_config_key "rest.port" "8084"
 
     set_config_key "queryable-state.server.ports" "9000-9009"
     set_config_key "queryable-state.proxy.ports" "9010-9019"
@@ -289,7 +289,7 @@ function relocate_rocksdb_logs {
 }
 
 function wait_dispatcher_running {
-  local query_url="${REST_PROTOCOL}://${NODENAME}:8081/taskmanagers"
+  local query_url="${REST_PROTOCOL}://${NODENAME}:8084/taskmanagers"
   wait_rest_endpoint_up "${query_url}" "Dispatcher" "\{\"taskmanagers\":\[.+\]\}"
 }
 
@@ -338,7 +338,7 @@ function start_and_wait_for_tm {
 }
 
 function query_running_tms {
-  local url="${REST_PROTOCOL}://${NODENAME}:8081/taskmanagers"
+  local url="${REST_PROTOCOL}://${NODENAME}:8084/taskmanagers"
   curl ${CURL_SSL_ARGS} -s "${url}"
 }
 
@@ -693,7 +693,7 @@ function setup_flink_slf4j_metric_reporter() {
 
 function get_job_exceptions {
   local job_id=$1
-  local json=$(curl ${CURL_SSL_ARGS} -s ${REST_PROTOCOL}://${NODENAME}:8081/jobs/${job_id}/exceptions)
+  local json=$(curl ${CURL_SSL_ARGS} -s ${REST_PROTOCOL}://${NODENAME}:8084/jobs/${job_id}/exceptions)
 
   echo ${json}
 }
@@ -702,7 +702,7 @@ function get_job_metric {
   local job_id=$1
   local metric_name=$2
 
-  local json=$(curl ${CURL_SSL_ARGS} -s ${REST_PROTOCOL}://${NODENAME}:8081/jobs/${job_id}/metrics?get=${metric_name})
+  local json=$(curl ${CURL_SSL_ARGS} -s ${REST_PROTOCOL}://${NODENAME}:8084/jobs/${job_id}/metrics?get=${metric_name})
   local metric_value=$(echo ${json} | sed -n 's/.*"value":"\(.*\)".*/\1/p')
 
   echo ${metric_value}

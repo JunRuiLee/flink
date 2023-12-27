@@ -292,6 +292,7 @@ public class StreamingJobGraphGenerator {
 
         for (Map.Entry<String, DistributedCache.DistributedCacheEntry> entry :
                 distributedCacheEntries.entrySet()) {
+            LOG.info("Add user artifact");
             jobGraph.addUserArtifact(entry.getKey(), entry.getValue());
         }
 

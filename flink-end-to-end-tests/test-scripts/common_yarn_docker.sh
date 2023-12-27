@@ -20,7 +20,6 @@ set -o pipefail
 
 source "$(dirname "$0")"/common.sh
 source "$(dirname "$0")"/common_docker.sh
-source "$(dirname "$0")"/common_artifact_download_cacher.sh
 
 FLINK_TARBALL_DIR=${TEST_DATA_DIR}
 FLINK_TARBALL=flink.tar.gz

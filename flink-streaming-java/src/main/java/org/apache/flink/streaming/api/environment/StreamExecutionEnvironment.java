@@ -117,6 +117,8 @@ import org.apache.flink.util.TernaryBoolean;
 import org.apache.flink.util.WrappingRuntimeException;
 
 import com.esotericsoftware.kryo.Serializer;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import javax.annotation.Nullable;
 
@@ -153,6 +155,8 @@ import static org.apache.flink.util.Preconditions.checkNotNull;
  */
 @Public
 public class StreamExecutionEnvironment implements AutoCloseable {
+
+    private static final Logger LOG = LoggerFactory.getLogger(StreamExecutionEnvironment.class);
 
     private final List<CollectResultIterator<?>> collectIterators = new ArrayList<>();
 
@@ -321,6 +325,8 @@ public class StreamExecutionEnvironment implements AutoCloseable {
      * Get the list of cached files that were registered for distribution among the task managers.
      */
     public List<Tuple2<String, DistributedCache.DistributedCacheEntry>> getCachedFiles() {
+        LOG.info("The method stack is ", new RuntimeException());
+        LOG.info("Get cached files: {}", cacheFile);
         return cacheFile;
     }
 
@@ -1034,6 +1040,7 @@ public class StreamExecutionEnvironment implements AutoCloseable {
      */
     @PublicEvolving
     public void configure(ReadableConfig configuration, ClassLoader classLoader) {
+        LOG.info("Received configure by configuration : {}", configuration);
         configuration
                 .getOptional(StreamPipelineOptions.TIME_CHARACTERISTIC)
                 .ifPresent(this::setStreamTimeCharacteristic);
@@ -2890,6 +2897,8 @@ public class StreamExecutionEnvironment implements AutoCloseable {
      * @param executable flag indicating whether the file should be executable
      */
     public void registerCachedFile(String filePath, String name, boolean executable) {
+        LOG.info("The method stack is ", new RuntimeException());
+        LOG.info("registerCachedFile is {} {} {}", filePath, name, executable);
         this.cacheFile.add(
                 new Tuple2<>(
                         name, new DistributedCache.DistributedCacheEntry(filePath, executable)));

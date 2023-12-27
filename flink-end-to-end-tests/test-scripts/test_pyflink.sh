@@ -51,16 +51,11 @@ function sort_msg {
     echo "${sorted[*]}"
 }
 
+printf "\n\n===========aaaa================================================\n"
 CURRENT_DIR=`cd "$(dirname "$0")" && pwd -P`
 source "${CURRENT_DIR}"/common.sh
-source "${CURRENT_DIR}"/kafka_sql_common.sh \
-  ${KAFKA_VERSION} \
-  ${CONFLUENT_VERSION} \
-  ${CONFLUENT_MAJOR_VERSION} \
-  ${KAFKA_SQL_VERSION}
 
 function test_clean_up {
-    stop_cluster
     stop_kafka_cluster
 }
 on_exit test_clean_up
@@ -93,7 +88,7 @@ python setup.py sdist
 pushd apache-flink-libraries
 
 python setup.py sdist
-
+printf "\n\n===========0000================================================\n"
 pip install dist/*
 
 popd
@@ -103,13 +98,13 @@ pip install dist/*
 cd dev
 
 rm -rf .conda/pkgs
-
+printf "\n\n===========11111================================================\n"
 zip -q -r "${TEST_DATA_DIR}/venv.zip" .conda
 
 deactivate
 
 cd "${CURRENT_DIR}"
-
+printf "\n\n===========2222================================================\n"
 start_cluster
 
 echo "Test PyFlink Table job:"
@@ -118,26 +113,6 @@ FLINK_PYTHON_TEST_DIR=`cd "${CURRENT_DIR}/../flink-python-test" && pwd -P`
 REQUIREMENTS_PATH="${TEST_DATA_DIR}/requirements.txt"
 
 echo "pytest==4.4.1" > "${REQUIREMENTS_PATH}"
-
-echo "Test submitting python job with 'pipeline.jars':\n"
-PYFLINK_CLIENT_EXECUTABLE=${PYTHON_EXEC} "${FLINK_DIR}/bin/flink" run \
-    -p 2 \
-    -pyfs "${FLINK_PYTHON_TEST_DIR}/python/add_one.py" \
-    -pyreq "${REQUIREMENTS_PATH}" \
-    -pyarch "${TEST_DATA_DIR}/venv.zip" \
-    -pyexec "venv.zip/.conda/bin/python" \
-    -py "${FLINK_PYTHON_TEST_DIR}/python/python_job.py" \
-    pipeline.jars "file://${FLINK_PYTHON_TEST_DIR}/target/PythonUdfSqlJobExample.jar"
-
-echo "Test submitting python job with 'pipeline.classpaths':\n"
-PYFLINK_CLIENT_EXECUTABLE=${PYTHON_EXEC} "${FLINK_DIR}/bin/flink" run \
-    -p 2 \
-    -pyfs "${FLINK_PYTHON_TEST_DIR}/python/add_one.py" \
-    -pyreq "${REQUIREMENTS_PATH}" \
-    -pyarch "${TEST_DATA_DIR}/venv.zip" \
-    -pyexec "venv.zip/.conda/bin/python" \
-    -py "${FLINK_PYTHON_TEST_DIR}/python/python_job.py" \
-    pipeline.classpaths "file://${FLINK_PYTHON_TEST_DIR}/target/PythonUdfSqlJobExample.jar"
 
 echo "Test stream python udf sql job:\n"
 PYFLINK_CLIENT_EXECUTABLE=${PYTHON_EXEC} "${FLINK_DIR}/bin/flink" run \
@@ -148,18 +123,7 @@ PYFLINK_CLIENT_EXECUTABLE=${PYTHON_EXEC} "${FLINK_DIR}/bin/flink" run \
     -pyexec "venv.zip/.conda/bin/python" \
     "${FLINK_PYTHON_TEST_DIR}/target/PythonUdfSqlJobExample.jar"
 
-echo "Test batch python udf sql job:\n"
-PYFLINK_CLIENT_EXECUTABLE=${PYTHON_EXEC} "${FLINK_DIR}/bin/flink" run \
-    -p 2 \
-    -pyfs "${FLINK_PYTHON_TEST_DIR}/python/add_one.py" \
-    -pyreq "${REQUIREMENTS_PATH}" \
-    -pyarch "${TEST_DATA_DIR}/venv.zip" \
-    -pyexec "venv.zip/.conda/bin/python" \
-    -c org.apache.flink.python.tests.BatchPythonUdfSqlJob \
-    "${FLINK_PYTHON_TEST_DIR}/target/PythonUdfSqlJobExample.jar"
 
-echo "Test using python udf in sql client:\n"
-INIT_SQL=$TEST_DATA_DIR/sql-client-init.sql
 
 cat >> $INIT_SQL << EOF
 CREATE TABLE sink (

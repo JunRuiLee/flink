@@ -39,6 +39,8 @@ import org.apache.flink.configuration.description.InlineElement;
 import org.apache.flink.util.Preconditions;
 
 import com.esotericsoftware.kryo.Serializer;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import java.io.Serializable;
 import java.time.Duration;
@@ -77,6 +79,8 @@ import static org.apache.flink.util.Preconditions.checkArgument;
  */
 @Public
 public class ExecutionConfig implements Serializable, Archiveable<ArchivedExecutionConfig> {
+
+    private static final Logger LOG = LoggerFactory.getLogger(ExecutionConfig.class);
 
     // NOTE TO IMPLEMENTERS:
     // Please do not add further fields to this class. Use the ConfigOption stack instead!
@@ -1156,6 +1160,7 @@ public class ExecutionConfig implements Serializable, Archiveable<ArchivedExecut
      * @param classLoader a class loader to use when loading classes
      */
     public void configure(ReadableConfig configuration, ClassLoader classLoader) {
+        LOG.info("Received configure by configuration : {}", configuration);
         configuration
                 .getOptional(PipelineOptions.AUTO_TYPE_REGISTRATION)
                 .ifPresent(this::setAutoTypeRegistration);
