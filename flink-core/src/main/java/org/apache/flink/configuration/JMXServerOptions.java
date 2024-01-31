@@ -22,11 +22,14 @@ import org.apache.flink.annotation.PublicEvolving;
 import org.apache.flink.annotation.docs.Documentation;
 import org.apache.flink.configuration.description.Description;
 
+import java.util.Collection;
+import java.util.Collections;
+
 import static org.apache.flink.configuration.ConfigOptions.key;
 
 /** The set of configuration options relating to JMX server. */
 @PublicEvolving
-public class JMXServerOptions {
+public class JMXServerOptions implements ConfigOptionProvider {
 
     /** Port configured to enable JMX server for metrics and debugging. */
     @Documentation.Section(Documentation.Sections.EXPERT_DEBUGGING_AND_TUNING)
@@ -47,5 +50,10 @@ public class JMXServerOptions {
     // ------------------------------------------------------------------------
 
     /** Not intended to be instantiated. */
-    private JMXServerOptions() {}
+    public JMXServerOptions() {}
+
+    @Override
+    public Collection<ConfigOption<?>> options() {
+        return Collections.singletonList(JMX_SERVER_PORT);
+    }
 }

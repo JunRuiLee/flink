@@ -20,12 +20,15 @@ package org.apache.flink.table.connector.source.lookup;
 
 import org.apache.flink.annotation.PublicEvolving;
 import org.apache.flink.configuration.ConfigOption;
+import org.apache.flink.configuration.ConfigOptionProvider;
 import org.apache.flink.configuration.ConfigOptions;
 import org.apache.flink.configuration.description.Description;
 import org.apache.flink.table.connector.source.lookup.cache.trigger.CacheReloadTrigger;
 import org.apache.flink.table.connector.source.lookup.cache.trigger.PeriodicCacheReloadTrigger;
 
 import java.time.Duration;
+import java.util.Arrays;
+import java.util.Collection;
 
 import static org.apache.flink.configuration.description.TextElement.code;
 import static org.apache.flink.table.connector.source.lookup.cache.trigger.PeriodicCacheReloadTrigger.ScheduleMode.FIXED_DELAY;
@@ -33,7 +36,7 @@ import static org.apache.flink.table.connector.source.lookup.cache.trigger.Perio
 
 /** Predefined options for lookup table. */
 @PublicEvolving
-public class LookupOptions {
+public class LookupOptions implements ConfigOptionProvider {
     public static final ConfigOption<LookupCacheType> CACHE_TYPE =
             ConfigOptions.key("lookup.cache")
                     .enumType(LookupCacheType.class)
@@ -130,6 +133,22 @@ public class LookupOptions {
                     .defaultValue(1)
                     .withDescription(
                             "Number of days between reloads of Full cache with TIMED strategy");
+
+    @Override
+    public Collection<ConfigOption<?>> options() {
+        return Arrays.asList(
+                CACHE_TYPE,
+                MAX_RETRIES,
+                PARTIAL_CACHE_EXPIRE_AFTER_ACCESS,
+                PARTIAL_CACHE_EXPIRE_AFTER_WRITE,
+                PARTIAL_CACHE_CACHE_MISSING_KEY,
+                PARTIAL_CACHE_MAX_ROWS,
+                FULL_CACHE_RELOAD_STRATEGY,
+                FULL_CACHE_PERIODIC_RELOAD_INTERVAL,
+                FULL_CACHE_PERIODIC_RELOAD_SCHEDULE_MODE,
+                FULL_CACHE_TIMED_RELOAD_ISO_TIME,
+                FULL_CACHE_TIMED_RELOAD_INTERVAL_IN_DAYS);
+    }
 
     /** Types of the lookup cache. */
     @PublicEvolving

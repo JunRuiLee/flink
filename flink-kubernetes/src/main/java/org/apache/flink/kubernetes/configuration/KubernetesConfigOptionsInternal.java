@@ -20,11 +20,15 @@ package org.apache.flink.kubernetes.configuration;
 
 import org.apache.flink.annotation.Internal;
 import org.apache.flink.configuration.ConfigOption;
+import org.apache.flink.configuration.ConfigOptionProvider;
 import org.apache.flink.configuration.ConfigOptions;
+
+import java.util.Collection;
+import java.util.Collections;
 
 /** Kubernetes configuration options that are not meant to be set by the user. */
 @Internal
-public class KubernetesConfigOptionsInternal {
+public class KubernetesConfigOptionsInternal implements ConfigOptionProvider {
 
     public static final ConfigOption<String> ENTRY_POINT_CLASS =
             ConfigOptions.key("kubernetes.internal.jobmanager.entrypoint.class")
@@ -33,6 +37,8 @@ public class KubernetesConfigOptionsInternal {
                     .withDescription(
                             "The entrypoint class for jobmanager. It will be set in kubernetesClusterDescriptor.");
 
-    /** This class is not meant to be instantiated. */
-    private KubernetesConfigOptionsInternal() {}
+    @Override
+    public Collection<ConfigOption<?>> options() {
+        return Collections.singletonList(ENTRY_POINT_CLASS);
+    }
 }

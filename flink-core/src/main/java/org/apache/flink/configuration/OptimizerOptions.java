@@ -20,11 +20,14 @@ package org.apache.flink.configuration;
 
 import org.apache.flink.annotation.PublicEvolving;
 
+import java.util.Arrays;
+import java.util.Collection;
+
 import static org.apache.flink.configuration.ConfigOptions.key;
 
 /** Configuration options for the optimizer. */
 @PublicEvolving
-public class OptimizerOptions {
+public class OptimizerOptions implements ConfigOptionProvider {
 
     /**
      * The maximum number of line samples taken by the compiler for delimited inputs. The samples
@@ -69,4 +72,12 @@ public class OptimizerOptions {
                                     + " length of a single sample exceeds this value (possible because of misconfiguration of the parser),"
                                     + " the sampling aborts. This value can be overridden for a specific input with the input format’s"
                                     + " parameters.");
+
+    @Override
+    public Collection<ConfigOption<?>> options() {
+        return Arrays.asList(
+                DELIMITED_FORMAT_MAX_LINE_SAMPLES,
+                DELIMITED_FORMAT_MIN_LINE_SAMPLES,
+                DELIMITED_FORMAT_MAX_SAMPLE_LEN);
+    }
 }

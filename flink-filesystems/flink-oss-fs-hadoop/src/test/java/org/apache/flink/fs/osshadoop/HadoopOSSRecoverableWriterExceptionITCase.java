@@ -30,7 +30,7 @@ import org.junit.BeforeClass;
 import java.io.IOException;
 import java.util.UUID;
 
-import static org.apache.flink.fs.osshadoop.OSSFileSystemFactory.MAX_CONCURRENT_UPLOADS;
+import static org.apache.flink.fs.osshadoop.OSSFileSystemFactory.OSSFileSystemFactoryInternalOptions.MAX_CONCURRENT_UPLOADS;
 
 /**
  * Tests for exception throwing in the {@link

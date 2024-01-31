@@ -20,11 +20,15 @@ package org.apache.flink.table.catalog;
 
 import org.apache.flink.annotation.Internal;
 import org.apache.flink.configuration.ConfigOption;
+import org.apache.flink.configuration.ConfigOptionProvider;
 import org.apache.flink.configuration.ConfigOptions;
+
+import java.util.Collection;
+import java.util.Collections;
 
 /** {@link ConfigOption}s for {@link GenericInMemoryCatalog}. */
 @Internal
-public class GenericInMemoryCatalogFactoryOptions {
+public class GenericInMemoryCatalogFactoryOptions implements ConfigOptionProvider {
 
     public static final String IDENTIFIER = "generic_in_memory";
 
@@ -33,5 +37,8 @@ public class GenericInMemoryCatalogFactoryOptions {
                     .stringType()
                     .defaultValue(GenericInMemoryCatalog.DEFAULT_DB);
 
-    private GenericInMemoryCatalogFactoryOptions() {}
+    @Override
+    public Collection<ConfigOption<?>> options() {
+        return Collections.singletonList(DEFAULT_DATABASE);
+    }
 }

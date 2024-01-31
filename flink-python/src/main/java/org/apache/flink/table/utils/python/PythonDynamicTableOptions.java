@@ -19,10 +19,14 @@
 package org.apache.flink.table.utils.python;
 
 import org.apache.flink.configuration.ConfigOption;
+import org.apache.flink.configuration.ConfigOptionProvider;
 import org.apache.flink.configuration.ConfigOptions;
 
+import java.util.Arrays;
+import java.util.Collection;
+
 /** Options for PythonDynamicTableSource. */
-public class PythonDynamicTableOptions {
+public class PythonDynamicTableOptions implements ConfigOptionProvider {
 
     public static final ConfigOption<String> INPUT_FILE_PATH =
             ConfigOptions.key("file-path")
@@ -35,4 +39,9 @@ public class PythonDynamicTableOptions {
                     .booleanType()
                     .defaultValue(true)
                     .withDescription("Whether the values are serialized in batch.");
+
+    @Override
+    public Collection<ConfigOption<?>> options() {
+        return Arrays.asList(INPUT_FILE_PATH, BATCH_MODE);
+    }
 }

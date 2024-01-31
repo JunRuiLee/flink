@@ -25,12 +25,14 @@ import org.apache.flink.api.common.RuntimeExecutionMode;
 import org.apache.flink.configuration.description.Description;
 
 import java.time.Duration;
+import java.util.Arrays;
+import java.util.Collection;
 
 import static org.apache.flink.configuration.description.TextElement.text;
 
 /** {@link ConfigOption}s specific for a single execution of a user program. */
 @PublicEvolving
-public class ExecutionOptions {
+public class ExecutionOptions implements ConfigOptionProvider {
     /** A special marker value for disabling buffer timeout. */
     public static final long DISABLED_NETWORK_BUFFER_TIMEOUT = -1L;
 
@@ -163,4 +165,17 @@ public class ExecutionOptions {
                                     + " operators. NOTE: It takes effect only in the BATCH runtime mode and requires sorted inputs"
                                     + SORT_INPUTS.key()
                                     + " to be enabled.");
+
+    @Override
+    public Collection<ConfigOption<?>> options() {
+        return Arrays.asList(
+                RUNTIME_MODE,
+                BATCH_SHUFFLE_MODE,
+                SNAPSHOT_COMPRESSION,
+                BUFFER_TIMEOUT_ENABLED,
+                BUFFER_TIMEOUT,
+                SORT_INPUTS,
+                SORTED_INPUTS_MEMORY,
+                USE_BATCH_STATE_BACKEND);
+    }
 }

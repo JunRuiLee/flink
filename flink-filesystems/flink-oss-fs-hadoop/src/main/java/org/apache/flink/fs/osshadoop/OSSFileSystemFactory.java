@@ -20,6 +20,7 @@ package org.apache.flink.fs.osshadoop;
 
 import org.apache.flink.annotation.VisibleForTesting;
 import org.apache.flink.configuration.ConfigOption;
+import org.apache.flink.configuration.ConfigOptionProvider;
 import org.apache.flink.configuration.ConfigOptions;
 import org.apache.flink.configuration.Configuration;
 import org.apache.flink.configuration.ConfigurationUtils;
@@ -33,8 +34,13 @@ import org.slf4j.LoggerFactory;
 
 import java.io.IOException;
 import java.net.URI;
+import java.util.Arrays;
+import java.util.Collection;
 import java.util.Collections;
 import java.util.Set;
+
+import static org.apache.flink.fs.osshadoop.OSSFileSystemFactory.OSSFileSystemFactoryInternalOptions.MAX_CONCURRENT_UPLOADS;
+import static org.apache.flink.fs.osshadoop.OSSFileSystemFactory.OSSFileSystemFactoryInternalOptions.PART_UPLOAD_MIN_SIZE;
 
 /** Simple factory for the OSS file system. */
 public class OSSFileSystemFactory implements FileSystemFactory {
@@ -55,22 +61,30 @@ public class OSSFileSystemFactory implements FileSystemFactory {
      */
     private static final String[] FLINK_CONFIG_PREFIXES = {"fs.oss."};
 
-    public static final ConfigOption<Long> PART_UPLOAD_MIN_SIZE =
-            ConfigOptions.key("oss.upload.min.part.size")
-                    .defaultValue(FlinkOSSFileSystem.MULTIPART_UPLOAD_PART_SIZE_MIN)
-                    .withDescription(
-                            "This option is relevant to the Recoverable Writer and sets the min size of data that "
-                                    + "buffered locally, before being sent to OSS. Flink also takes care of checkpoint locally "
-                                    + "buffered data. This value cannot be less than 100KB or greater than 5GB (limits set by Aliyun OSS).");
+    /** A Config option provider to provide the config option which is needed for OSS FileSystem. */
+    public static class OSSFileSystemFactoryInternalOptions implements ConfigOptionProvider {
+        public static final ConfigOption<Long> PART_UPLOAD_MIN_SIZE =
+                ConfigOptions.key("oss.upload.min.part.size")
+                        .defaultValue(FlinkOSSFileSystem.MULTIPART_UPLOAD_PART_SIZE_MIN)
+                        .withDescription(
+                                "This option is relevant to the Recoverable Writer and sets the min size of data that "
+                                        + "buffered locally, before being sent to OSS. Flink also takes care of checkpoint locally "
+                                        + "buffered data. This value cannot be less than 100KB or greater than 5GB (limits set by Aliyun OSS).");
 
-    public static final ConfigOption<Integer> MAX_CONCURRENT_UPLOADS =
-            ConfigOptions.key("oss.upload.max.concurrent.uploads")
-                    .defaultValue(Runtime.getRuntime().availableProcessors())
-                    .withDescription(
-                            "This option is relevant to the Recoverable Writer and limits the number of "
-                                    + "parts that can be concurrently in-flight. By default, this is set to "
-                                    + Runtime.getRuntime().availableProcessors()
-                                    + ".");
+        public static final ConfigOption<Integer> MAX_CONCURRENT_UPLOADS =
+                ConfigOptions.key("oss.upload.max.concurrent.uploads")
+                        .defaultValue(Runtime.getRuntime().availableProcessors())
+                        .withDescription(
+                                "This option is relevant to the Recoverable Writer and limits the number of "
+                                        + "parts that can be concurrently in-flight. By default, this is set to "
+                                        + Runtime.getRuntime().availableProcessors()
+                                        + ".");
+
+        @Override
+        public Collection<ConfigOption<?>> options() {
+            return Arrays.asList(PART_UPLOAD_MIN_SIZE, MAX_CONCURRENT_UPLOADS);
+        }
+    }
 
     @Override
     public String getScheme() {

@@ -23,11 +23,14 @@ import org.apache.flink.annotation.docs.Documentation;
 import org.apache.flink.configuration.description.Description;
 import org.apache.flink.configuration.description.TextElement;
 
+import java.util.Arrays;
+import java.util.Collection;
+
 import static org.apache.flink.configuration.ConfigOptions.key;
 
 /** The set of configuration options relating to heartbeat manager settings. */
 @PublicEvolving
-public class HeartbeatManagerOptions {
+public class HeartbeatManagerOptions implements ConfigOptionProvider {
 
     /** Time interval for requesting heartbeat from sender side. */
     @Documentation.Section(Documentation.Sections.EXPERT_FAULT_TOLERANCE)
@@ -78,5 +81,11 @@ public class HeartbeatManagerOptions {
     // ------------------------------------------------------------------------
 
     /** Not intended to be instantiated. */
-    private HeartbeatManagerOptions() {}
+    public HeartbeatManagerOptions() {}
+
+    @Override
+    public Collection<ConfigOption<?>> options() {
+        return Arrays.asList(
+                HEARTBEAT_INTERVAL, HEARTBEAT_TIMEOUT, HEARTBEAT_RPC_FAILURE_THRESHOLD);
+    }
 }

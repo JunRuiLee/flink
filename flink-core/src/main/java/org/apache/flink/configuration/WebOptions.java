@@ -22,12 +22,15 @@ import org.apache.flink.annotation.PublicEvolving;
 import org.apache.flink.annotation.docs.Documentation;
 import org.apache.flink.configuration.description.Description;
 
+import java.util.Arrays;
+import java.util.Collection;
+
 import static org.apache.flink.configuration.ConfigOptions.key;
 import static org.apache.flink.configuration.description.TextElement.code;
 
 /** Configuration options for the WebMonitorEndpoint. */
 @PublicEvolving
-public class WebOptions {
+public class WebOptions implements ConfigOptionProvider {
 
     /** Config parameter defining the runtime monitor web-frontend server address. */
     @Deprecated
@@ -213,6 +216,27 @@ public class WebOptions {
 
     // ------------------------------------------------------------------------
 
-    /** Not meant to be instantiated. */
-    private WebOptions() {}
+    @Override
+    public Collection<ConfigOption<?>> options() {
+        return Arrays.asList(
+                ADDRESS,
+                PORT,
+                ACCESS_CONTROL_ALLOW_ORIGIN,
+                REFRESH_INTERVAL,
+                SSL_ENABLED,
+                TMP_DIR,
+                UPLOAD_DIR,
+                ARCHIVE_COUNT,
+                LOG_PATH,
+                SUBMIT_ENABLE,
+                CANCEL_ENABLE,
+                RESCALE_ENABLE,
+                CHECKPOINTS_HISTORY_SIZE,
+                MAX_EXCEPTION_HISTORY_SIZE,
+                BACKPRESSURE_CLEANUP_INTERVAL,
+                BACKPRESSURE_REFRESH_INTERVAL,
+                BACKPRESSURE_NUM_SAMPLES,
+                BACKPRESSURE_DELAY,
+                TIMEOUT);
+    }
 }

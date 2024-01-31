@@ -21,6 +21,10 @@ package org.apache.flink.table.planner.utils;
 import org.apache.flink.annotation.Experimental;
 import org.apache.flink.annotation.Internal;
 import org.apache.flink.configuration.ConfigOption;
+import org.apache.flink.configuration.ConfigOptionProvider;
+
+import java.util.Arrays;
+import java.util.Collection;
 
 import static org.apache.flink.configuration.ConfigOptions.key;
 
@@ -31,7 +35,7 @@ import static org.apache.flink.configuration.ConfigOptions.key;
  * shouldn't expose to users, all options should erase after plan finished.
  */
 @Internal
-public final class InternalConfigOptions {
+public final class InternalConfigOptions implements ConfigOptionProvider {
 
     public static final ConfigOption<Long> TABLE_QUERY_START_EPOCH_TIME =
             key("__table.query-start.epoch-time__")
@@ -71,4 +75,13 @@ public final class InternalConfigOptions {
                                     + "used using only for testing, to help verify that streaming "
                                     + "SQL can generate the same result (with changelog events) "
                                     + "as batch SQL.");
+
+    @Override
+    public Collection<ConfigOption<?>> options() {
+        return Arrays.asList(
+                TABLE_QUERY_START_EPOCH_TIME,
+                TABLE_QUERY_START_LOCAL_TIME,
+                TABLE_QUERY_CURRENT_DATABASE,
+                TABLE_EXEC_NON_TEMPORAL_SORT_ENABLED);
+    }
 }

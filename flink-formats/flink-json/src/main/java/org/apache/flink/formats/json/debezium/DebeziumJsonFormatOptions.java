@@ -20,12 +20,16 @@ package org.apache.flink.formats.json.debezium;
 
 import org.apache.flink.annotation.PublicEvolving;
 import org.apache.flink.configuration.ConfigOption;
+import org.apache.flink.configuration.ConfigOptionProvider;
 import org.apache.flink.configuration.ConfigOptions;
 import org.apache.flink.formats.json.JsonFormatOptions;
 
+import java.util.Arrays;
+import java.util.Collection;
+
 /** Option utils for debezium-json format. */
 @PublicEvolving
-public class DebeziumJsonFormatOptions {
+public class DebeziumJsonFormatOptions implements ConfigOptionProvider {
 
     public static final ConfigOption<Boolean> SCHEMA_INCLUDE =
             ConfigOptions.key("schema-include")
@@ -48,5 +52,12 @@ public class DebeziumJsonFormatOptions {
     public static final ConfigOption<String> JSON_MAP_NULL_KEY_LITERAL =
             JsonFormatOptions.MAP_NULL_KEY_LITERAL;
 
-    private DebeziumJsonFormatOptions() {}
+    @Override
+    public Collection<ConfigOption<?>> options() {
+        return Arrays.asList(
+                IGNORE_PARSE_ERRORS,
+                TIMESTAMP_FORMAT,
+                JSON_MAP_NULL_KEY_LITERAL,
+                JSON_MAP_NULL_KEY_MODE);
+    }
 }

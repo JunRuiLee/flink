@@ -21,11 +21,13 @@ package org.apache.flink.configuration;
 import org.apache.flink.annotation.docs.Documentation;
 
 import java.time.Duration;
+import java.util.Arrays;
+import java.util.Collection;
 
 import static org.apache.flink.configuration.ConfigOptions.key;
 
 /** Configuration options to detect slow tasks. */
-public class SlowTaskDetectorOptions {
+public class SlowTaskDetectorOptions implements ConfigOptionProvider {
 
     @Documentation.Section(Documentation.Sections.EXPERT_SCHEDULING)
     public static final ConfigOption<Duration> CHECK_INTERVAL =
@@ -69,7 +71,14 @@ public class SlowTaskDetectorOptions {
                                     + "the task's input bytes to ensure the accuracy of the "
                                     + "detection if data skew occurs.");
 
-    private SlowTaskDetectorOptions() {
-        throw new IllegalAccessError();
+    public SlowTaskDetectorOptions() {}
+
+    @Override
+    public Collection<ConfigOption<?>> options() {
+        return Arrays.asList(
+                CHECK_INTERVAL,
+                EXECUTION_TIME_BASELINE_LOWER_BOUND,
+                EXECUTION_TIME_BASELINE_RATIO,
+                EXECUTION_TIME_BASELINE_MULTIPLIER);
     }
 }

@@ -19,11 +19,14 @@
 package org.apache.flink.table.catalog.hive;
 
 import org.apache.flink.configuration.ConfigOption;
+import org.apache.flink.configuration.ConfigOptionProvider;
 import org.apache.flink.table.catalog.CatalogPropertiesUtil;
 
 import org.apache.hadoop.hive.conf.HiveConf;
 
 import java.time.Duration;
+import java.util.Arrays;
+import java.util.Collection;
 
 import static org.apache.flink.configuration.ConfigOptions.key;
 
@@ -31,7 +34,7 @@ import static org.apache.flink.configuration.ConfigOptions.key;
  * Options in {@link HiveConf}. Options are start with {@link
  * CatalogPropertiesUtil#FLINK_PROPERTY_PREFIX}.
  */
-public class HiveConfOptions {
+public class HiveConfOptions implements ConfigOptionProvider {
 
     public static final ConfigOption<Duration> LOCK_CHECK_MAX_SLEEP =
             key("flink.hive.lock-check-max-sleep")
@@ -44,4 +47,9 @@ public class HiveConfOptions {
                     .durationType()
                     .defaultValue(Duration.ofMinutes(8))
                     .withDescription("The maximum time to wait for acquiring the lock.");
+
+    @Override
+    public Collection<ConfigOption<?>> options() {
+        return Arrays.asList(LOCK_CHECK_MAX_SLEEP, LOCK_ACQUIRE_TIMEOUT);
+    }
 }

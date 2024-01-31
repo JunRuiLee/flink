@@ -19,17 +19,25 @@
 package org.apache.flink.connectors.hive;
 
 import org.apache.flink.configuration.ConfigOption;
+import org.apache.flink.configuration.ConfigOptionProvider;
 
+import java.util.Collection;
+import java.util.Collections;
 import java.util.HashMap;
 import java.util.Map;
 
 import static org.apache.flink.configuration.ConfigOptions.key;
 
 /** This class holds internal configuration constants used by Hive connector module. */
-public class HiveInternalOptions {
+public class HiveInternalOptions implements ConfigOptionProvider {
     public static final ConfigOption<Map<String, String>> HIVE_VARIABLES =
             key("__hive.variables__")
                     .mapType()
                     .defaultValue(new HashMap<>())
                     .withDescription("The config used to save the hive variables set by Flink.");
+
+    @Override
+    public Collection<ConfigOption<?>> options() {
+        return Collections.singletonList(HIVE_VARIABLES);
+    }
 }

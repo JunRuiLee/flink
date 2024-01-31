@@ -22,6 +22,7 @@ import org.apache.flink.api.common.time.Time;
 import org.apache.flink.configuration.BlobServerOptions;
 import org.apache.flink.configuration.ClusterOptions;
 import org.apache.flink.configuration.ConfigOption;
+import org.apache.flink.configuration.ConfigOptionProvider;
 import org.apache.flink.configuration.ConfigOptions;
 import org.apache.flink.configuration.Configuration;
 import org.apache.flink.configuration.ConfigurationUtils;
@@ -94,6 +95,7 @@ import java.io.IOException;
 import java.lang.reflect.UndeclaredThrowableException;
 import java.util.ArrayList;
 import java.util.Collection;
+import java.util.Collections;
 import java.util.UUID;
 import java.util.concurrent.Callable;
 import java.util.concurrent.CompletableFuture;
@@ -112,10 +114,18 @@ import java.util.concurrent.atomic.AtomicBoolean;
  */
 public abstract class ClusterEntrypoint implements AutoCloseableAsync, FatalErrorHandler {
 
-    public static final ConfigOption<String> INTERNAL_CLUSTER_EXECUTION_MODE =
-            ConfigOptions.key("internal.cluster.execution-mode")
-                    .stringType()
-                    .defaultValue(ExecutionMode.NORMAL.toString());
+    public static class ClusterEntrypointConfigOptionProvider implements ConfigOptionProvider {
+
+        public static final ConfigOption<String> INTERNAL_CLUSTER_EXECUTION_MODE =
+                ConfigOptions.key("internal.cluster.execution-mode")
+                        .stringType()
+                        .defaultValue(ExecutionMode.NORMAL.toString());
+
+        @Override
+        public Collection<ConfigOption<?>> options() {
+            return Collections.singletonList(INTERNAL_CLUSTER_EXECUTION_MODE);
+        }
+    }
 
     protected static final Logger LOG = LoggerFactory.getLogger(ClusterEntrypoint.class);
 

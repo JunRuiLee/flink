@@ -20,13 +20,17 @@ package org.apache.flink.runtime.highavailability;
 
 import org.apache.flink.annotation.docs.Documentation;
 import org.apache.flink.configuration.ConfigOption;
+import org.apache.flink.configuration.ConfigOptionProvider;
 import org.apache.flink.configuration.ConfigOptions;
 import org.apache.flink.configuration.HighAvailabilityOptions;
 import org.apache.flink.configuration.description.Description;
 import org.apache.flink.configuration.description.TextElement;
 
+import java.util.Arrays;
+import java.util.Collection;
+
 /** The set of configuration options relating to the Job Result Store. */
-public class JobResultStoreOptions {
+public class JobResultStoreOptions implements ConfigOptionProvider {
     @Documentation.Section(Documentation.Sections.COMMON_HIGH_AVAILABILITY_JOB_RESULT_STORE)
     public static final ConfigOption<String> STORAGE_PATH =
             ConfigOptions.key("job-result-store.storage-path")
@@ -65,4 +69,9 @@ public class JobResultStoreOptions {
                                     + "are, instead, marked as clean to indicate their state. In this "
                                     + "case, Flink no longer has ownership and the resources need to "
                                     + "be cleaned up by the user.");
+
+    @Override
+    public Collection<ConfigOption<?>> options() {
+        return Arrays.asList(STORAGE_PATH, DELETE_ON_COMMIT);
+    }
 }

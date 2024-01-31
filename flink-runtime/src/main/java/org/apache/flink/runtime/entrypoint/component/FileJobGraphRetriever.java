@@ -19,6 +19,7 @@
 package org.apache.flink.runtime.entrypoint.component;
 
 import org.apache.flink.configuration.ConfigOption;
+import org.apache.flink.configuration.ConfigOptionProvider;
 import org.apache.flink.configuration.ConfigOptions;
 import org.apache.flink.configuration.Configuration;
 import org.apache.flink.runtime.jobgraph.JobGraph;
@@ -34,6 +35,8 @@ import java.io.IOException;
 import java.io.ObjectInputStream;
 import java.net.URL;
 import java.util.ArrayList;
+import java.util.Collection;
+import java.util.Collections;
 import java.util.List;
 
 import static org.apache.flink.util.Preconditions.checkNotNull;
@@ -46,6 +49,14 @@ public class FileJobGraphRetriever extends AbstractUserClassPathJobGraphRetrieve
 
     public static final ConfigOption<String> JOB_GRAPH_FILE_PATH =
             ConfigOptions.key("internal.jobgraph-path").stringType().defaultValue("job.graph");
+
+    public static class FileJobGraphRetrieverConfigOptionProvider implements ConfigOptionProvider {
+
+        @Override
+        public Collection<ConfigOption<?>> options() {
+            return Collections.singletonList(JOB_GRAPH_FILE_PATH);
+        }
+    }
 
     @Nonnull private final String jobGraphFile;
 

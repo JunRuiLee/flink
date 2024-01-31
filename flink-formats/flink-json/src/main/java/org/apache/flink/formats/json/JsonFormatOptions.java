@@ -20,11 +20,15 @@ package org.apache.flink.formats.json;
 
 import org.apache.flink.annotation.PublicEvolving;
 import org.apache.flink.configuration.ConfigOption;
+import org.apache.flink.configuration.ConfigOptionProvider;
 import org.apache.flink.configuration.ConfigOptions;
+
+import java.util.Arrays;
+import java.util.Collection;
 
 /** Options for the JSON format. */
 @PublicEvolving
-public class JsonFormatOptions {
+public class JsonFormatOptions implements ConfigOptionProvider {
 
     public static final ConfigOption<Boolean> FAIL_ON_MISSING_FIELD =
             ConfigOptions.key("fail-on-missing-field")
@@ -80,6 +84,18 @@ public class JsonFormatOptions {
                     .withDescription(
                             "Optional flag to specify whether to use the Jackson JsonParser to decode json with better performance, true by default.");
 
+    @Override
+    public Collection<ConfigOption<?>> options() {
+        return Arrays.asList(
+                FAIL_ON_MISSING_FIELD,
+                IGNORE_PARSE_ERRORS,
+                MAP_NULL_KEY_MODE,
+                MAP_NULL_KEY_LITERAL,
+                TIMESTAMP_FORMAT,
+                ENCODE_DECIMAL_AS_PLAIN_NUMBER,
+                DECODE_JSON_PARSER_ENABLED);
+    }
+
     // --------------------------------------------------------------------------------------------
     // Enums
     // --------------------------------------------------------------------------------------------
@@ -90,6 +106,4 @@ public class JsonFormatOptions {
         DROP,
         LITERAL
     }
-
-    private JsonFormatOptions() {}
 }

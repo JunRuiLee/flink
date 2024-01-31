@@ -24,6 +24,9 @@ import org.apache.flink.configuration.description.Description;
 import org.apache.flink.configuration.description.InlineElement;
 import org.apache.flink.configuration.description.TextElement;
 
+import java.util.Arrays;
+import java.util.Collection;
+
 import static org.apache.flink.configuration.ClusterOptions.UserSystemExitMode.THROW;
 import static org.apache.flink.configuration.ConfigOptions.key;
 import static org.apache.flink.configuration.description.LinkElement.link;
@@ -32,7 +35,7 @@ import static org.apache.flink.configuration.description.TextElement.text;
 
 /** Options which control the cluster behaviour. */
 @PublicEvolving
-public class ClusterOptions {
+public class ClusterOptions implements ConfigOptionProvider {
 
     @Documentation.Section(Documentation.Sections.EXPERT_FAULT_TOLERANCE)
     public static final ConfigOption<Long> INITIAL_REGISTRATION_TIMEOUT =
@@ -224,6 +227,26 @@ public class ClusterOptions {
         } else {
             return System.getProperties().containsKey("flink.tests.enable-adaptive-scheduler");
         }
+    }
+
+    @Override
+    public Collection<ConfigOption<?>> options() {
+        return Arrays.asList(
+                INITIAL_REGISTRATION_TIMEOUT,
+                MAX_REGISTRATION_TIMEOUT,
+                ERROR_REGISTRATION_DELAY,
+                REFUSED_REGISTRATION_DELAY,
+                CLUSTER_SERVICES_SHUTDOWN_TIMEOUT,
+                CLUSTER_IO_EXECUTOR_POOL_SIZE,
+                EVENLY_SPREAD_OUT_SLOTS_STRATEGY,
+                HALT_ON_FATAL_ERROR,
+                INTERCEPT_USER_SYSTEM_EXIT,
+                THREAD_DUMP_STACKTRACE_MAX_DEPTH,
+                FINE_GRAINED_SHUFFLE_MODE_ALL_BLOCKING,
+                UNCAUGHT_EXCEPTION_HANDLING,
+                PROCESS_WORKING_DIR_BASE,
+                JOB_MANAGER_PROCESS_WORKING_DIR_BASE,
+                TASK_MANAGER_PROCESS_WORKING_DIR_BASE);
     }
 
     /** The mode of how to handle user code attempting to exit JVM. */

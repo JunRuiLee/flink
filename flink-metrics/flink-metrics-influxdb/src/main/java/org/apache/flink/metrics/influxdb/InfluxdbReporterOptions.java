@@ -21,6 +21,7 @@ package org.apache.flink.metrics.influxdb;
 import org.apache.flink.annotation.docs.Documentation;
 import org.apache.flink.configuration.ConfigConstants;
 import org.apache.flink.configuration.ConfigOption;
+import org.apache.flink.configuration.ConfigOptionProvider;
 import org.apache.flink.configuration.ConfigOptions;
 import org.apache.flink.configuration.ConfigurationUtils;
 import org.apache.flink.configuration.IllegalConfigurationException;
@@ -28,9 +29,12 @@ import org.apache.flink.metrics.MetricConfig;
 
 import org.influxdb.InfluxDB;
 
+import java.util.Arrays;
+import java.util.Collection;
+
 /** Config options for {@link InfluxdbReporter}. */
 @Documentation.SuffixOption(ConfigConstants.METRICS_REPORTER_PREFIX + "influxdb")
-public class InfluxdbReporterOptions {
+public class InfluxdbReporterOptions implements ConfigOptionProvider {
 
     public static final ConfigOption<String> HOST =
             ConfigOptions.key("host")
@@ -123,6 +127,21 @@ public class InfluxdbReporterOptions {
         } else {
             return SCHEME.defaultValue();
         }
+    }
+
+    @Override
+    public Collection<ConfigOption<?>> options() {
+        return Arrays.asList(
+                HOST,
+                SCHEME,
+                PORT,
+                USERNAME,
+                PASSWORD,
+                DB,
+                RETENTION_POLICY,
+                CONSISTENCY,
+                CONNECT_TIMEOUT,
+                WRITE_TIMEOUT);
     }
 
     /** Supported URL schemes for the {@link InfluxdbReporter}. */

@@ -21,10 +21,14 @@ package org.apache.flink.contrib.streaming.state;
 import org.apache.flink.annotation.docs.Documentation;
 import org.apache.flink.configuration.ClusterOptions;
 import org.apache.flink.configuration.ConfigOption;
+import org.apache.flink.configuration.ConfigOptionProvider;
 import org.apache.flink.configuration.ConfigOptions;
 import org.apache.flink.configuration.MemorySize;
 import org.apache.flink.configuration.description.Description;
 import org.apache.flink.configuration.description.TextElement;
+
+import java.util.Arrays;
+import java.util.Collection;
 
 import static org.apache.flink.contrib.streaming.state.EmbeddedRocksDBStateBackend.PriorityQueueStateType.ROCKSDB;
 import static org.apache.flink.contrib.streaming.state.PredefinedOptions.DEFAULT;
@@ -33,7 +37,7 @@ import static org.apache.flink.contrib.streaming.state.PredefinedOptions.SPINNIN
 import static org.apache.flink.contrib.streaming.state.PredefinedOptions.SPINNING_DISK_OPTIMIZED_HIGH_MEM;
 
 /** Configuration options for the RocksDB backend. */
-public class RocksDBOptions {
+public class RocksDBOptions implements ConfigOptionProvider {
 
     /** The local directory (on the TaskManager) where RocksDB puts its files. */
     @Documentation.Section(Documentation.Sections.EXPERT_ROCKSDB)
@@ -184,4 +188,21 @@ public class RocksDBOptions {
                                             + "the partitions that are required to perform the index/filter query. "
                                             + "This option only has an effect when '%s' or '%s' are configured.",
                                     USE_MANAGED_MEMORY.key(), FIX_PER_SLOT_MEMORY_SIZE.key()));
+
+    @Override
+    public Collection<ConfigOption<?>> options() {
+        return Arrays.asList(
+                LOCAL_DIRECTORIES,
+                TIMER_SERVICE_FACTORY,
+                ROCKSDB_TIMER_SERVICE_FACTORY_CACHE_SIZE,
+                CHECKPOINT_TRANSFER_THREAD_NUM,
+                PREDEFINED_OPTIONS,
+                OPTIONS_FACTORY,
+                USE_MANAGED_MEMORY,
+                FIX_PER_SLOT_MEMORY_SIZE,
+                FIX_PER_TM_MEMORY_SIZE,
+                WRITE_BUFFER_RATIO,
+                HIGH_PRIORITY_POOL_RATIO,
+                USE_PARTITIONED_INDEX_FILTERS);
+    }
 }

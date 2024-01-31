@@ -24,10 +24,12 @@ import org.apache.flink.configuration.description.Description;
 import org.apache.flink.configuration.description.TextElement;
 
 import java.time.Duration;
+import java.util.Arrays;
+import java.util.Collection;
 
 /** The set of configuration options relating to the ResourceManager. */
 @PublicEvolving
-public class ResourceManagerOptions {
+public class ResourceManagerOptions implements ConfigOptionProvider {
 
     private static final String START_WORKER_RETRY_INTERVAL_KEY =
             "resourcemanager.start-worker.retry-interval";
@@ -315,5 +317,30 @@ public class ResourceManagerOptions {
     // ---------------------------------------------------------------------------------------------
 
     /** Not intended to be instantiated. */
-    private ResourceManagerOptions() {}
+    public ResourceManagerOptions() {}
+
+    @Override
+    public Collection<ConfigOption<?>> options() {
+        return Arrays.asList(
+                JOB_TIMEOUT,
+                LOCAL_NUMBER_RESOURCE_MANAGER,
+                IPC_PORT,
+                MIN_SLOT_NUM,
+                MAX_SLOT_NUM,
+                MIN_TOTAL_CPU,
+                MAX_TOTAL_CPU,
+                MIN_TOTAL_MEM,
+                MAX_TOTAL_MEM,
+                REDUNDANT_TASK_MANAGER_NUM,
+                START_WORKER_MAX_FAILURE_RATE,
+                START_WORKER_RETRY_INTERVAL,
+                REQUIREMENTS_CHECK_DELAY,
+                DECLARE_NEEDED_RESOURCE_DELAY,
+                STANDALONE_CLUSTER_STARTUP_PERIOD_TIME,
+                SLOT_MANAGER_TASK_MANAGER_TIMEOUT,
+                TASK_MANAGER_TIMEOUT,
+                TASK_MANAGER_RELEASE_WHEN_RESULT_CONSUMED,
+                TASK_MANAGER_REGISTRATION_TIMEOUT,
+                RESOURCE_MANAGER_PREVIOUS_WORKER_RECOVERY_TIMEOUT);
+    }
 }

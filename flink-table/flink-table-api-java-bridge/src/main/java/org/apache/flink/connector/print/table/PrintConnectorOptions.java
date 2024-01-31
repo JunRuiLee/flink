@@ -20,12 +20,16 @@ package org.apache.flink.connector.print.table;
 
 import org.apache.flink.annotation.PublicEvolving;
 import org.apache.flink.configuration.ConfigOption;
+import org.apache.flink.configuration.ConfigOptionProvider;
+
+import java.util.Arrays;
+import java.util.Collection;
 
 import static org.apache.flink.configuration.ConfigOptions.key;
 
 /** Options for the Print sink connector. */
 @PublicEvolving
-public class PrintConnectorOptions {
+public class PrintConnectorOptions implements ConfigOptionProvider {
 
     public static final ConfigOption<String> PRINT_IDENTIFIER =
             key("print-identifier")
@@ -41,5 +45,8 @@ public class PrintConnectorOptions {
                     .withDescription(
                             "True, if the format should print to standard error instead of standard out.");
 
-    private PrintConnectorOptions() {}
+    @Override
+    public Collection<ConfigOption<?>> options() {
+        return Arrays.asList(PRINT_IDENTIFIER, STANDARD_ERROR);
+    }
 }

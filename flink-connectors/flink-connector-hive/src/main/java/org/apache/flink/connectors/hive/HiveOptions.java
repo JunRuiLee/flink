@@ -19,6 +19,7 @@
 package org.apache.flink.connectors.hive;
 
 import org.apache.flink.configuration.ConfigOption;
+import org.apache.flink.configuration.ConfigOptionProvider;
 import org.apache.flink.configuration.DescribedEnum;
 import org.apache.flink.configuration.MemorySize;
 import org.apache.flink.configuration.description.Description;
@@ -26,12 +27,14 @@ import org.apache.flink.configuration.description.InlineElement;
 import org.apache.flink.connector.file.table.FileSystemConnectorOptions;
 
 import java.time.Duration;
+import java.util.Arrays;
+import java.util.Collection;
 
 import static org.apache.flink.configuration.ConfigOptions.key;
 import static org.apache.flink.configuration.description.TextElement.text;
 
 /** This class holds configuration constants used by hive connector. */
-public class HiveOptions {
+public class HiveOptions implements ConfigOptionProvider {
 
     public static final ConfigOption<Boolean> TABLE_EXEC_HIVE_FALLBACK_MAPRED_READER =
             key("table.exec.hive.fallback-mapred-reader")
@@ -246,6 +249,33 @@ public class HiveOptions {
                     .defaultValue(false)
                     .withDescription(
                             "Enabling native aggregate function for hive dialect to use hash-agg strategy that can improve the aggregation performance.");
+
+    @Override
+    public Collection<ConfigOption<?>> options() {
+        return Arrays.asList(
+                TABLE_EXEC_HIVE_FALLBACK_MAPRED_READER,
+                TABLE_EXEC_HIVE_READ_PARTITION_WITH_SUBDIRECTORY_ENABLED,
+                TABLE_EXEC_HIVE_INFER_SOURCE_PARALLELISM,
+                TABLE_EXEC_HIVE_INFER_SOURCE_PARALLELISM_MAX,
+                TABLE_EXEC_HIVE_FALLBACK_MAPRED_WRITER,
+                TABLE_EXEC_HIVE_LOAD_PARTITION_SPLITS_THREAD_NUM,
+                TABLE_EXEC_HIVE_SPLIT_MAX_BYTES,
+                TABLE_EXEC_HIVE_FILE_OPEN_COST,
+                TABLE_EXEC_HIVE_CALCULATE_PARTITION_SIZE_THREAD_NUM,
+                TABLE_EXEC_HIVE_DYNAMIC_GROUPING_ENABLED,
+                SINK_PARTITION_COMMIT_POLICY_KIND,
+                TABLE_EXEC_HIVE_READ_STATISTICS_THREAD_NUM,
+                COMPACT_SMALL_FILES_AVG_SIZE,
+                TABLE_EXEC_HIVE_SINK_STATISTIC_AUTO_GATHER_ENABLE,
+                TABLE_EXEC_HIVE_SINK_STATISTIC_AUTO_GATHER_THREAD_NUM,
+                STREAMING_SOURCE_ENABLE,
+                STREAMING_SOURCE_PARTITION_INCLUDE,
+                STREAMING_SOURCE_MONITOR_INTERVAL,
+                STREAMING_SOURCE_CONSUME_START_OFFSET,
+                STREAMING_SOURCE_PARTITION_ORDER,
+                LOOKUP_JOIN_CACHE_TTL,
+                TABLE_EXEC_HIVE_NATIVE_AGG_FUNCTION_ENABLED);
+    }
 
     // --------------------------------------------------------------------------------------------
     // Enums

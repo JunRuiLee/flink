@@ -20,12 +20,16 @@ package org.apache.flink.table.module;
 
 import org.apache.flink.annotation.Internal;
 import org.apache.flink.configuration.ConfigOption;
+import org.apache.flink.configuration.ConfigOptionProvider;
 import org.apache.flink.configuration.ConfigOptions;
 import org.apache.flink.table.factories.Factory;
 
+import java.util.Collection;
+import java.util.Collections;
+
 /** A collection of {@link ConfigOption} which are consistently used in multiple modules. */
 @Internal
-public class CommonModuleOptions {
+public class CommonModuleOptions implements ConfigOptionProvider {
 
     /**
      * {@link ConfigOption} which is used during module discovery to match it against {@link
@@ -36,4 +40,9 @@ public class CommonModuleOptions {
     @Deprecated
     public static final ConfigOption<String> MODULE_TYPE =
             ConfigOptions.key("type").stringType().noDefaultValue();
+
+    @Override
+    public Collection<ConfigOption<?>> options() {
+        return Collections.singletonList(MODULE_TYPE);
+    }
 }

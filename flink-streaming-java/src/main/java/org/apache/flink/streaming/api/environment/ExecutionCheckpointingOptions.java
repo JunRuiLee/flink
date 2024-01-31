@@ -23,12 +23,15 @@ import org.apache.flink.annotation.PublicEvolving;
 import org.apache.flink.annotation.docs.Documentation;
 import org.apache.flink.configuration.CheckpointingOptions;
 import org.apache.flink.configuration.ConfigOption;
+import org.apache.flink.configuration.ConfigOptionProvider;
 import org.apache.flink.configuration.ConfigOptions;
 import org.apache.flink.configuration.description.Description;
 import org.apache.flink.configuration.description.TextElement;
 import org.apache.flink.streaming.api.CheckpointingMode;
 
 import java.time.Duration;
+import java.util.Arrays;
+import java.util.Collection;
 
 import static org.apache.flink.configuration.ConfigOptions.key;
 import static org.apache.flink.configuration.description.LinkElement.link;
@@ -39,7 +42,7 @@ import static org.apache.flink.configuration.description.LinkElement.link;
  * @see CheckpointConfig
  */
 @PublicEvolving
-public class ExecutionCheckpointingOptions {
+public class ExecutionCheckpointingOptions implements ConfigOptionProvider {
     public static final ConfigOption<CheckpointingMode> CHECKPOINTING_MODE =
             ConfigOptions.key("execution.checkpointing.mode")
                     .enumType(CheckpointingMode.class)
@@ -314,4 +317,26 @@ public class ExecutionCheckpointingOptions {
                             "Defines the maximum number of subtasks that share the same channel state file. "
                                     + "It can reduce the number of small files when enable unaligned checkpoint. "
                                     + "Each subtask will create a new channel state file when this is configured to 1.");
+
+    @Override
+    public Collection<ConfigOption<?>> options() {
+        return Arrays.asList(
+                CHECKPOINTING_MODE,
+                CHECKPOINTING_TIMEOUT,
+                MAX_CONCURRENT_CHECKPOINTS,
+                MIN_PAUSE_BETWEEN_CHECKPOINTS,
+                TOLERABLE_FAILURE_NUMBER,
+                EXTERNALIZED_CHECKPOINT,
+                CHECKPOINTING_INTERVAL_DURING_BACKLOG,
+                CHECKPOINTING_INTERVAL,
+                ENABLE_UNALIGNED,
+                ALIGNED_CHECKPOINT_TIMEOUT,
+                ALIGNMENT_TIMEOUT,
+                FORCE_UNALIGNED,
+                CHECKPOINT_ID_OF_IGNORED_IN_FLIGHT_DATA,
+                ENABLE_CHECKPOINTS_AFTER_TASKS_FINISH,
+                FORCE_CHECKPOINTING,
+                APPROXIMATE_LOCAL_RECOVERY,
+                UNALIGNED_MAX_SUBTASKS_PER_CHANNEL_STATE_FILE);
+    }
 }

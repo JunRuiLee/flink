@@ -20,7 +20,11 @@ package org.apache.flink.table.gateway.rest.util;
 
 import org.apache.flink.annotation.PublicEvolving;
 import org.apache.flink.configuration.ConfigOption;
+import org.apache.flink.configuration.ConfigOptionProvider;
 import org.apache.flink.table.gateway.rest.SqlGatewayRestEndpoint;
+
+import java.util.Arrays;
+import java.util.Collection;
 
 import static org.apache.flink.configuration.ConfigOptions.key;
 
@@ -41,7 +45,7 @@ import static org.apache.flink.configuration.ConfigOptions.key;
  * the value of BIND_PORT.
  */
 @PublicEvolving
-public class SqlGatewayRestOptions {
+public class SqlGatewayRestOptions implements ConfigOptionProvider {
 
     /** The address that should be used by clients to connect to the sql gateway server. */
     public static final ConfigOption<String> ADDRESS =
@@ -77,4 +81,9 @@ public class SqlGatewayRestOptions {
                             String.format(
                                     "The port that the client connects to. If %s has not been specified, then the sql gateway server will bind to this port.",
                                     BIND_PORT.key()));
+
+    @Override
+    public Collection<ConfigOption<?>> options() {
+        return Arrays.asList(ADDRESS, BIND_ADDRESS, BIND_PORT, PORT);
+    }
 }

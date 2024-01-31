@@ -20,6 +20,7 @@ package org.apache.flink.core.plugin;
 
 import org.apache.flink.annotation.Internal;
 import org.apache.flink.annotation.VisibleForTesting;
+import org.apache.flink.configuration.ConfigOptionRegistry;
 
 import org.apache.flink.shaded.guava32.com.google.common.base.Joiner;
 import org.apache.flink.shaded.guava32.com.google.common.collect.Iterators;
@@ -108,6 +109,8 @@ public class DefaultPluginManager implements PluginManager {
                             PluginLoader.create(
                                     pluginDescriptor, parentClassLoader, alwaysParentFirstPatterns);
                     pluginLoaders.putIfAbsent(pluginId, pluginLoader);
+                    ConfigOptionRegistry registry = ConfigOptionRegistry.getInstance();
+                    registry.registerConfigOptionsFromPluginLoader(pluginLoader);
                 }
             } finally {
                 pluginLoadersLock.unlock();

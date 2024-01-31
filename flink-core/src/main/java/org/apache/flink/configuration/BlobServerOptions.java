@@ -21,12 +21,15 @@ package org.apache.flink.configuration;
 import org.apache.flink.annotation.PublicEvolving;
 import org.apache.flink.configuration.description.Description;
 
+import java.util.Arrays;
+import java.util.Collection;
+
 import static org.apache.flink.configuration.ConfigOptions.key;
 import static org.apache.flink.configuration.description.TextElement.code;
 
 /** Configuration options for the BlobServer and BlobCache. */
 @PublicEvolving
-public class BlobServerOptions {
+public class BlobServerOptions implements ConfigOptionProvider {
 
     /** The config parameter defining the storage directory to be used by the blob server. */
     public static final ConfigOption<String> STORAGE_DIRECTORY =
@@ -129,4 +132,19 @@ public class BlobServerOptions {
                     .intType()
                     .defaultValue(0)
                     .withDescription("The connection timeout in milliseconds for the blob client.");
+
+    @Override
+    public Collection<ConfigOption<?>> options() {
+        return Arrays.asList(
+                STORAGE_DIRECTORY,
+                FETCH_RETRIES,
+                FETCH_CONCURRENT,
+                FETCH_BACKLOG,
+                PORT,
+                SSL_ENABLED,
+                CLEANUP_INTERVAL,
+                OFFLOAD_MINSIZE,
+                SO_TIMEOUT,
+                CONNECT_TIMEOUT);
+    }
 }

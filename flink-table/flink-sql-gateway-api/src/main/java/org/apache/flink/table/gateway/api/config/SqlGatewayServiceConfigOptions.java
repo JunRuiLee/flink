@@ -20,15 +20,18 @@ package org.apache.flink.table.gateway.api.config;
 
 import org.apache.flink.annotation.PublicEvolving;
 import org.apache.flink.configuration.ConfigOption;
+import org.apache.flink.configuration.ConfigOptionProvider;
 import org.apache.flink.table.gateway.api.SqlGatewayService;
 
 import java.time.Duration;
+import java.util.Arrays;
+import java.util.Collection;
 
 import static org.apache.flink.configuration.ConfigOptions.key;
 
 /** Config options of the {@link SqlGatewayService}. */
 @PublicEvolving
-public class SqlGatewayServiceConfigOptions {
+public class SqlGatewayServiceConfigOptions implements ConfigOptionProvider {
 
     public static final ConfigOption<Duration> SQL_GATEWAY_SESSION_IDLE_TIMEOUT =
             key("sql-gateway.session.idle-timeout")
@@ -97,4 +100,18 @@ public class SqlGatewayServiceConfigOptions {
                     .withDescription(
                             "Keepalive time for an idle worker thread. When the number of workers exceeds min workers, "
                                     + "excessive threads are killed after this time interval.");
+
+    @Override
+    public Collection<ConfigOption<?>> options() {
+        return Arrays.asList(
+                SQL_GATEWAY_SESSION_IDLE_TIMEOUT,
+                SQL_GATEWAY_SESSION_CHECK_INTERVAL,
+                SQL_GATEWAY_SESSION_MAX_NUM,
+                SQL_GATEWAY_SESSION_PLAN_CACHE_ENABLED,
+                SQL_GATEWAY_SESSION_PLAN_CACHE_SIZE,
+                SQL_GATEWAY_SESSION_PLAN_CACHE_TTL,
+                SQL_GATEWAY_WORKER_THREADS_MAX,
+                SQL_GATEWAY_WORKER_THREADS_MIN,
+                SQL_GATEWAY_WORKER_KEEPALIVE_TIME);
+    }
 }

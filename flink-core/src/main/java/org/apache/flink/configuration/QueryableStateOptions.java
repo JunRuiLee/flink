@@ -20,6 +20,9 @@ package org.apache.flink.configuration;
 
 import org.apache.flink.annotation.PublicEvolving;
 
+import java.util.Arrays;
+import java.util.Collection;
+
 import static org.apache.flink.configuration.ConfigOptions.key;
 
 /**
@@ -30,7 +33,7 @@ import static org.apache.flink.configuration.ConfigOptions.key;
  */
 @PublicEvolving
 @Deprecated
-public class QueryableStateOptions {
+public class QueryableStateOptions implements ConfigOptionProvider {
 
     // ------------------------------------------------------------------------
     // Server Options
@@ -162,5 +165,18 @@ public class QueryableStateOptions {
     // ------------------------------------------------------------------------
 
     /** Not intended to be instantiated. */
-    private QueryableStateOptions() {}
+    public QueryableStateOptions() {}
+
+    @Override
+    public Collection<ConfigOption<?>> options() {
+        return Arrays.asList(
+                PROXY_PORT_RANGE,
+                PROXY_NETWORK_THREADS,
+                PROXY_ASYNC_QUERY_THREADS,
+                SERVER_PORT_RANGE,
+                SERVER_NETWORK_THREADS,
+                SERVER_ASYNC_QUERY_THREADS,
+                ENABLE_QUERYABLE_STATE_PROXY_SERVER,
+                CLIENT_NETWORK_THREADS);
+    }
 }

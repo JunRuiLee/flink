@@ -30,7 +30,7 @@ import org.apache.flink.shaded.guava32.com.google.common.collect.Iterables;
 
 import java.util.Collection;
 
-import static org.apache.flink.runtime.entrypoint.ClusterEntrypoint.INTERNAL_CLUSTER_EXECUTION_MODE;
+import static org.apache.flink.runtime.entrypoint.ClusterEntrypoint.ClusterEntrypointConfigOptionProvider.INTERNAL_CLUSTER_EXECUTION_MODE;
 
 /** {@link DispatcherFactory} which creates a {@link MiniDispatcher}. */
 public enum JobDispatcherFactory implements DispatcherFactory {

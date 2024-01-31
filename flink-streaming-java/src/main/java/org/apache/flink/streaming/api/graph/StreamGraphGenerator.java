@@ -29,6 +29,7 @@ import org.apache.flink.api.dag.Transformation;
 import org.apache.flink.api.java.tuple.Tuple2;
 import org.apache.flink.configuration.BatchExecutionOptions;
 import org.apache.flink.configuration.ClusterOptions;
+import org.apache.flink.configuration.ConfigOptionRegistry;
 import org.apache.flink.configuration.Configuration;
 import org.apache.flink.configuration.ExecutionOptions;
 import org.apache.flink.configuration.IllegalConfigurationException;
@@ -270,6 +271,7 @@ public class StreamGraphGenerator {
     }
 
     public StreamGraph generate() {
+        ConfigOptionRegistry.getInstance().logConfigOptionMapping();
         streamGraph =
                 new StreamGraph(
                         configuration, executionConfig, checkpointConfig, savepointRestoreSettings);

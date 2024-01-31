@@ -20,11 +20,15 @@ package org.apache.flink.formats.csv;
 
 import org.apache.flink.annotation.PublicEvolving;
 import org.apache.flink.configuration.ConfigOption;
+import org.apache.flink.configuration.ConfigOptionProvider;
 import org.apache.flink.configuration.ConfigOptions;
+
+import java.util.Arrays;
+import java.util.Collection;
 
 /** Options for CSV format. */
 @PublicEvolving
-public class CsvFormatOptions {
+public class CsvFormatOptions implements ConfigOptionProvider {
 
     public static final ConfigOption<String> FIELD_DELIMITER =
             ConfigOptions.key("field-delimiter")
@@ -94,5 +98,17 @@ public class CsvFormatOptions {
                     .withDescription(
                             "Enables representation of BigDecimal data type in scientific notation (default is true). For example, 100000 is encoded as 1E+5 by default, and will be written as 100000 if set this option to false. Note: Only when the value is not 0 and a multiple of 10 is converted to scientific notation.");
 
-    private CsvFormatOptions() {}
+    @Override
+    public Collection<ConfigOption<?>> options() {
+        return Arrays.asList(
+                FIELD_DELIMITER,
+                DISABLE_QUOTE_CHARACTER,
+                QUOTE_CHARACTER,
+                ALLOW_COMMENTS,
+                IGNORE_PARSE_ERRORS,
+                ARRAY_ELEMENT_DELIMITER,
+                ESCAPE_CHARACTER,
+                NULL_LITERAL,
+                WRITE_BIGDECIMAL_IN_SCIENTIFIC_NOTATION);
+    }
 }

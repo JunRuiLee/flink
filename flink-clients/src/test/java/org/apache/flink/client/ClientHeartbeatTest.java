@@ -24,7 +24,6 @@ import org.apache.flink.configuration.Configuration;
 import org.apache.flink.configuration.DeploymentOptions;
 import org.apache.flink.core.execution.JobClient;
 import org.apache.flink.core.testutils.FlinkAssertions;
-import org.apache.flink.runtime.dispatcher.Dispatcher;
 import org.apache.flink.runtime.jobgraph.JobGraph;
 import org.apache.flink.runtime.jobgraph.JobGraphTestUtils;
 import org.apache.flink.runtime.jobgraph.JobVertex;
@@ -38,6 +37,7 @@ import java.time.Duration;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.ScheduledExecutorService;
 
+import static org.apache.flink.runtime.dispatcher.Dispatcher.DispatcherConfigOptionInternal.CLIENT_ALIVENESS_CHECK_DURATION;
 import static org.assertj.core.api.Assertions.assertThat;
 
 /** Tests for client's heartbeat. */
@@ -93,8 +93,7 @@ class ClientHeartbeatTest {
     private Configuration createConfiguration(boolean shutdownOnAttachedExit) {
         Configuration configuration = new Configuration();
         configuration.set(
-                Dispatcher.CLIENT_ALIVENESS_CHECK_DURATION,
-                Duration.ofMillis(clientHeartbeatInterval));
+                CLIENT_ALIVENESS_CHECK_DURATION, Duration.ofMillis(clientHeartbeatInterval));
         if (shutdownOnAttachedExit) {
             configuration.set(DeploymentOptions.ATTACHED, true);
             configuration.set(DeploymentOptions.SHUTDOWN_IF_ATTACHED, true);

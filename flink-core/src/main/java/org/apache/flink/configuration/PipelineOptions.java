@@ -24,6 +24,8 @@ import org.apache.flink.configuration.description.Description;
 import org.apache.flink.configuration.description.TextElement;
 
 import java.time.Duration;
+import java.util.Arrays;
+import java.util.Collection;
 import java.util.Collections;
 import java.util.List;
 import java.util.Map;
@@ -34,7 +36,7 @@ import static org.apache.flink.configuration.description.TextElement.text;
 
 /** The {@link ConfigOption configuration options} for job execution. */
 @PublicEvolving
-public class PipelineOptions {
+public class PipelineOptions implements ConfigOptionProvider {
 
     /** The job name used for printing and logging. */
     public static final ConfigOption<String> NAME =
@@ -365,6 +367,35 @@ public class PipelineOptions {
                     .enumType(VertexDescriptionMode.class)
                     .defaultValue(VertexDescriptionMode.TREE)
                     .withDescription("The mode how we organize description of a job vertex.");
+
+    @Override
+    public Collection<ConfigOption<?>> options() {
+        return Arrays.asList(
+                NAME,
+                JARS,
+                CLASSPATHS,
+                AUTO_GENERATE_UIDS,
+                AUTO_TYPE_REGISTRATION,
+                AUTO_WATERMARK_INTERVAL,
+                CLOSURE_CLEANER_LEVEL,
+                FORCE_AVRO,
+                FORCE_KRYO,
+                GENERIC_TYPES,
+                GLOBAL_JOB_PARAMETERS,
+                PARALLELISM_OVERRIDES,
+                MAX_PARALLELISM,
+                OBJECT_REUSE,
+                KRYO_DEFAULT_SERIALIZERS,
+                KRYO_REGISTERED_CLASSES,
+                POJO_REGISTERED_CLASSES,
+                SERIALIZATION_CONFIG,
+                OPERATOR_CHAINING,
+                OPERATOR_CHAINING_CHAIN_OPERATORS_WITH_DIFFERENT_MAX_PARALLELISM,
+                CACHED_FILES,
+                VERTEX_DESCRIPTION_MODE,
+                VERTEX_NAME_INCLUDE_INDEX_PREFIX,
+                ALLOW_UNALIGNED_SOURCE_SPLITS);
+    }
 
     /** The mode how we organize description of a vertex. */
     @PublicEvolving

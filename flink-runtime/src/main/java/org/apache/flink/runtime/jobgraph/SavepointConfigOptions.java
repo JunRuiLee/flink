@@ -20,12 +20,16 @@ package org.apache.flink.runtime.jobgraph;
 
 import org.apache.flink.annotation.PublicEvolving;
 import org.apache.flink.configuration.ConfigOption;
+import org.apache.flink.configuration.ConfigOptionProvider;
+
+import java.util.Arrays;
+import java.util.Collection;
 
 import static org.apache.flink.configuration.ConfigOptions.key;
 
 /** The {@link ConfigOption configuration options} used when restoring from a savepoint. */
 @PublicEvolving
-public class SavepointConfigOptions {
+public class SavepointConfigOptions implements ConfigOptionProvider {
 
     /** The path to a savepoint that will be used to bootstrap the pipeline's state. */
     public static final ConfigOption<String> SAVEPOINT_PATH =
@@ -56,4 +60,9 @@ public class SavepointConfigOptions {
                     .withDescription(
                             "Describes the mode how Flink should restore from the given"
                                     + " savepoint or retained checkpoint.");
+
+    @Override
+    public Collection<ConfigOption<?>> options() {
+        return Arrays.asList(SAVEPOINT_PATH, SAVEPOINT_IGNORE_UNCLAIMED_STATE, RESTORE_MODE);
+    }
 }

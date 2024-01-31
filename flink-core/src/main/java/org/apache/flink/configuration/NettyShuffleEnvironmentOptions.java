@@ -24,13 +24,15 @@ import org.apache.flink.annotation.docs.Documentation;
 import org.apache.flink.configuration.description.Description;
 
 import java.time.Duration;
+import java.util.Arrays;
+import java.util.Collection;
 
 import static org.apache.flink.configuration.ConfigOptions.key;
 import static org.apache.flink.configuration.description.TextElement.code;
 
 /** The set of configuration options relating to network stack. */
 @PublicEvolving
-public class NettyShuffleEnvironmentOptions {
+public class NettyShuffleEnvironmentOptions implements ConfigOptionProvider {
 
     private static final String HYBRID_SHUFFLE_NEW_MODE_OPTION_NAME =
             "taskmanager.network.hybrid-shuffle.enable-new-mode";
@@ -619,5 +621,49 @@ public class NettyShuffleEnvironmentOptions {
     // ------------------------------------------------------------------------
 
     /** Not intended to be instantiated. */
-    private NettyShuffleEnvironmentOptions() {}
+    public NettyShuffleEnvironmentOptions() {}
+
+    @Override
+    public Collection<ConfigOption<?>> options() {
+        return Arrays.asList(
+                DATA_PORT,
+                DATA_BIND_PORT,
+                DATA_SSL_ENABLED,
+                BATCH_SHUFFLE_COMPRESSION_ENABLED,
+                SHUFFLE_COMPRESSION_CODEC,
+                NETWORK_DETAILED_METRICS,
+                NETWORK_NUM_BUFFERS,
+                NETWORK_BUFFERS_MEMORY_FRACTION,
+                NETWORK_BUFFERS_MEMORY_MIN,
+                NETWORK_BUFFERS_MEMORY_MAX,
+                MAX_NUM_TCP_CONNECTIONS,
+                NETWORK_READ_MAX_REQUIRED_BUFFERS_PER_GATE,
+                NETWORK_BUFFERS_PER_CHANNEL,
+                NETWORK_EXTRA_BUFFERS_PER_GATE,
+                NETWORK_SORT_SHUFFLE_MIN_BUFFERS,
+                NETWORK_SORT_SHUFFLE_MIN_PARALLELISM,
+                HYBRID_SHUFFLE_SPILLED_INDEX_REGION_GROUP_SIZE,
+                HYBRID_SHUFFLE_NUM_RETAINED_IN_MEMORY_REGIONS_MAX,
+                NETWORK_MAX_BUFFERS_PER_CHANNEL,
+                NETWORK_MAX_OVERDRAFT_BUFFERS_PER_GATE,
+                NETWORK_EXCLUSIVE_BUFFERS_REQUEST_TIMEOUT_MILLISECONDS,
+                NETWORK_HYBRID_SHUFFLE_ENABLE_NEW_MODE,
+                NETWORK_HYBRID_SHUFFLE_REMOTE_STORAGE_BASE_PATH,
+                NETWORK_BLOCKING_SHUFFLE_TYPE,
+                TCP_CONNECTION_REUSE_ACROSS_JOBS_ENABLED,
+                NUM_ARENAS,
+                NUM_THREADS_SERVER,
+                NUM_THREADS_CLIENT,
+                CONNECT_BACKLOG,
+                CLIENT_CONNECT_TIMEOUT_SECONDS,
+                NETWORK_RETRIES,
+                SEND_RECEIVE_BUFFER_SIZE,
+                TRANSPORT_TYPE,
+                CLIENT_TCP_KEEP_IDLE_SECONDS,
+                CLIENT_TCP_KEEP_INTERVAL_SECONDS,
+                CLIENT_TCP_KEEP_COUNT,
+                NETWORK_REQUEST_BACKOFF_INITIAL,
+                NETWORK_REQUEST_BACKOFF_MAX,
+                NETWORK_PARTITION_REQUEST_TIMEOUT);
+    }
 }

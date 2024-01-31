@@ -21,6 +21,7 @@ package org.apache.flink.kubernetes.configuration;
 import org.apache.flink.annotation.PublicEvolving;
 import org.apache.flink.annotation.docs.Documentation;
 import org.apache.flink.configuration.ConfigOption;
+import org.apache.flink.configuration.ConfigOptionProvider;
 import org.apache.flink.configuration.ConfigOptions;
 import org.apache.flink.configuration.ExternalResourceOptions;
 import org.apache.flink.configuration.FallbackKey;
@@ -33,6 +34,8 @@ import org.apache.flink.kubernetes.kubeclient.services.ServiceType;
 import org.apache.flink.kubernetes.utils.Constants;
 import org.apache.flink.runtime.util.EnvironmentInformation;
 
+import java.util.Arrays;
+import java.util.Collection;
 import java.util.List;
 import java.util.Locale;
 import java.util.Map;
@@ -45,7 +48,7 @@ import static org.apache.flink.configuration.description.TextElement.text;
 
 /** This class holds configuration constants used by Flink's kubernetes runners. */
 @PublicEvolving
-public class KubernetesConfigOptions {
+public class KubernetesConfigOptions implements ConfigOptionProvider {
 
     private static final String KUBERNETES_SERVICE_ACCOUNT_KEY = "kubernetes.service-account";
     private static final String KUBERNETES_POD_TEMPLATE_FILE_KEY = "kubernetes.pod-template-file";
@@ -534,6 +537,59 @@ public class KubernetesConfigOptions {
         return "apache/flink:" + tag;
     }
 
+    @Override
+    public Collection<ConfigOption<?>> options() {
+        return Arrays.asList(
+                CONTEXT,
+                REST_SERVICE_EXPOSED_TYPE,
+                REST_SERVICE_EXPOSED_NODE_PORT_ADDRESS_TYPE,
+                JOB_MANAGER_SERVICE_ACCOUNT,
+                TASK_MANAGER_SERVICE_ACCOUNT,
+                KUBERNETES_SERVICE_ACCOUNT,
+                JOB_MANAGER_OWNER_REFERENCE,
+                JOB_MANAGER_CPU,
+                JOB_MANAGER_CPU_LIMIT_FACTOR,
+                JOB_MANAGER_MEMORY_LIMIT_FACTOR,
+                TASK_MANAGER_CPU,
+                TASK_MANAGER_CPU_LIMIT_FACTOR,
+                TASK_MANAGER_MEMORY_LIMIT_FACTOR,
+                CONTAINER_IMAGE_PULL_POLICY,
+                CONTAINER_IMAGE_PULL_SECRETS,
+                KUBE_CONFIG_FILE,
+                NAMESPACE,
+                JOB_MANAGER_LABELS,
+                TASK_MANAGER_LABELS,
+                JOB_MANAGER_NODE_SELECTOR,
+                TASK_MANAGER_NODE_SELECTOR,
+                CLUSTER_ID,
+                CONTAINER_IMAGE,
+                KUBERNETES_ENTRY_PATH,
+                FLINK_CONF_DIR,
+                FLINK_LOG_DIR,
+                HADOOP_CONF_CONFIG_MAP,
+                JOB_MANAGER_ANNOTATIONS,
+                TASK_MANAGER_ANNOTATIONS,
+                KUBERNETES_JOBMANAGER_ENTRYPOINT_ARGS,
+                KUBERNETES_TASKMANAGER_ENTRYPOINT_ARGS,
+                JOB_MANAGER_TOLERATIONS,
+                TASK_MANAGER_TOLERATIONS,
+                REST_SERVICE_ANNOTATIONS,
+                KUBERNETES_SECRETS,
+                KUBERNETES_ENV_SECRET_KEY_REF,
+                EXTERNAL_RESOURCE_KUBERNETES_CONFIG_KEY,
+                KUBERNETES_TRANSACTIONAL_OPERATION_MAX_RETRIES,
+                JOB_MANAGER_POD_TEMPLATE,
+                TASK_MANAGER_POD_TEMPLATE,
+                KUBERNETES_POD_TEMPLATE,
+                KUBERNETES_CLIENT_IO_EXECUTOR_POOL_SIZE,
+                KUBERNETES_JOBMANAGER_REPLICAS,
+                KUBERNETES_HOSTNETWORK_ENABLED,
+                KUBERNETES_CLIENT_USER_AGENT,
+                KUBERNETES_HADOOP_CONF_MOUNT_DECORATOR_ENABLED,
+                KUBERNETES_KERBEROS_MOUNT_DECORATOR_ENABLED,
+                KUBERNETES_NODE_NAME_LABEL);
+    }
+
     /** The flink rest service exposed type. */
     public enum ServiceExposedType {
         ClusterIP(ClusterIPService.INSTANCE),
@@ -626,7 +682,4 @@ public class KubernetesConfigOptions {
                 .map(FallbackKey::getKey)
                 .toArray(String[]::new);
     }
-
-    /** This class is not meant to be instantiated. */
-    private KubernetesConfigOptions() {}
 }

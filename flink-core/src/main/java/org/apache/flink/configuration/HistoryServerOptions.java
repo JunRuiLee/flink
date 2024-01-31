@@ -21,12 +21,15 @@ package org.apache.flink.configuration;
 import org.apache.flink.annotation.PublicEvolving;
 import org.apache.flink.configuration.description.Description;
 
+import java.util.Arrays;
+import java.util.Collection;
+
 import static org.apache.flink.configuration.ConfigOptions.key;
 import static org.apache.flink.configuration.description.TextElement.code;
 
 /** The set of configuration options relating to the HistoryServer. */
 @PublicEvolving
-public class HistoryServerOptions {
+public class HistoryServerOptions implements ConfigOptionProvider {
 
     /**
      * The interval at which the HistoryServer polls {@link
@@ -143,5 +146,21 @@ public class HistoryServerOptions {
                                             code("IllegalConfigurationException"))
                                     .build());
 
-    private HistoryServerOptions() {}
+    public HistoryServerOptions() {}
+
+    @Override
+    public Collection<ConfigOption<?>> options() {
+        return Arrays.asList(
+                HISTORY_SERVER_ARCHIVE_REFRESH_INTERVAL,
+                HISTORY_SERVER_ARCHIVE_DIRS,
+                HISTORY_SERVER_CLEANUP_EXPIRED_JOBS,
+                HISTORY_SERVER_TASKMANAGER_LOG_URL_PATTERN,
+                HISTORY_SERVER_JOBMANAGER_LOG_URL_PATTERN,
+                HISTORY_SERVER_WEB_DIR,
+                HISTORY_SERVER_WEB_ADDRESS,
+                HISTORY_SERVER_WEB_PORT,
+                HISTORY_SERVER_WEB_REFRESH_INTERVAL,
+                HISTORY_SERVER_WEB_SSL_ENABLED,
+                HISTORY_SERVER_RETAINED_JOBS);
+    }
 }

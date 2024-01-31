@@ -22,10 +22,13 @@ import org.apache.flink.annotation.docs.Documentation;
 import org.apache.flink.configuration.description.Description;
 import org.apache.flink.configuration.description.TextElement;
 
+import java.util.Arrays;
+import java.util.Collection;
+
 import static org.apache.flink.configuration.ConfigOptions.key;
 
 /** The set of configuration options relating to high-availability settings. */
-public class HighAvailabilityOptions {
+public class HighAvailabilityOptions implements ConfigOptionProvider {
 
     // ------------------------------------------------------------------------
     //  Required High Availability Options
@@ -241,5 +244,26 @@ public class HighAvailabilityOptions {
     // ------------------------------------------------------------------------
 
     /** Not intended to be instantiated. */
-    private HighAvailabilityOptions() {}
+    public HighAvailabilityOptions() {}
+
+    @Override
+    public Collection<ConfigOption<?>> options() {
+        return Arrays.asList(
+                HA_MODE,
+                HA_CLUSTER_ID,
+                HA_STORAGE_PATH,
+                HA_JOB_MANAGER_PORT_RANGE,
+                HA_ZOOKEEPER_QUORUM,
+                HA_ZOOKEEPER_ROOT,
+                HA_ZOOKEEPER_JOBGRAPHS_PATH,
+                ZOOKEEPER_SESSION_TIMEOUT,
+                ZOOKEEPER_CONNECTION_TIMEOUT,
+                ZOOKEEPER_RETRY_WAIT,
+                ZOOKEEPER_MAX_RETRY_ATTEMPTS,
+                ZOOKEEPER_RUNNING_JOB_REGISTRY_PATH,
+                ZOOKEEPER_CLIENT_ACL,
+                ZOOKEEPER_TOLERATE_SUSPENDED_CONNECTIONS,
+                ZOOKEEPER_ENSEMBLE_TRACKING,
+                HA_JOB_DELAY);
+    }
 }

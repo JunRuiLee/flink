@@ -19,12 +19,15 @@
 package org.apache.flink.yarn.configuration;
 
 import org.apache.flink.configuration.ConfigOption;
+import org.apache.flink.configuration.ConfigOptionProvider;
 import org.apache.flink.configuration.DescribedEnum;
 import org.apache.flink.configuration.ExternalResourceOptions;
 import org.apache.flink.configuration.SecurityOptions;
 import org.apache.flink.configuration.description.Description;
 import org.apache.flink.configuration.description.InlineElement;
 
+import java.util.Arrays;
+import java.util.Collection;
 import java.util.List;
 
 import static org.apache.flink.configuration.ConfigOptions.key;
@@ -38,7 +41,7 @@ import static org.apache.flink.yarn.configuration.YarnConfigOptions.UserJarInclu
  *
  * <p>These options are not expected to be ever configured by users explicitly.
  */
-public class YarnConfigOptions {
+public class YarnConfigOptions implements ConfigOptionProvider {
 
     /** The vcores used by YARN application master. */
     public static final ConfigOption<Integer> APP_MASTER_VCORES =
@@ -464,10 +467,44 @@ public class YarnConfigOptions {
                                     + ExternalResourceOptions.EXTERNAL_RESOURCE_AMOUNT.key()
                                     + ".");
 
-    // ------------------------------------------------------------------------
+    @Override
+    public Collection<ConfigOption<?>> options() {
+        return Arrays.asList(
+                APP_MASTER_VCORES,
+                CLASSPATH_INCLUDE_USER_JAR,
+                VCORES,
+                APPLICATION_ATTEMPTS,
+                APPLICATION_ATTEMPT_FAILURE_VALIDITY_INTERVAL,
+                HEARTBEAT_DELAY_SECONDS,
+                CONTAINER_REQUEST_HEARTBEAT_INTERVAL_MILLISECONDS,
+                PROPERTIES_FILE_LOCATION,
+                APPLICATION_MASTER_PORT,
+                APPLICATION_PRIORITY,
+                FILE_REPLICATION,
+                APPLICATION_TAGS,
+                APPLICATION_VIEW_ACLS,
+                APPLICATION_MODIFY_ACLS,
+                STAGING_DIRECTORY,
+                SHIP_FILES,
+                SHIP_ARCHIVES,
+                FLINK_DIST_JAR,
+                APPLICATION_ID,
+                APPLICATION_QUEUE,
+                APPLICATION_NAME,
+                APPLICATION_TYPE,
+                NODE_LABEL,
+                TASK_MANAGER_NODE_LABEL,
+                SHIP_LOCAL_KEYTAB,
+                LOCALIZED_KEYTAB_PATH,
+                PROVIDED_LIB_DIRS,
+                PROVIDED_USRLIB_DIR,
+                HADOOP_CONFIG_KEY,
+                YARN_CONFIG_KEY,
+                YARN_CONTAINER_START_COMMAND_TEMPLATE,
+                EXTERNAL_RESOURCE_YARN_CONFIG_KEY);
+    }
 
-    /** This class is not meant to be instantiated. */
-    private YarnConfigOptions() {}
+    // ------------------------------------------------------------------------
 
     /** @see YarnConfigOptions#CLASSPATH_INCLUDE_USER_JAR */
     public enum UserJarInclusion implements DescribedEnum {

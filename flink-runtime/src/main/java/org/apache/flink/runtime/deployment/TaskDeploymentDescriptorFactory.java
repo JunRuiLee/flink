@@ -22,6 +22,7 @@ import org.apache.flink.annotation.Experimental;
 import org.apache.flink.annotation.VisibleForTesting;
 import org.apache.flink.api.common.JobID;
 import org.apache.flink.configuration.ConfigOption;
+import org.apache.flink.configuration.ConfigOptionProvider;
 import org.apache.flink.runtime.blob.BlobWriter;
 import org.apache.flink.runtime.blob.PermanentBlobKey;
 import org.apache.flink.runtime.checkpoint.JobManagerTaskRestore;
@@ -58,6 +59,7 @@ import java.io.ObjectOutputStream;
 import java.io.Serializable;
 import java.util.ArrayList;
 import java.util.Collection;
+import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -72,20 +74,6 @@ import static org.apache.flink.util.Preconditions.checkState;
  * org.apache.flink.runtime.taskmanager.Task} from {@link Execution}.
  */
 public class TaskDeploymentDescriptorFactory {
-    /**
-     * This is an expert option, that we do not want to expose in the documentation. The default
-     * value is good enough for almost all cases
-     */
-    @Experimental
-    public static final ConfigOption<Integer> OFFLOAD_SHUFFLE_DESCRIPTORS_THRESHOLD =
-            key("jobmanager.task-deployment.offload-shuffle-descriptors-to-blob-server.threshold-num")
-                    .intType()
-                    .defaultValue(2048 * 2048)
-                    .withDescription(
-                            "Threshold for offloading shuffle descriptors to blob server. Once the number of shuffle descriptors"
-                                    + " exceeds this value, we will offload the shuffle descriptors to blob server."
-                                    + " This default value means JobManager need to serialize and transport"
-                                    + " 2048 shuffle descriptors (almost 32KB) to 2048 consumers (64MB in total)");
 
     private final MaybeOffloaded<JobInformation> serializedJobInformation;
     private final JobID jobID;
@@ -399,6 +387,30 @@ public class TaskDeploymentDescriptorFactory {
         return producerState == ExecutionState.CANCELING
                 || producerState == ExecutionState.CANCELED
                 || producerState == ExecutionState.FAILED;
+    }
+
+    /**
+     * This is an expert option, that we do not want to expose in the documentation. The default
+     * value is good enough for almost all cases
+     */
+    @Experimental
+    public static final ConfigOption<Integer> OFFLOAD_SHUFFLE_DESCRIPTORS_THRESHOLD =
+            key("jobmanager.task-deployment.offload-shuffle-descriptors-to-blob-server.threshold-num")
+                    .intType()
+                    .defaultValue(2048 * 2048)
+                    .withDescription(
+                            "Threshold for offloading shuffle descriptors to blob server. Once the number of shuffle descriptors"
+                                    + " exceeds this value, we will offload the shuffle descriptors to blob server."
+                                    + " This default value means JobManager need to serialize and transport"
+                                    + " 2048 shuffle descriptors (almost 32KB) to 2048 consumers (64MB in total)");
+
+    /** TODO. */
+    public static class TDDConfigOptionInternal implements ConfigOptionProvider {
+
+        @Override
+        public Collection<ConfigOption<?>> options() {
+            return Collections.singletonList(OFFLOAD_SHUFFLE_DESCRIPTORS_THRESHOLD);
+        }
     }
 
     /**

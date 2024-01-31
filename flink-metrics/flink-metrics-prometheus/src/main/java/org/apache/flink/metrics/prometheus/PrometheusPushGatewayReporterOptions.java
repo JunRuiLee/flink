@@ -21,14 +21,18 @@ package org.apache.flink.metrics.prometheus;
 import org.apache.flink.annotation.docs.Documentation;
 import org.apache.flink.configuration.ConfigConstants;
 import org.apache.flink.configuration.ConfigOption;
+import org.apache.flink.configuration.ConfigOptionProvider;
 import org.apache.flink.configuration.ConfigOptions;
 import org.apache.flink.configuration.description.Description;
 import org.apache.flink.configuration.description.LinkElement;
 import org.apache.flink.configuration.description.TextElement;
 
+import java.util.Arrays;
+import java.util.Collection;
+
 /** Config options for the {@link PrometheusPushGatewayReporter}. */
 @Documentation.SuffixOption(ConfigConstants.METRICS_REPORTER_PREFIX + "prometheus")
-public class PrometheusPushGatewayReporterOptions {
+public class PrometheusPushGatewayReporterOptions implements ConfigOptionProvider {
 
     @Deprecated
     public static final ConfigOption<String> HOST =
@@ -110,4 +114,17 @@ public class PrometheusPushGatewayReporterOptions {
                                                     "https://prometheus.io/docs/concepts/data_model/#metric-names-and-labels",
                                                     "Prometheus requirements"))
                                     .build());
+
+    @Override
+    public Collection<ConfigOption<?>> options() {
+        return Arrays.asList(
+                HOST,
+                PORT,
+                HOST_URL,
+                JOB_NAME,
+                RANDOM_JOB_NAME_SUFFIX,
+                DELETE_ON_SHUTDOWN,
+                FILTER_LABEL_VALUE_CHARACTER,
+                GROUPING_KEY);
+    }
 }

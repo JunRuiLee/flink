@@ -20,12 +20,16 @@ package org.apache.flink.table.catalog;
 
 import org.apache.flink.annotation.Internal;
 import org.apache.flink.configuration.ConfigOption;
+import org.apache.flink.configuration.ConfigOptionProvider;
 import org.apache.flink.configuration.ConfigOptions;
 import org.apache.flink.table.factories.Factory;
 
+import java.util.Arrays;
+import java.util.Collection;
+
 /** A collection of {@link ConfigOption} which are consistently used in multiple catalogs. */
 @Internal
-public class CommonCatalogOptions {
+public class CommonCatalogOptions implements ConfigOptionProvider {
 
     /**
      * Key used for specifying a default database {@link ConfigOption}.
@@ -52,4 +56,9 @@ public class CommonCatalogOptions {
 
     /** Used to filter the specific options for catalog store. */
     public static final String TABLE_CATALOG_STORE_OPTION_PREFIX = "table.catalog-store.";
+
+    @Override
+    public Collection<ConfigOption<?>> options() {
+        return Arrays.asList(CATALOG_TYPE, TABLE_CATALOG_STORE_KIND);
+    }
 }

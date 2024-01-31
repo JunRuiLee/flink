@@ -23,6 +23,8 @@ import org.apache.flink.annotation.docs.Documentation;
 import org.apache.flink.configuration.description.Description;
 
 import java.time.Duration;
+import java.util.Arrays;
+import java.util.Collection;
 
 import static org.apache.flink.configuration.ConfigOptions.key;
 import static org.apache.flink.configuration.JobManagerOptions.HybridPartitionDataConsumeConstraint.ALL_PRODUCERS_FINISHED;
@@ -34,7 +36,7 @@ import static org.apache.flink.configuration.description.TextElement.text;
 
 /** Configuration options for the JobManager. */
 @PublicEvolving
-public class JobManagerOptions {
+public class JobManagerOptions implements ConfigOptionProvider {
 
     public static final MemorySize MIN_JVM_HEAP_SIZE = MemorySize.ofMebiBytes(128);
 
@@ -378,6 +380,56 @@ public class JobManagerOptions {
                                                             + " may need to limit the %s to mitigate FullGC or OOM when there are too many graphs",
                                                     code(JOB_STORE_MAX_CAPACITY.key())))
                                     .build());
+
+    @Override
+    public Collection<ConfigOption<?>> options() {
+        return Arrays.asList(
+                ADDRESS,
+                BIND_HOST,
+                PORT,
+                RPC_BIND_PORT,
+                JOB_MANAGER_HEAP_MEMORY,
+                JOB_MANAGER_HEAP_MEMORY_MB,
+                TOTAL_PROCESS_MEMORY,
+                TOTAL_FLINK_MEMORY,
+                JVM_HEAP_MEMORY,
+                OFF_HEAP_MEMORY,
+                JVM_DIRECT_MEMORY_LIMIT_ENABLED,
+                JVM_METASPACE,
+                JVM_OVERHEAD_MIN,
+                JVM_OVERHEAD_MAX,
+                JVM_OVERHEAD_FRACTION,
+                MAX_ATTEMPTS_HISTORY_SIZE,
+                FAILURE_ENRICHERS_LIST,
+                EXECUTION_FAILOVER_STRATEGY,
+                ARCHIVE_DIR,
+                JOB_STORE_CACHE_SIZE,
+                JOB_STORE_EXPIRATION_TIME,
+                JOB_STORE_MAX_CAPACITY,
+                JOB_STORE_TYPE,
+                RETRIEVE_TASK_MANAGER_HOSTNAME,
+                JOB_MANAGER_FUTURE_POOL_SIZE,
+                JOB_MANAGER_IO_POOL_SIZE,
+                SLOT_REQUEST_TIMEOUT,
+                SLOT_IDLE_TIMEOUT,
+                SCHEDULER,
+                SCHEDULER_MODE,
+                MIN_PARALLELISM_INCREASE,
+                SCHEDULER_SCALING_INTERVAL_MIN,
+                SCHEDULER_SCALING_INTERVAL_MAX,
+                RESOURCE_WAIT_TIMEOUT,
+                RESOURCE_STABILIZATION_TIMEOUT,
+                PARTITION_RELEASE_DURING_JOB_EXECUTION,
+                ADAPTIVE_BATCH_SCHEDULER_MIN_PARALLELISM,
+                ADAPTIVE_BATCH_SCHEDULER_MAX_PARALLELISM,
+                ADAPTIVE_BATCH_SCHEDULER_AVG_DATA_VOLUME_PER_TASK,
+                ADAPTIVE_BATCH_SCHEDULER_DEFAULT_SOURCE_PARALLELISM,
+                SPECULATIVE_ENABLED,
+                SPECULATIVE_MAX_CONCURRENT_EXECUTIONS,
+                BLOCK_SLOW_NODE_DURATION,
+                JOB_MANAGER_RESOURCE_ID,
+                HYBRID_PARTITION_DATA_CONSUME_CONSTRAINT);
+    }
 
     /** Type of job store implementation. */
     public enum JobStoreType {
@@ -753,7 +805,5 @@ public class JobManagerOptions {
 
     // ---------------------------------------------------------------------------------------------
 
-    private JobManagerOptions() {
-        throw new IllegalAccessError();
-    }
+    public JobManagerOptions() {}
 }

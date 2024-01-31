@@ -19,15 +19,18 @@
 package org.apache.flink.cep.configuration;
 
 import org.apache.flink.configuration.ConfigOption;
+import org.apache.flink.configuration.ConfigOptionProvider;
 import org.apache.flink.configuration.ConfigOptions;
 import org.apache.flink.util.TimeUtils;
 
 import java.time.Duration;
+import java.util.Arrays;
+import java.util.Collection;
 
 /** CEP Cache Options. */
-public class CEPCacheOptions {
+public class CEPCacheOptions implements ConfigOptionProvider {
 
-    private CEPCacheOptions() {}
+    public CEPCacheOptions() {}
 
     private static final String COMMON_HINT =
             "And it could accelerate the CEP operate process "
@@ -62,4 +65,12 @@ public class CEPCacheOptions {
                     .withDescription(
                             "The interval to log the information of cache state statistics in "
                                     + "CEP operator.");
+
+    @Override
+    public Collection<ConfigOption<?>> options() {
+        return Arrays.asList(
+                CEP_CACHE_STATISTICS_INTERVAL,
+                CEP_SHARED_BUFFER_ENTRY_CACHE_SLOTS,
+                CEP_SHARED_BUFFER_ENTRY_CACHE_SLOTS);
+    }
 }

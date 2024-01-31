@@ -19,10 +19,14 @@
 package org.apache.flink.formats.protobuf;
 
 import org.apache.flink.configuration.ConfigOption;
+import org.apache.flink.configuration.ConfigOptionProvider;
 import org.apache.flink.configuration.ConfigOptions;
 
+import java.util.Arrays;
+import java.util.Collection;
+
 /** This class holds configuration constants used by protobuf format. */
-public class PbFormatOptions {
+public class PbFormatOptions implements ConfigOptionProvider {
     public static final ConfigOption<String> MESSAGE_CLASS_NAME =
             ConfigOptions.key("message-class-name")
                     .stringType()
@@ -52,4 +56,13 @@ public class PbFormatOptions {
                     .withDescription(
                             "When serializing to protobuf data, this is the optional config to specify the string literal in protobuf's array/map in case of null values."
                                     + "By default empty string is used.");
+
+    @Override
+    public Collection<ConfigOption<?>> options() {
+        return Arrays.asList(
+                MESSAGE_CLASS_NAME,
+                IGNORE_PARSE_ERRORS,
+                READ_DEFAULT_VALUES,
+                WRITE_NULL_STRING_LITERAL);
+    }
 }

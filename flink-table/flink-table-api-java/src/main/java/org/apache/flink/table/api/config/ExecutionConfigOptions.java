@@ -22,6 +22,7 @@ import org.apache.flink.annotation.Internal;
 import org.apache.flink.annotation.PublicEvolving;
 import org.apache.flink.annotation.docs.Documentation;
 import org.apache.flink.configuration.ConfigOption;
+import org.apache.flink.configuration.ConfigOptionProvider;
 import org.apache.flink.configuration.ConfigOptions;
 import org.apache.flink.configuration.DescribedEnum;
 import org.apache.flink.configuration.ExecutionOptions;
@@ -30,6 +31,8 @@ import org.apache.flink.configuration.description.Description;
 import org.apache.flink.configuration.description.InlineElement;
 
 import java.time.Duration;
+import java.util.Arrays;
+import java.util.Collection;
 
 import static org.apache.flink.configuration.ConfigOptions.key;
 import static org.apache.flink.configuration.description.TextElement.code;
@@ -41,7 +44,7 @@ import static org.apache.flink.configuration.description.TextElement.text;
  * <p>NOTE: All option keys in this class must start with "table.exec".
  */
 @PublicEvolving
-public class ExecutionConfigOptions {
+public class ExecutionConfigOptions implements ConfigOptionProvider {
 
     // ------------------------------------------------------------------------
     //  State Options
@@ -615,6 +618,53 @@ public class ExecutionConfigOptions {
                                     + "Note: Set this option greater than 0 will cause unmatched records in outer joins to be output later than watermark, "
                                     + "leading to possible discarding of these records by downstream watermark-dependent operators, such as window operators. "
                                     + "The default value is 0, which means it will clean up unmatched records immediately.");
+
+    @Override
+    public Collection<ConfigOption<?>> options() {
+        return Arrays.asList(
+                IDLE_STATE_RETENTION,
+                TABLE_EXEC_SOURCE_IDLE_TIMEOUT,
+                TABLE_EXEC_SOURCE_CDC_EVENTS_DUPLICATE,
+                TABLE_EXEC_SINK_NOT_NULL_ENFORCER,
+                TABLE_EXEC_SINK_TYPE_LENGTH_ENFORCER,
+                TABLE_EXEC_SINK_UPSERT_MATERIALIZE,
+                TABLE_EXEC_SINK_KEYED_SHUFFLE,
+                TABLE_EXEC_SINK_ROWTIME_INSERTER,
+                TABLE_EXEC_SORT_DEFAULT_LIMIT,
+                TABLE_EXEC_SORT_MAX_NUM_FILE_HANDLES,
+                TABLE_EXEC_SORT_ASYNC_MERGE_ENABLED,
+                TABLE_EXEC_SPILL_COMPRESSION_ENABLED,
+                TABLE_EXEC_SPILL_COMPRESSION_BLOCK_SIZE,
+                TABLE_EXEC_RESOURCE_DEFAULT_PARALLELISM,
+                TABLE_EXEC_RESOURCE_EXTERNAL_BUFFER_MEMORY,
+                TABLE_EXEC_RESOURCE_HASH_AGG_MEMORY,
+                TABLE_EXEC_RESOURCE_HASH_JOIN_MEMORY,
+                TABLE_EXEC_RESOURCE_SORT_MEMORY,
+                TABLE_EXEC_WINDOW_AGG_BUFFER_SIZE_LIMIT,
+                TABLE_EXEC_ASYNC_LOOKUP_BUFFER_CAPACITY,
+                TABLE_EXEC_ASYNC_LOOKUP_TIMEOUT,
+                TABLE_EXEC_ASYNC_LOOKUP_OUTPUT_MODE,
+                TABLE_EXEC_ASYNC_SCALAR_BUFFER_CAPACITY,
+                TABLE_EXEC_ASYNC_SCALAR_TIMEOUT,
+                TABLE_EXEC_ASYNC_SCALAR_RETRY_STRATEGY,
+                TABLE_EXEC_ASYNC_SCALAR_RETRY_DELAY,
+                TABLE_EXEC_ASYNC_SCALAR_MAX_ATTEMPTS,
+                TABLE_EXEC_MINIBATCH_ENABLED,
+                TABLE_EXEC_MINIBATCH_ALLOW_LATENCY,
+                TABLE_EXEC_MINIBATCH_SIZE,
+                TABLE_EXEC_DISABLED_OPERATORS,
+                TABLE_EXEC_OPERATOR_FUSION_CODEGEN_ENABLED,
+                TABLE_EXEC_SHUFFLE_MODE,
+                TABLE_EXEC_LEGACY_CAST_BEHAVIOUR,
+                TABLE_EXEC_RANK_TOPN_CACHE_SIZE,
+                TABLE_EXEC_SIMPLIFY_OPERATOR_NAME_ENABLED,
+                TABLE_EXEC_DEDUPLICATE_INSERT_UPDATE_AFTER_SENSITIVE_ENABLED,
+                TABLE_EXEC_DEDUPLICATE_MINIBATCH_COMPACT_CHANGES_ENABLED,
+                TABLE_EXEC_LEGACY_TRANSFORMATION_UIDS,
+                TABLE_EXEC_UID_GENERATION,
+                TABLE_EXEC_UID_FORMAT,
+                TABLE_EXEC_INTERVAL_JOIN_MIN_CLEAN_UP_INTERVAL);
+    }
 
     // ------------------------------------------------------------------------------------------
     // Enum option types

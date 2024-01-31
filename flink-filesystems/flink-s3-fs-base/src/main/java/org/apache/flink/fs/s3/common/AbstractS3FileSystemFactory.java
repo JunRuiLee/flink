@@ -19,6 +19,7 @@
 package org.apache.flink.fs.s3.common;
 
 import org.apache.flink.configuration.ConfigOption;
+import org.apache.flink.configuration.ConfigOptionProvider;
 import org.apache.flink.configuration.ConfigOptions;
 import org.apache.flink.configuration.Configuration;
 import org.apache.flink.configuration.ConfigurationUtils;
@@ -37,6 +38,8 @@ import javax.annotation.Nullable;
 
 import java.io.IOException;
 import java.net.URI;
+import java.util.Arrays;
+import java.util.Collection;
 
 /** Base class for file system factories that create S3 file systems. */
 public abstract class AbstractS3FileSystemFactory implements FileSystemFactory {
@@ -80,6 +83,19 @@ public abstract class AbstractS3FileSystemFactory implements FileSystemFactory {
                                     + ENTROPY_INJECT_KEY_OPTION.key()
                                     + "' is set, this option defines the number of "
                                     + "random characters to replace the entropy key with.");
+
+    /** TODO. */
+    public static class AbstractS3FileSystemFactoryConfigOptionProvider
+            implements ConfigOptionProvider {
+        @Override
+        public Collection<ConfigOption<?>> options() {
+            return Arrays.asList(
+                    PART_UPLOAD_MIN_SIZE,
+                    MAX_CONCURRENT_UPLOADS,
+                    ENTROPY_INJECT_KEY_OPTION,
+                    ENTROPY_INJECT_LENGTH_OPTION);
+        }
+    }
 
     // ------------------------------------------------------------------------
 

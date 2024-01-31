@@ -21,8 +21,12 @@ package org.apache.flink.table.api.config;
 import org.apache.flink.annotation.PublicEvolving;
 import org.apache.flink.annotation.docs.Documentation;
 import org.apache.flink.configuration.ConfigOption;
+import org.apache.flink.configuration.ConfigOptionProvider;
 import org.apache.flink.configuration.MemorySize;
 import org.apache.flink.configuration.description.Description;
+
+import java.util.Arrays;
+import java.util.Collection;
 
 import static org.apache.flink.configuration.ConfigOptions.key;
 import static org.apache.flink.configuration.description.TextElement.code;
@@ -33,7 +37,7 @@ import static org.apache.flink.configuration.description.TextElement.code;
  * <p>NOTE: All option keys in this class must start with "table.optimizer".
  */
 @PublicEvolving
-public class OptimizerConfigOptions {
+public class OptimizerConfigOptions implements ConfigOptionProvider {
 
     // ------------------------------------------------------------------------
     //  Optimizer Options
@@ -273,6 +277,30 @@ public class OptimizerConfigOptions {
                                             "Note: it is not recommended to turn on unless you are aware of possible side effects, "
                                                     + "such as causing the output of certain non-deterministic expressions to not meet expectations(see FLINK-20887).")
                                     .build());
+
+    @Override
+    public Collection<ConfigOption<?>> options() {
+        return Arrays.asList(
+                TABLE_OPTIMIZER_AGG_PHASE_STRATEGY,
+                TABLE_OPTIMIZER_BROADCAST_JOIN_THRESHOLD,
+                TABLE_OPTIMIZER_DISTINCT_AGG_SPLIT_ENABLED,
+                TABLE_OPTIMIZER_DISTINCT_AGG_SPLIT_BUCKET_NUM,
+                TABLE_OPTIMIZER_REUSE_SUB_PLAN_ENABLED,
+                TABLE_OPTIMIZER_REUSE_SOURCE_ENABLED,
+                TABLE_OPTIMIZER_SOURCE_AGGREGATE_PUSHDOWN_ENABLED,
+                TABLE_OPTIMIZER_SOURCE_PREDICATE_PUSHDOWN_ENABLED,
+                TABLE_OPTIMIZER_SOURCE_REPORT_STATISTICS_ENABLED,
+                TABLE_OPTIMIZER_JOIN_REORDER_ENABLED,
+                TABLE_OPTIMIZER_BUSHY_JOIN_REORDER_THRESHOLD,
+                TABLE_OPTIMIZER_MULTIPLE_INPUT_ENABLED,
+                TABLE_OPTIMIZER_DYNAMIC_FILTERING_ENABLED,
+                TABLE_OPTIMIZER_RUNTIME_FILTER_ENABLED,
+                TABLE_OPTIMIZER_RUNTIME_FILTER_MAX_BUILD_DATA_SIZE,
+                TABLE_OPTIMIZER_RUNTIME_FILTER_MIN_PROBE_DATA_SIZE,
+                TABLE_OPTIMIZER_RUNTIME_FILTER_MIN_FILTER_RATIO,
+                TABLE_OPTIMIZER_NONDETERMINISTIC_UPDATE_STRATEGY,
+                TABLE_OPTIMIZER_SQL2REL_PROJECT_MERGE_ENABLED);
+    }
 
     /** Strategy for handling non-deterministic updates. */
     @PublicEvolving

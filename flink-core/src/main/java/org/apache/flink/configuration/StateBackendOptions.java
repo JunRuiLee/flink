@@ -22,8 +22,11 @@ import org.apache.flink.annotation.docs.Documentation;
 import org.apache.flink.configuration.description.Description;
 import org.apache.flink.configuration.description.TextElement;
 
+import java.util.Arrays;
+import java.util.Collection;
+
 /** A collection of all configuration options that relate to state backend. */
-public class StateBackendOptions {
+public class StateBackendOptions implements ConfigOptionProvider {
 
     // ------------------------------------------------------------------------
     //  general state backend options
@@ -97,4 +100,14 @@ public class StateBackendOptions {
                     .defaultValue(true)
                     .withDescription(
                             "Whether to expose state name as a variable if tracking latency.");
+
+    @Override
+    public Collection<ConfigOption<?>> options() {
+        return Arrays.asList(
+                STATE_BACKEND,
+                LATENCY_TRACK_ENABLED,
+                LATENCY_TRACK_SAMPLE_INTERVAL,
+                LATENCY_TRACK_HISTORY_SIZE,
+                LATENCY_TRACK_STATE_NAME_AS_VARIABLE);
+    }
 }

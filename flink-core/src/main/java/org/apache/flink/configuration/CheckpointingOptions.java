@@ -22,8 +22,11 @@ import org.apache.flink.annotation.docs.Documentation;
 import org.apache.flink.configuration.description.Description;
 import org.apache.flink.configuration.description.TextElement;
 
+import java.util.Arrays;
+import java.util.Collection;
+
 /** A collection of all configuration options that relate to checkpoints and savepoints. */
-public class CheckpointingOptions {
+public class CheckpointingOptions implements ConfigOptionProvider {
 
     // ------------------------------------------------------------------------
     //  general checkpoint options
@@ -282,4 +285,22 @@ public class CheckpointingOptions {
                                             + "The actual write buffer size is determined to be the maximum of the value of this option and option '%s'.",
                                     FS_SMALL_FILE_THRESHOLD.key()))
                     .withDeprecatedKeys("state.backend.fs.write-buffer-size");
+
+    @Override
+    public Collection<ConfigOption<?>> options() {
+        return Arrays.asList(
+                STATE_BACKEND,
+                CHECKPOINT_STORAGE,
+                MAX_RETAINED_CHECKPOINTS,
+                CLEANER_PARALLEL_MODE,
+                ASYNC_SNAPSHOTS,
+                INCREMENTAL_CHECKPOINTS,
+                LOCAL_RECOVERY,
+                LOCAL_RECOVERY_TASK_MANAGER_STATE_ROOT_DIRS,
+                SAVEPOINT_DIRECTORY,
+                CHECKPOINTS_DIRECTORY,
+                CREATE_CHECKPOINT_SUB_DIR,
+                FS_SMALL_FILE_THRESHOLD,
+                FS_WRITE_BUFFER_SIZE);
+    }
 }

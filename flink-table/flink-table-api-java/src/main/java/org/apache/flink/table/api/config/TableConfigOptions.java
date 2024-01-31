@@ -22,12 +22,15 @@ import org.apache.flink.annotation.Internal;
 import org.apache.flink.annotation.PublicEvolving;
 import org.apache.flink.annotation.docs.Documentation;
 import org.apache.flink.configuration.ConfigOption;
+import org.apache.flink.configuration.ConfigOptionProvider;
 import org.apache.flink.configuration.DescribedEnum;
 import org.apache.flink.configuration.description.Description;
 import org.apache.flink.configuration.description.InlineElement;
 import org.apache.flink.table.api.SqlDialect;
 import org.apache.flink.table.catalog.Catalog;
 
+import java.util.Arrays;
+import java.util.Collection;
 import java.util.List;
 
 import static org.apache.flink.configuration.ConfigOptions.key;
@@ -39,8 +42,7 @@ import static org.apache.flink.configuration.description.TextElement.text;
  * <p>NOTE: All option keys in this class must start with "table".
  */
 @PublicEvolving
-public class TableConfigOptions {
-    private TableConfigOptions() {}
+public class TableConfigOptions implements ConfigOptionProvider {
 
     @Documentation.TableOption(execMode = Documentation.ExecMode.BATCH_STREAMING)
     public static final ConfigOption<String> TABLE_CATALOG_NAME =
@@ -232,6 +234,27 @@ public class TableConfigOptions {
                     .defaultValue(10000)
                     .withDescription(
                             "Specifies a threshold where class members of generated code will be grouped into arrays by types.");
+
+    @Override
+    public Collection<ConfigOption<?>> options() {
+        return Arrays.asList(
+                TABLE_CATALOG_NAME,
+                TABLE_DATABASE_NAME,
+                TABLE_CATALOG_MODIFICATION_LISTENERS,
+                TABLE_DML_SYNC,
+                TABLE_DYNAMIC_TABLE_OPTIONS_ENABLED,
+                TABLE_SQL_DIALECT,
+                LOCAL_TIME_ZONE,
+                DISPLAY_MAX_COLUMN_WIDTH,
+                RESOURCES_DOWNLOAD_DIR,
+                TABLE_RTAS_CTAS_ATOMICITY_ENABLED,
+                TABLE_COLUMN_EXPANSION_STRATEGY,
+                PLAN_COMPILE_CATALOG_OBJECTS,
+                PLAN_RESTORE_CATALOG_OBJECTS,
+                PLAN_FORCE_RECOMPILE,
+                MAX_LENGTH_GENERATED_CODE,
+                MAX_MEMBERS_GENERATED_CODE);
+    }
 
     // ------------------------------------------------------------------------------------------
     // Enum option types

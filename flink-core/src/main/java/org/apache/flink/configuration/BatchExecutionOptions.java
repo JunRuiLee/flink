@@ -23,6 +23,8 @@ import org.apache.flink.annotation.docs.Documentation;
 import org.apache.flink.configuration.description.Description;
 
 import java.time.Duration;
+import java.util.Arrays;
+import java.util.Collection;
 
 import static org.apache.flink.configuration.ConfigOptions.key;
 import static org.apache.flink.configuration.CoreOptions.DEFAULT_PARALLELISM;
@@ -31,7 +33,7 @@ import static org.apache.flink.configuration.description.TextElement.code;
 
 /** Configuration options for the batch job execution. */
 @PublicEvolving
-public class BatchExecutionOptions {
+public class BatchExecutionOptions implements ConfigOptionProvider {
 
     @Documentation.Section({Documentation.Sections.EXPERT_SCHEDULING})
     public static final ConfigOption<Boolean> ADAPTIVE_AUTO_PARALLELISM_ENABLED =
@@ -148,7 +150,18 @@ public class BatchExecutionOptions {
                     .withDescription(
                             "Controls how long an detected slow node should be blocked for.");
 
-    private BatchExecutionOptions() {
-        throw new UnsupportedOperationException("This class should never be instantiated.");
+    public BatchExecutionOptions() {}
+
+    @Override
+    public Collection<ConfigOption<?>> options() {
+        return Arrays.asList(
+                ADAPTIVE_AUTO_PARALLELISM_ENABLED,
+                ADAPTIVE_AUTO_PARALLELISM_MIN_PARALLELISM,
+                ADAPTIVE_AUTO_PARALLELISM_MAX_PARALLELISM,
+                ADAPTIVE_AUTO_PARALLELISM_AVG_DATA_VOLUME_PER_TASK,
+                ADAPTIVE_AUTO_PARALLELISM_DEFAULT_SOURCE_PARALLELISM,
+                SPECULATIVE_ENABLED,
+                SPECULATIVE_MAX_CONCURRENT_EXECUTIONS,
+                BLOCK_SLOW_NODE_DURATION);
     }
 }

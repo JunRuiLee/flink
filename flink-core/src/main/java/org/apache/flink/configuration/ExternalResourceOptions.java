@@ -21,13 +21,15 @@ package org.apache.flink.configuration;
 import org.apache.flink.annotation.PublicEvolving;
 import org.apache.flink.util.Preconditions;
 
+import java.util.Arrays;
+import java.util.Collection;
 import java.util.List;
 
 import static org.apache.flink.configuration.ConfigOptions.key;
 
 /** Configuration options for external resources and external resource drivers. */
 @PublicEvolving
-public class ExternalResourceOptions {
+public class ExternalResourceOptions implements ConfigOptionProvider {
 
     /**
      * The amount of the external resource per task executor. This is used as a suffix in an actual
@@ -178,5 +180,14 @@ public class ExternalResourceOptions {
     /** Generate the suffix option key prefix for the user-defined params for external resources. */
     public static String getExternalResourceParamConfigPrefixForResource(String resourceName) {
         return keyWithResourceNameAndSuffix(resourceName, EXTERNAL_RESOURCE_DRIVER_PARAM_SUFFIX);
+    }
+
+    @Override
+    public Collection<ConfigOption<?>> options() {
+        return Arrays.asList(
+                EXTERNAL_RESOURCE_LIST,
+                EXTERNAL_RESOURCE_DRIVER_FACTORY_CLASS,
+                EXTERNAL_RESOURCE_AMOUNT,
+                EXTERNAL_RESOURCE_DRIVER_PARAM);
     }
 }

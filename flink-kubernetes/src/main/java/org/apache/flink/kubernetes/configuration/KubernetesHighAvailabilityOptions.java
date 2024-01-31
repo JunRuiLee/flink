@@ -21,14 +21,17 @@ package org.apache.flink.kubernetes.configuration;
 import org.apache.flink.annotation.PublicEvolving;
 import org.apache.flink.annotation.docs.Documentation;
 import org.apache.flink.configuration.ConfigOption;
+import org.apache.flink.configuration.ConfigOptionProvider;
 
 import java.time.Duration;
+import java.util.Arrays;
+import java.util.Collection;
 
 import static org.apache.flink.configuration.ConfigOptions.key;
 
 /** The set of configuration options relating to Kubernetes high-availability settings. */
 @PublicEvolving
-public class KubernetesHighAvailabilityOptions {
+public class KubernetesHighAvailabilityOptions implements ConfigOptionProvider {
 
     @Documentation.Section(Documentation.Sections.EXPERT_KUBERNETES_HIGH_AVAILABILITY)
     public static final ConfigOption<Duration> KUBERNETES_LEASE_DURATION =
@@ -59,6 +62,9 @@ public class KubernetesHighAvailabilityOptions {
                                     + "the current leader and all other followers, periodically try to acquire/renew the leadership if "
                                     + "possible at this interval.");
 
-    /** Not intended to be instantiated. */
-    private KubernetesHighAvailabilityOptions() {}
+    @Override
+    public Collection<ConfigOption<?>> options() {
+        return Arrays.asList(
+                KUBERNETES_LEASE_DURATION, KUBERNETES_RENEW_DEADLINE, KUBERNETES_RETRY_PERIOD);
+    }
 }

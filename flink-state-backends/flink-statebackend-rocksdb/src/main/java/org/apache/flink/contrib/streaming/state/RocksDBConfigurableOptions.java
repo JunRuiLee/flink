@@ -19,6 +19,7 @@
 package org.apache.flink.contrib.streaming.state;
 
 import org.apache.flink.configuration.ConfigOption;
+import org.apache.flink.configuration.ConfigOptionProvider;
 import org.apache.flink.configuration.MemorySize;
 import org.apache.flink.configuration.description.Description;
 import org.apache.flink.util.Preconditions;
@@ -30,6 +31,7 @@ import org.rocksdb.InfoLogLevel;
 import java.io.File;
 import java.io.Serializable;
 import java.util.Arrays;
+import java.util.Collection;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
@@ -53,7 +55,7 @@ import static org.rocksdb.InfoLogLevel.INFO_LEVEL;
  * PredefinedOptions}, and then a user-defined {@link RocksDBOptionsFactory} may override the
  * configurations here.
  */
-public class RocksDBConfigurableOptions implements Serializable {
+public class RocksDBConfigurableOptions implements Serializable, ConfigOptionProvider {
 
     // --------------------------------------------------------------------------
     // Provided configurable DBOptions within Flink
@@ -383,5 +385,32 @@ public class RocksDBConfigurableOptions implements Serializable {
                     new File((String) value).isAbsolute(),
                     "Configured path for key " + key + " is not absolute.");
         }
+    }
+
+    @Override
+    public Collection<ConfigOption<?>> options() {
+        return Arrays.asList(
+                MAX_BACKGROUND_THREADS,
+                MAX_OPEN_FILES,
+                LOG_MAX_FILE_SIZE,
+                LOG_FILE_NUM,
+                LOG_DIR,
+                LOG_LEVEL,
+                COMPACTION_STYLE,
+                USE_DYNAMIC_LEVEL_SIZE,
+                COMPRESSION_PER_LEVEL,
+                TARGET_FILE_SIZE_BASE,
+                MAX_SIZE_LEVEL_BASE,
+                WRITE_BUFFER_SIZE,
+                MAX_WRITE_BUFFER_NUMBER,
+                MIN_WRITE_BUFFER_NUMBER_TO_MERGE,
+                BLOCK_SIZE,
+                METADATA_BLOCK_SIZE,
+                BLOCK_CACHE_SIZE,
+                WRITE_BATCH_SIZE,
+                USE_BLOOM_FILTER,
+                BLOOM_FILTER_BITS_PER_KEY,
+                BLOOM_FILTER_BLOCK_BASED_MODE,
+                RESTORE_OVERLAP_FRACTION_THRESHOLD);
     }
 }

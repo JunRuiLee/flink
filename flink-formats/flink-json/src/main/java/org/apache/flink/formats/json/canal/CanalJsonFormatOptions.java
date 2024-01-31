@@ -20,12 +20,16 @@ package org.apache.flink.formats.json.canal;
 
 import org.apache.flink.annotation.PublicEvolving;
 import org.apache.flink.configuration.ConfigOption;
+import org.apache.flink.configuration.ConfigOptionProvider;
 import org.apache.flink.configuration.ConfigOptions;
 import org.apache.flink.formats.json.JsonFormatOptions;
 
+import java.util.Arrays;
+import java.util.Collection;
+
 /** Option utils for canal-json format. */
 @PublicEvolving
-public class CanalJsonFormatOptions {
+public class CanalJsonFormatOptions implements ConfigOptionProvider {
 
     public static final ConfigOption<Boolean> IGNORE_PARSE_ERRORS =
             JsonFormatOptions.IGNORE_PARSE_ERRORS;
@@ -54,5 +58,14 @@ public class CanalJsonFormatOptions {
                             "An optional regular expression to only read the specific tables changelog rows by regular matching the \"table\" meta field in the Canal record."
                                     + "The pattern string is compatible with Java's Pattern.");
 
-    private CanalJsonFormatOptions() {}
+    @Override
+    public Collection<ConfigOption<?>> options() {
+        return Arrays.asList(
+                IGNORE_PARSE_ERRORS,
+                TIMESTAMP_FORMAT,
+                JSON_MAP_NULL_KEY_MODE,
+                JSON_MAP_NULL_KEY_LITERAL,
+                DATABASE_INCLUDE,
+                TABLE_INCLUDE);
+    }
 }

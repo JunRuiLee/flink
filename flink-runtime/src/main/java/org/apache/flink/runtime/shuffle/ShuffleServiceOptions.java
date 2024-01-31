@@ -19,13 +19,15 @@
 package org.apache.flink.runtime.shuffle;
 
 import org.apache.flink.configuration.ConfigOption;
+import org.apache.flink.configuration.ConfigOptionProvider;
 import org.apache.flink.configuration.ConfigOptions;
+
+import java.util.Collection;
+import java.util.Collections;
 
 /** Options to configure shuffle service. */
 @SuppressWarnings("WeakerAccess")
-public class ShuffleServiceOptions {
-
-    private ShuffleServiceOptions() {}
+public class ShuffleServiceOptions implements ConfigOptionProvider {
 
     /**
      * The full class name of the shuffle service factory implementation to be used by the cluster.
@@ -38,4 +40,9 @@ public class ShuffleServiceOptions {
                             "The full class name of the shuffle service factory implementation to be used by the cluster. "
                                     + "The default implementation uses Netty for network communication and local memory as well disk space "
                                     + "to store results on a TaskExecutor.");
+
+    @Override
+    public Collection<ConfigOption<?>> options() {
+        return Collections.singletonList(SHUFFLE_SERVICE_FACTORY_CLASS);
+    }
 }

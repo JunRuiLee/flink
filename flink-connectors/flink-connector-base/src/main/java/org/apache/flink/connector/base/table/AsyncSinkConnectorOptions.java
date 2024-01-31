@@ -20,14 +20,18 @@ package org.apache.flink.connector.base.table;
 
 import org.apache.flink.annotation.PublicEvolving;
 import org.apache.flink.configuration.ConfigOption;
+import org.apache.flink.configuration.ConfigOptionProvider;
 import org.apache.flink.configuration.ConfigOptions;
+
+import java.util.Arrays;
+import java.util.Collection;
 
 /**
  * Optional Options for {@link AsyncDynamicTableSinkFactory} representing fields of {@link
  * org.apache.flink.connector.base.sink.AsyncSinkBase}.
  */
 @PublicEvolving
-public class AsyncSinkConnectorOptions {
+public class AsyncSinkConnectorOptions implements ConfigOptionProvider {
 
     public static final ConfigOption<Integer> MAX_BATCH_SIZE =
             ConfigOptions.key("sink.batch.max-size")
@@ -64,4 +68,14 @@ public class AsyncSinkConnectorOptions {
                     .withDescription(
                             "Threshold time in milliseconds for an element to be in a buffer"
                                     + " before being flushed.");
+
+    @Override
+    public Collection<ConfigOption<?>> options() {
+        return Arrays.asList(
+                MAX_BATCH_SIZE,
+                MAX_BUFFERED_REQUESTS,
+                MAX_IN_FLIGHT_REQUESTS,
+                FLUSH_BUFFER_SIZE,
+                FLUSH_BUFFER_TIMEOUT);
+    }
 }

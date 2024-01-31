@@ -20,13 +20,16 @@ package org.apache.flink.table.client.config;
 
 import org.apache.flink.annotation.docs.Documentation;
 import org.apache.flink.configuration.ConfigOption;
+import org.apache.flink.configuration.ConfigOptionProvider;
 import org.apache.flink.configuration.ConfigOptions;
 import org.apache.flink.table.api.config.TableConfigOptions;
 import org.apache.flink.table.client.cli.parser.SyntaxHighlightStyle;
 
+import java.util.Arrays;
+import java.util.Collection;
+
 /** Options used in sql client. */
-public class SqlClientOptions {
-    private SqlClientOptions() {}
+public class SqlClientOptions implements ConfigOptionProvider {
 
     // Execution options
 
@@ -93,4 +96,16 @@ public class SqlClientOptions {
                     .defaultValue(Boolean.FALSE)
                     .withDescription(
                             "Determines whether there should be shown line numbers in multiline SQL or not.");
+
+    @Override
+    public Collection<ConfigOption<?>> options() {
+        return Arrays.asList(
+                EXECUTION_MAX_TABLE_RESULT_ROWS,
+                EXECUTION_RESULT_MODE,
+                VERBOSE,
+                DISPLAY_MAX_COLUMN_WIDTH,
+                DISPLAY_QUERY_TIME_COST,
+                DISPLAY_DEFAULT_COLOR_SCHEMA,
+                DISPLAY_SHOW_LINE_NUMBERS);
+    }
 }

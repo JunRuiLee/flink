@@ -23,6 +23,8 @@ import org.apache.flink.annotation.PublicEvolving;
 import org.apache.flink.configuration.description.Description;
 import org.apache.flink.configuration.description.TextElement;
 
+import java.util.Arrays;
+import java.util.Collection;
 import java.util.List;
 
 import static org.apache.flink.configuration.ConfigOptions.key;
@@ -30,7 +32,7 @@ import static org.apache.flink.configuration.description.TextElement.text;
 
 /** The {@link ConfigOption configuration options} relevant for all Executors. */
 @PublicEvolving
-public class DeploymentOptions {
+public class DeploymentOptions implements ConfigOptionProvider {
 
     public static final ConfigOption<String> TARGET =
             key("execution.target")
@@ -150,4 +152,17 @@ public class DeploymentOptions {
                                                     + "regardless of this setting.",
                                             TextElement.text(PROGRAM_CONFIG_WILDCARDS.key()))
                                     .build());
+
+    @Override
+    public Collection<ConfigOption<?>> options() {
+        return Arrays.asList(
+                TARGET,
+                ATTACHED,
+                SHUTDOWN_IF_ATTACHED,
+                JOB_LISTENERS,
+                SHUTDOWN_ON_APPLICATION_FINISH,
+                SUBMIT_FAILED_JOB_ON_APPLICATION_ERROR,
+                PROGRAM_CONFIG_WILDCARDS,
+                PROGRAM_CONFIG_ENABLED);
+    }
 }

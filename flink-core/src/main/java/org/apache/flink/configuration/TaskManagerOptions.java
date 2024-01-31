@@ -28,6 +28,8 @@ import org.apache.flink.util.TimeUtils;
 import javax.annotation.Nonnull;
 
 import java.time.Duration;
+import java.util.Arrays;
+import java.util.Collection;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.Optional;
@@ -39,7 +41,7 @@ import static org.apache.flink.configuration.description.TextElement.text;
 /** The set of configuration options relating to TaskManager and Task settings. */
 @PublicEvolving
 @ConfigGroups(groups = @ConfigGroup(name = "TaskManagerMemory", keyPrefix = "taskmanager.memory"))
-public class TaskManagerOptions {
+public class TaskManagerOptions implements ConfigOptionProvider {
 
     /**
      * @deprecated use {@link #MANAGED_MEMORY_CONSUMER_NAME_OPERATOR} and {@link
@@ -833,6 +835,65 @@ public class TaskManagerOptions {
                     .withDeprecatedKeys("local.number-taskmanager")
                     .withDescription("The number of task managers of MiniCluster.");
 
+    @Override
+    public Collection<ConfigOption<?>> options() {
+        return Arrays.asList(
+                TASK_MANAGER_HEAP_MEMORY,
+                TASK_MANAGER_HEAP_MEMORY_MB,
+                KILL_ON_OUT_OF_MEMORY,
+                EXIT_ON_FATAL_AKKA_ERROR,
+                HOST,
+                BIND_HOST,
+                RPC_PORT,
+                RPC_BIND_PORT,
+                COLLECT_PORT,
+                INITIAL_REGISTRATION_BACKOFF,
+                REGISTRATION_MAX_BACKOFF,
+                REFUSED_REGISTRATION_BACKOFF,
+                REGISTRATION_TIMEOUT,
+                NUM_TASK_SLOTS,
+                SLOT_TIMEOUT,
+                DEBUG_MEMORY_LOG,
+                DEBUG_MEMORY_USAGE_LOG_INTERVAL_MS,
+                MEMORY_SEGMENT_SIZE,
+                MIN_MEMORY_SEGMENT_SIZE,
+                HOST_BIND_POLICY,
+                TASK_MANAGER_RESOURCE_ID,
+                CPU_CORES,
+                TOTAL_PROCESS_MEMORY,
+                TOTAL_FLINK_MEMORY,
+                FRAMEWORK_HEAP_MEMORY,
+                FRAMEWORK_OFF_HEAP_MEMORY,
+                TASK_HEAP_MEMORY,
+                TASK_OFF_HEAP_MEMORY,
+                MANAGED_MEMORY_SIZE,
+                MANAGED_MEMORY_FRACTION,
+                MANAGED_MEMORY_CONSUMER_WEIGHTS,
+                NETWORK_MEMORY_MIN,
+                NETWORK_MEMORY_MAX,
+                NETWORK_MEMORY_FRACTION,
+                BUFFER_DEBLOAT_PERIOD,
+                BUFFER_DEBLOAT_SAMPLES,
+                BUFFER_DEBLOAT_TARGET,
+                BUFFER_DEBLOAT_ENABLED,
+                BUFFER_DEBLOAT_THRESHOLD_PERCENTAGES,
+                NETWORK_BATCH_SHUFFLE_READ_MEMORY,
+                JVM_METASPACE,
+                JVM_OVERHEAD_MIN,
+                JVM_OVERHEAD_MAX,
+                JVM_OVERHEAD_FRACTION,
+                TASK_CANCELLATION_INTERVAL,
+                TASK_CANCELLATION_TIMEOUT,
+                TASK_CANCELLATION_TIMEOUT_TIMERS,
+                TASK_MANAGER_SYSTEM_OUT_MODE,
+                TASK_MANAGER_SYSTEM_OUT_LOG_THREAD_NAME,
+                TASK_MANAGER_SYSTEM_OUT_LOG_CACHE_SIZE,
+                TASK_MANAGER_LOAD_BALANCE_MODE,
+                TASK_MANAGER_LOG_PATH,
+                FS_STREAM_OPENING_TIME_OUT,
+                MINI_CLUSTER_NUM_TASK_MANAGERS);
+    }
+
     /** Type of redirection of {@link System#out} and {@link System#err}. */
     public enum SystemOutMode {
 
@@ -874,6 +935,4 @@ public class TaskManagerOptions {
 
     // ------------------------------------------------------------------------
 
-    /** Not intended to be instantiated. */
-    private TaskManagerOptions() {}
 }

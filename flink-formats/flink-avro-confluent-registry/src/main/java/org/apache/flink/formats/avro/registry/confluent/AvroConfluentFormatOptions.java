@@ -20,13 +20,16 @@ package org.apache.flink.formats.avro.registry.confluent;
 
 import org.apache.flink.annotation.PublicEvolving;
 import org.apache.flink.configuration.ConfigOption;
+import org.apache.flink.configuration.ConfigOptionProvider;
 import org.apache.flink.configuration.ConfigOptions;
 
+import java.util.Arrays;
+import java.util.Collection;
 import java.util.Map;
 
 /** Options for Schema Registry Avro format. */
 @PublicEvolving
-public class AvroConfluentFormatOptions {
+public class AvroConfluentFormatOptions implements ConfigOptionProvider {
 
     public static final ConfigOption<String> URL =
             ConfigOptions.key("url")
@@ -127,5 +130,22 @@ public class AvroConfluentFormatOptions {
                                     + "via Flink config options. However, note that Flink options "
                                     + "have higher precedence.");
 
-    private AvroConfluentFormatOptions() {}
+    public AvroConfluentFormatOptions() {}
+
+    @Override
+    public Collection<ConfigOption<?>> options() {
+        return Arrays.asList(
+                URL,
+                SUBJECT,
+                SCHEMA,
+                SSL_KEYSTORE_LOCATION,
+                SSL_KEYSTORE_PASSWORD,
+                SSL_TRUSTSTORE_LOCATION,
+                SSL_TRUSTSTORE_PASSWORD,
+                BASIC_AUTH_CREDENTIALS_SOURCE,
+                BASIC_AUTH_USER_INFO,
+                BEARER_AUTH_TOKEN,
+                BEARER_AUTH_CREDENTIALS_SOURCE,
+                PROPERTIES);
+    }
 }

@@ -20,10 +20,13 @@ package org.apache.flink.connector.datagen.table;
 
 import org.apache.flink.annotation.PublicEvolving;
 import org.apache.flink.configuration.ConfigOption;
+import org.apache.flink.configuration.ConfigOptionProvider;
 import org.apache.flink.configuration.ConfigOptions;
 import org.apache.flink.table.factories.FactoryUtil;
 
 import java.time.Duration;
+import java.util.Arrays;
+import java.util.Collection;
 
 import static org.apache.flink.connector.datagen.table.DataGenConnectorOptionsUtil.END;
 import static org.apache.flink.connector.datagen.table.DataGenConnectorOptionsUtil.FIELDS;
@@ -39,7 +42,7 @@ import static org.apache.flink.connector.datagen.table.DataGenConnectorOptionsUt
 
 /** Options for the DataGen connector. */
 @PublicEvolving
-public class DataGenConnectorOptions {
+public class DataGenConnectorOptions implements ConfigOptionProvider {
 
     public static final ConfigOption<Long> ROWS_PER_SECOND =
             ConfigOptions.key("rows-per-second")
@@ -128,5 +131,20 @@ public class DataGenConnectorOptions {
                     .withDescription(
                             "Whether to generate a variable-length data, please notice that it should only be used for variable-length types (varchar, string, varbinary, bytes).");
 
-    private DataGenConnectorOptions() {}
+    @Override
+    public Collection<ConfigOption<?>> options() {
+        return Arrays.asList(
+                ROWS_PER_SECOND,
+                NUMBER_OF_ROWS,
+                SOURCE_PARALLELISM,
+                FIELD_KIND,
+                FIELD_MIN,
+                FIELD_MAX,
+                FIELD_MAX_PAST,
+                FIELD_LENGTH,
+                FIELD_START,
+                FIELD_END,
+                FIELD_NULL_RATE,
+                FIELD_VAR_LEN);
+    }
 }

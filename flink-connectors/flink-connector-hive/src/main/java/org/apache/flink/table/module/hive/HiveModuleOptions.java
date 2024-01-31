@@ -20,14 +20,23 @@ package org.apache.flink.table.module.hive;
 
 import org.apache.flink.annotation.PublicEvolving;
 import org.apache.flink.configuration.ConfigOption;
+import org.apache.flink.configuration.ConfigOptionProvider;
 import org.apache.flink.configuration.ConfigOptions;
+
+import java.util.Collection;
+import java.util.Collections;
 
 /** Configuration options for the Hive module. */
 @PublicEvolving
-public class HiveModuleOptions {
+public class HiveModuleOptions implements ConfigOptionProvider {
 
     public static final ConfigOption<String> HIVE_VERSION =
             ConfigOptions.key("hive-version").stringType().noDefaultValue();
 
-    private HiveModuleOptions() {}
+    public HiveModuleOptions() {}
+
+    @Override
+    public Collection<ConfigOption<?>> options() {
+        return Collections.singletonList(HIVE_VERSION);
+    }
 }

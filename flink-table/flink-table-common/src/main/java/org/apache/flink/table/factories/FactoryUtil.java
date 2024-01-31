@@ -21,6 +21,7 @@ package org.apache.flink.table.factories;
 import org.apache.flink.annotation.Internal;
 import org.apache.flink.annotation.PublicEvolving;
 import org.apache.flink.configuration.ConfigOption;
+import org.apache.flink.configuration.ConfigOptionProvider;
 import org.apache.flink.configuration.ConfigOptions;
 import org.apache.flink.configuration.Configuration;
 import org.apache.flink.configuration.DelegatingConfiguration;
@@ -51,6 +52,7 @@ import javax.annotation.Nullable;
 import java.time.Duration;
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.Collection;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.HashSet;
@@ -73,7 +75,7 @@ import static org.apache.flink.table.module.CommonModuleOptions.MODULE_TYPE;
 
 /** Utility for working with {@link Factory}s. */
 @PublicEvolving
-public final class FactoryUtil {
+public final class FactoryUtil implements ConfigOptionProvider {
 
     private static final Logger LOG = LoggerFactory.getLogger(FactoryUtil.class);
 
@@ -958,6 +960,22 @@ public final class FactoryUtil {
                 .map(FallbackKey::getKey);
     }
 
+    @Override
+    public Collection<ConfigOption<?>> options() {
+        return Arrays.asList(
+                PROPERTY_VERSION,
+                CONNECTOR,
+                FORMAT,
+                SINK_PARALLELISM,
+                SQL_GATEWAY_ENDPOINT_TYPE,
+                SOURCE_PARALLELISM,
+                WATERMARK_EMIT_STRATEGY,
+                WATERMARK_ALIGNMENT_GROUP,
+                WATERMARK_ALIGNMENT_MAX_DRIFT,
+                WATERMARK_ALIGNMENT_UPDATE_INTERVAL,
+                SOURCE_IDLE_TIMEOUT);
+    }
+
     // --------------------------------------------------------------------------------------------
     // Helper classes
     // --------------------------------------------------------------------------------------------
@@ -1464,10 +1482,6 @@ public final class FactoryUtil {
     }
 
     // --------------------------------------------------------------------------------------------
-
-    private FactoryUtil() {
-        // no instantiation
-    }
 
     // --------------------------------------------------------------------------------------------
 

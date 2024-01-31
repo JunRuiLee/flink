@@ -25,13 +25,15 @@ import org.apache.flink.configuration.description.Description;
 import org.apache.flink.util.TimeUtils;
 
 import java.time.Duration;
+import java.util.Arrays;
+import java.util.Collection;
 
 import static org.apache.flink.configuration.description.LinkElement.link;
 import static org.apache.flink.configuration.description.TextElement.code;
 
 /** Akka configuration options. */
 @PublicEvolving
-public class AkkaOptions {
+public class AkkaOptions implements ConfigOptionProvider {
 
     @Internal
     @Documentation.ExcludeFromDocumentation("Internal use only")
@@ -414,4 +416,39 @@ public class AkkaOptions {
                                                     "https://pekko.apache.org/docs/pekko/current/remoting-artery.html#failure-detector",
                                                     "here"))
                                     .build());
+
+    @Override
+    public Collection<ConfigOption<?>> options() {
+        return Arrays.asList(
+                FORCE_RPC_INVOCATION_SERIALIZATION,
+                CAPTURE_ASK_CALLSTACK,
+                ASK_TIMEOUT_DURATION,
+                ASK_TIMEOUT,
+                TCP_TIMEOUT,
+                STARTUP_TIMEOUT,
+                SSL_ENABLED,
+                FRAMESIZE,
+                DISPATCHER_THROUGHPUT,
+                LOG_LIFECYCLE_EVENTS,
+                LOOKUP_TIMEOUT_DURATION,
+                LOOKUP_TIMEOUT,
+                CLIENT_TIMEOUT,
+                JVM_EXIT_ON_FATAL_ERROR,
+                RETRY_GATE_CLOSED_FOR,
+                FORK_JOIN_EXECUTOR_PARALLELISM_FACTOR,
+                FORK_JOIN_EXECUTOR_PARALLELISM_MIN,
+                FORK_JOIN_EXECUTOR_PARALLELISM_MAX,
+                REMOTE_FORK_JOIN_EXECUTOR_PARALLELISM_FACTOR,
+                REMOTE_FORK_JOIN_EXECUTOR_PARALLELISM_MIN,
+                REMOTE_FORK_JOIN_EXECUTOR_PARALLELISM_MAX,
+                CLIENT_SOCKET_WORKER_POOL_SIZE_MIN,
+                CLIENT_SOCKET_WORKER_POOL_SIZE_MAX,
+                CLIENT_SOCKET_WORKER_POOL_SIZE_FACTOR,
+                SERVER_SOCKET_WORKER_POOL_SIZE_MIN,
+                SERVER_SOCKET_WORKER_POOL_SIZE_MAX,
+                SERVER_SOCKET_WORKER_POOL_SIZE_FACTOR,
+                WATCH_HEARTBEAT_INTERVAL,
+                WATCH_HEARTBEAT_PAUSE,
+                WATCH_THRESHOLD);
+    }
 }

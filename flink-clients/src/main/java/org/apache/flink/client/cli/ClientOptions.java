@@ -19,18 +19,21 @@ package org.apache.flink.client.cli;
 
 import org.apache.flink.annotation.PublicEvolving;
 import org.apache.flink.configuration.ConfigOption;
+import org.apache.flink.configuration.ConfigOptionProvider;
 import org.apache.flink.configuration.ConfigOptions;
 import org.apache.flink.configuration.DeploymentOptions;
 import org.apache.flink.configuration.description.Description;
 import org.apache.flink.configuration.description.TextElement;
 
 import java.time.Duration;
+import java.util.Arrays;
+import java.util.Collection;
 
 import static org.apache.flink.configuration.ConfigOptions.key;
 
 /** Describes a client configuration parameter. */
 @PublicEvolving
-public class ClientOptions {
+public class ClientOptions implements ConfigOptionProvider {
 
     public static final ConfigOption<Duration> CLIENT_TIMEOUT =
             ConfigOptions.key("client.timeout")
@@ -78,4 +81,13 @@ public class ClientOptions {
                                                     DeploymentOptions.SHUTDOWN_IF_ATTACHED.key()),
                                             TextElement.text(CLIENT_HEARTBEAT_TIMEOUT.key()))
                                     .build());
+
+    @Override
+    public Collection<ConfigOption<?>> options() {
+        return Arrays.asList(
+                CLIENT_TIMEOUT,
+                CLIENT_HEARTBEAT_TIMEOUT,
+                CLIENT_HEARTBEAT_INTERVAL,
+                CLIENT_RETRY_PERIOD);
+    }
 }

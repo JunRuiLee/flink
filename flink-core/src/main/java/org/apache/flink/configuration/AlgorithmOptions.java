@@ -18,10 +18,13 @@
 
 package org.apache.flink.configuration;
 
+import java.util.Arrays;
+import java.util.Collection;
+
 import static org.apache.flink.configuration.ConfigOptions.key;
 
 /** Configuration parameters for join/sort algorithms. */
-public class AlgorithmOptions {
+public class AlgorithmOptions implements ConfigOptionProvider {
 
     public static final ConfigOption<Boolean> HASH_JOIN_BLOOM_FILTERS =
             key("taskmanager.runtime.hashjoin-bloom-filters")
@@ -57,4 +60,13 @@ public class AlgorithmOptions {
                             "Whether to use the LargeRecordHandler when spilling. If a record will not fit into the sorting"
                                     + " buffer. The record will be spilled on disk and the sorting will continue with only the key."
                                     + " The record itself will be read afterwards when merging.");
+
+    @Override
+    public Collection<ConfigOption<?>> options() {
+        return Arrays.asList(
+                HASH_JOIN_BLOOM_FILTERS,
+                SPILLING_MAX_FAN,
+                SORT_SPILLING_THRESHOLD,
+                USE_LARGE_RECORDS_HANDLER);
+    }
 }

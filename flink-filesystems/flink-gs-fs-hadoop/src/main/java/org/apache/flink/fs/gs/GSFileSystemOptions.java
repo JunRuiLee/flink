@@ -19,15 +19,18 @@
 package org.apache.flink.fs.gs;
 
 import org.apache.flink.configuration.ConfigOption;
+import org.apache.flink.configuration.ConfigOptionProvider;
 import org.apache.flink.configuration.ConfigOptions;
 import org.apache.flink.configuration.Configuration;
 import org.apache.flink.configuration.MemorySize;
 import org.apache.flink.util.Preconditions;
 
+import java.util.Arrays;
+import java.util.Collection;
 import java.util.Optional;
 
 /** The GS file system options. */
-public class GSFileSystemOptions {
+public class GSFileSystemOptions implements ConfigOptionProvider {
 
     /* Flink config option to set the bucket name for temporary blobs. */
     public static final ConfigOption<String> WRITER_TEMPORARY_BUCKET_NAME =
@@ -79,6 +82,10 @@ public class GSFileSystemOptions {
                                         "Writer chunk size must be greater than zero and a multiple of 256KB"));
     }
 
+    public GSFileSystemOptions() {
+        this(new Configuration());
+    }
+
     /**
      * The temporary bucket name to use for recoverable writes, if different from the final bucket
      * name.
@@ -105,5 +112,11 @@ public class GSFileSystemOptions {
                 + ", writerChunkSize="
                 + getWriterChunkSize()
                 + '}';
+    }
+
+    @Override
+    public Collection<ConfigOption<?>> options() {
+        return Arrays.asList(
+                WRITER_TEMPORARY_BUCKET_NAME, WRITER_CHUNK_SIZE, ENABLE_FILESINK_ENTROPY);
     }
 }

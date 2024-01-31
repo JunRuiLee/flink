@@ -28,6 +28,8 @@ import org.apache.flink.util.ArrayUtils;
 
 import org.apache.flink.shaded.guava32.com.google.common.collect.Iterables;
 
+import java.util.Arrays;
+import java.util.Collection;
 import java.util.List;
 
 import static org.apache.flink.configuration.ConfigOptions.key;
@@ -36,7 +38,7 @@ import static org.apache.flink.configuration.description.TextElement.code;
 /** The set of configuration options for core parameters. */
 @PublicEvolving
 @ConfigGroups(groups = {@ConfigGroup(name = "Environment", keyPrefix = "env")})
-public class CoreOptions {
+public class CoreOptions implements ConfigOptionProvider {
 
     @Internal
     public static final String[] PARENT_FIRST_LOGGING_PATTERNS =
@@ -555,5 +557,41 @@ public class CoreOptions {
         return ConfigOptions.key("fs." + scheme + ".limit.stream-timeout")
                 .longType()
                 .defaultValue(0L);
+    }
+
+    @Override
+    public Collection<ConfigOption<?>> options() {
+        return Arrays.asList(
+                CLASSLOADER_RESOLVE_ORDER,
+                ALWAYS_PARENT_FIRST_LOADER_PATTERNS,
+                ALWAYS_PARENT_FIRST_LOADER_PATTERNS_ADDITIONAL,
+                FAIL_ON_USER_CLASS_LOADING_METASPACE_OOM,
+                CHECK_LEAKED_CLASSLOADER,
+                PLUGIN_ALWAYS_PARENT_FIRST_LOADER_PATTERNS,
+                PLUGIN_ALWAYS_PARENT_FIRST_LOADER_PATTERNS_ADDITIONAL,
+                FLINK_JVM_OPTIONS,
+                FLINK_JM_JVM_OPTIONS,
+                FLINK_TM_JVM_OPTIONS,
+                FLINK_HS_JVM_OPTIONS,
+                FLINK_CLI_JVM_OPTIONS,
+                FLINK_SQL_GATEWAY_JVM_OPTIONS,
+                FLINK_DEFAULT_JVM_OPTIONS,
+                FLINK_DEFAULT_JM_JVM_OPTIONS,
+                FLINK_DEFAULT_TM_JVM_OPTIONS,
+                FLINK_LOG_DIR,
+                FLINK_PID_DIR,
+                FLINK_LOG_MAX,
+                FLINK_LOG_LEVEL,
+                FLINK_STD_REDIRECT_TO_FILE,
+                FLINK_SSH_OPTIONS,
+                FLINK_HADOOP_CONF_DIR,
+                FLINK_YARN_CONF_DIR,
+                FLINK_HBASE_CONF_DIR,
+                TMP_DIRS,
+                DEFAULT_PARALLELISM,
+                DEFAULT_FILESYSTEM_SCHEME,
+                ALLOWED_FALLBACK_FILESYSTEMS,
+                FILESYTEM_DEFAULT_OVERRIDE,
+                FILESYSTEM_OUTPUT_ALWAYS_CREATE_DIRECTORY);
     }
 }

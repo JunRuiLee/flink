@@ -20,16 +20,20 @@ package org.apache.flink.formats.avro;
 
 import org.apache.flink.annotation.PublicEvolving;
 import org.apache.flink.configuration.ConfigOption;
+import org.apache.flink.configuration.ConfigOptionProvider;
 import org.apache.flink.configuration.ConfigOptions;
 import org.apache.flink.configuration.DescribedEnum;
 import org.apache.flink.configuration.description.InlineElement;
+
+import java.util.Arrays;
+import java.util.Collection;
 
 import static org.apache.avro.file.DataFileConstants.SNAPPY_CODEC;
 import static org.apache.flink.configuration.description.TextElement.text;
 
 /** Options for the avro format. */
 @PublicEvolving
-public class AvroFormatOptions {
+public class AvroFormatOptions implements ConfigOptionProvider {
 
     public static final ConfigOption<String> AVRO_OUTPUT_CODEC =
             ConfigOptions.key("codec")
@@ -83,5 +87,10 @@ public class AvroFormatOptions {
                                     + "you can obtain the correct mapping by disable using this legacy mapping."
                                     + " Use legacy behavior by default for compatibility consideration.");
 
-    private AvroFormatOptions() {}
+    public AvroFormatOptions() {}
+
+    @Override
+    public Collection<ConfigOption<?>> options() {
+        return Arrays.asList(AVRO_OUTPUT_CODEC, AVRO_ENCODING, AVRO_TIMESTAMP_LEGACY_MAPPING);
+    }
 }

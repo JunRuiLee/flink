@@ -22,10 +22,12 @@ import org.apache.flink.annotation.docs.Documentation;
 import org.apache.flink.configuration.description.Description;
 
 import java.time.Duration;
+import java.util.Arrays;
+import java.util.Collection;
 
 /** A collection of all configuration options that relate to changelog. */
 @PublicEvolving
-public class StateChangelogOptions {
+public class StateChangelogOptions implements ConfigOptionProvider {
 
     @Documentation.Section(Documentation.Sections.STATE_BACKEND_CHANGELOG)
     public static final ConfigOption<Boolean> PERIODIC_MATERIALIZATION_ENABLED =
@@ -92,4 +94,14 @@ public class StateChangelogOptions {
                                             "The list of recognized shortcut names currently includes"
                                                     + " 'memory' and 'filesystem'.")
                                     .build());
+
+    @Override
+    public Collection<ConfigOption<?>> options() {
+        return Arrays.asList(
+                PERIODIC_MATERIALIZATION_ENABLED,
+                PERIODIC_MATERIALIZATION_INTERVAL,
+                MATERIALIZATION_MAX_FAILURES_ALLOWED,
+                ENABLE_STATE_CHANGE_LOG,
+                STATE_CHANGE_LOG_STORAGE);
+    }
 }

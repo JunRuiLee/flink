@@ -20,13 +20,16 @@ package org.apache.flink.formats.raw;
 
 import org.apache.flink.annotation.PublicEvolving;
 import org.apache.flink.configuration.ConfigOption;
+import org.apache.flink.configuration.ConfigOptionProvider;
 import org.apache.flink.configuration.ConfigOptions;
 
 import java.nio.charset.StandardCharsets;
+import java.util.Arrays;
+import java.util.Collection;
 
 /** Options for the "raw" format. */
 @PublicEvolving
-public class RawFormatOptions {
+public class RawFormatOptions implements ConfigOptionProvider {
 
     public static final String BIG_ENDIAN = "big-endian";
     public static final String LITTLE_ENDIAN = "little-endian";
@@ -43,5 +46,8 @@ public class RawFormatOptions {
                     .defaultValue(StandardCharsets.UTF_8.displayName())
                     .withDescription("Defines the string charset.");
 
-    private RawFormatOptions() {}
+    @Override
+    public Collection<ConfigOption<?>> options() {
+        return Arrays.asList(ENDIANNESS, CHARSET);
+    }
 }

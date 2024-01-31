@@ -23,6 +23,8 @@ import org.apache.flink.annotation.docs.Documentation;
 import org.apache.flink.configuration.description.Description;
 
 import java.time.Duration;
+import java.util.Arrays;
+import java.util.Collection;
 
 import static org.apache.flink.configuration.ConfigOptions.key;
 import static org.apache.flink.configuration.description.TextElement.code;
@@ -30,7 +32,7 @@ import static org.apache.flink.configuration.description.TextElement.text;
 
 /** Configuration parameters for REST communication. */
 @Internal
-public class RestOptions {
+public class RestOptions implements ConfigOptionProvider {
 
     private static final String REST_PORT_KEY = "rest.port";
 
@@ -332,4 +334,37 @@ public class RestOptions {
                     .stringType()
                     .defaultValue(System.getProperty("java.io.tmpdir"))
                     .withDescription("Profiling result storing directory.");
+
+    @Override
+    public Collection<ConfigOption<?>> options() {
+        return Arrays.asList(
+                BIND_ADDRESS,
+                BIND_PORT,
+                URL_PREFIX,
+                ADDRESS,
+                PATH,
+                PORT,
+                AWAIT_LEADER_TIMEOUT,
+                RETRY_MAX_ATTEMPTS,
+                RETRY_DELAY,
+                CONNECTION_TIMEOUT,
+                IDLENESS_TIMEOUT,
+                SERVER_MAX_CONTENT_LENGTH,
+                CLIENT_MAX_CONTENT_LENGTH,
+                SERVER_NUM_THREADS,
+                SERVER_THREAD_PRIORITY,
+                CACHE_CHECKPOINT_STATISTICS_TIMEOUT,
+                CACHE_CHECKPOINT_STATISTICS_SIZE,
+                ENABLE_FLAMEGRAPH,
+                FLAMEGRAPH_CLEANUP_INTERVAL,
+                FLAMEGRAPH_REFRESH_INTERVAL,
+                FLAMEGRAPH_NUM_SAMPLES,
+                FLAMEGRAPH_DELAY,
+                FLAMEGRAPH_STACK_TRACE_DEPTH,
+                ASYNC_OPERATION_STORE_DURATION,
+                ENABLE_PROFILER,
+                MAX_PROFILING_HISTORY_SIZE,
+                MAX_PROFILING_DURATION,
+                PROFILING_RESULT_DIR);
+    }
 }

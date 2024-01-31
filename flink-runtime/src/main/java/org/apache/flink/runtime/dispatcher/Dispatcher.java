@@ -28,6 +28,7 @@ import org.apache.flink.configuration.BlobServerOptions;
 import org.apache.flink.configuration.CheckpointingOptions;
 import org.apache.flink.configuration.ClusterOptions;
 import org.apache.flink.configuration.ConfigOption;
+import org.apache.flink.configuration.ConfigOptionProvider;
 import org.apache.flink.configuration.ConfigOptions;
 import org.apache.flink.configuration.Configuration;
 import org.apache.flink.configuration.HighAvailabilityOptions;
@@ -128,6 +129,7 @@ import java.util.concurrent.TimeUnit;
 import java.util.function.Function;
 import java.util.stream.Collectors;
 
+import static org.apache.flink.runtime.dispatcher.Dispatcher.DispatcherConfigOptionInternal.CLIENT_ALIVENESS_CHECK_DURATION;
 import static org.apache.flink.util.Preconditions.checkNotNull;
 
 /**
@@ -138,11 +140,20 @@ import static org.apache.flink.util.Preconditions.checkNotNull;
 public abstract class Dispatcher extends FencedRpcEndpoint<DispatcherId>
         implements DispatcherGateway {
 
-    @VisibleForTesting
-    public static final ConfigOption<Duration> CLIENT_ALIVENESS_CHECK_DURATION =
-            ConfigOptions.key("$internal.dispatcher.client-aliveness-check.interval")
-                    .durationType()
-                    .defaultValue(Duration.ofMinutes(1));
+    /** TODO. */
+    public static class DispatcherConfigOptionInternal implements ConfigOptionProvider {
+
+        @VisibleForTesting
+        public static final ConfigOption<Duration> CLIENT_ALIVENESS_CHECK_DURATION =
+                ConfigOptions.key("$internal.dispatcher.client-aliveness-check.interval")
+                        .durationType()
+                        .defaultValue(Duration.ofMinutes(1));
+
+        @Override
+        public Collection<ConfigOption<?>> options() {
+            return Collections.singletonList(CLIENT_ALIVENESS_CHECK_DURATION);
+        }
+    }
 
     public static final String DISPATCHER_NAME = "dispatcher";
 

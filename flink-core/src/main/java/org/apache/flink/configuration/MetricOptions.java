@@ -26,6 +26,8 @@ import org.apache.flink.configuration.description.InlineElement;
 import org.apache.flink.configuration.description.TextElement;
 
 import java.time.Duration;
+import java.util.Arrays;
+import java.util.Collection;
 import java.util.Collections;
 import java.util.List;
 import java.util.Map;
@@ -37,7 +39,7 @@ import static org.apache.flink.configuration.description.TextElement.text;
 
 /** Configuration options for metrics and metric reporters. */
 @PublicEvolving
-public class MetricOptions {
+public class MetricOptions implements ConfigOptionProvider {
 
     private static final String NAMED_REPORTER_CONFIG_PREFIX =
             ConfigConstants.METRICS_REPORTER_PREFIX + "<name>";
@@ -419,6 +421,38 @@ public class MetricOptions {
                     .withDescription(
                             "The selection of job status metrics that should be reported.");
 
+    @Override
+    public Collection<ConfigOption<?>> options() {
+        return Arrays.asList(
+                REPORTERS_LIST,
+                REPORTER_CLASS,
+                REPORTER_FACTORY_CLASS,
+                REPORTER_INTERVAL,
+                REPORTER_SCOPE_DELIMITER,
+                REPORTER_ADDITIONAL_VARIABLES,
+                REPORTER_EXCLUDED_VARIABLES,
+                REPORTER_INCLUDES,
+                REPORTER_EXCLUDES,
+                REPORTER_CONFIG_PARAMETER,
+                SCOPE_DELIMITER,
+                SCOPE_NAMING_JM,
+                SCOPE_NAMING_TM,
+                SCOPE_NAMING_JM_JOB,
+                SCOPE_NAMING_JM_OPERATOR,
+                SCOPE_NAMING_TM_JOB,
+                SCOPE_NAMING_TASK,
+                SCOPE_NAMING_OPERATOR,
+                LATENCY_INTERVAL,
+                LATENCY_SOURCE_GRANULARITY,
+                LATENCY_HISTORY_SIZE,
+                SYSTEM_RESOURCE_METRICS,
+                SYSTEM_RESOURCE_METRICS_PROBING_INTERVAL,
+                QUERY_SERVICE_PORT,
+                QUERY_SERVICE_THREAD_PRIORITY,
+                METRIC_FETCHER_UPDATE_INTERVAL,
+                JOB_STATUS_METRICS);
+    }
+
     /** Enum describing the different kinds of job status metrics. */
     public enum JobStatusMetrics implements DescribedEnum {
         STATE(
@@ -494,5 +528,5 @@ public class MetricOptions {
         }
     }
 
-    private MetricOptions() {}
+    public MetricOptions() {}
 }

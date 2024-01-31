@@ -20,12 +20,16 @@ package org.apache.flink.connector.base.source.reader;
 
 import org.apache.flink.annotation.PublicEvolving;
 import org.apache.flink.configuration.ConfigOption;
+import org.apache.flink.configuration.ConfigOptionProvider;
 import org.apache.flink.configuration.ConfigOptions;
 import org.apache.flink.configuration.Configuration;
 
+import java.util.Arrays;
+import java.util.Collection;
+
 /** The options that can be set for the {@link SourceReaderBase}. */
 @PublicEvolving
-public class SourceReaderOptions {
+public class SourceReaderOptions implements ConfigOptionProvider {
 
     public static final ConfigOption<Long> SOURCE_READER_CLOSE_TIMEOUT =
             ConfigOptions.key("source.reader.close.timeout")
@@ -43,8 +47,17 @@ public class SourceReaderOptions {
     public final long sourceReaderCloseTimeout;
     public final int elementQueueCapacity;
 
+    public SourceReaderOptions() {
+        this(new Configuration());
+    }
+
     public SourceReaderOptions(Configuration config) {
         this.sourceReaderCloseTimeout = config.get(SOURCE_READER_CLOSE_TIMEOUT);
         this.elementQueueCapacity = config.get(ELEMENT_QUEUE_CAPACITY);
+    }
+
+    @Override
+    public Collection<ConfigOption<?>> options() {
+        return Arrays.asList(SOURCE_READER_CLOSE_TIMEOUT, ELEMENT_QUEUE_CAPACITY);
     }
 }

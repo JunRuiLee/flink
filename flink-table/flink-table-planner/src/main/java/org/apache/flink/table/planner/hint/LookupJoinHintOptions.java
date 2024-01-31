@@ -20,11 +20,14 @@ package org.apache.flink.table.planner.hint;
 
 import org.apache.flink.annotation.Internal;
 import org.apache.flink.configuration.ConfigOption;
+import org.apache.flink.configuration.ConfigOptionProvider;
 import org.apache.flink.table.api.config.ExecutionConfigOptions;
 
 import org.apache.flink.shaded.guava32.com.google.common.collect.ImmutableSet;
 
 import java.time.Duration;
+import java.util.Arrays;
+import java.util.Collection;
 import java.util.HashSet;
 import java.util.Set;
 
@@ -32,8 +35,7 @@ import static org.apache.flink.configuration.ConfigOptions.key;
 
 /** This {@link LookupJoinHintOptions} defines valid hint options of lookup join hint. */
 @Internal
-public class LookupJoinHintOptions {
-    private LookupJoinHintOptions() {}
+public class LookupJoinHintOptions implements ConfigOptionProvider {
 
     public static final ConfigOption<String> LOOKUP_TABLE =
             key("table")
@@ -124,6 +126,20 @@ public class LookupJoinHintOptions {
 
     public static ImmutableSet<ConfigOption> getSupportedOptions() {
         return ImmutableSet.copyOf(supportedKeys);
+    }
+
+    @Override
+    public Collection<ConfigOption<?>> options() {
+        return Arrays.asList(
+                LOOKUP_TABLE,
+                ASYNC_LOOKUP,
+                ASYNC_OUTPUT_MODE,
+                ASYNC_CAPACITY,
+                ASYNC_TIMEOUT,
+                RETRY_PREDICATE,
+                RETRY_STRATEGY,
+                FIXED_DELAY,
+                MAX_ATTEMPTS);
     }
 
     /** Supported retry strategies. */

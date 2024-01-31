@@ -28,6 +28,8 @@ import org.apache.flink.configuration.description.TextElement;
 import org.apache.flink.shaded.guava32.com.google.common.collect.ImmutableSet;
 
 import java.time.Duration;
+import java.util.Arrays;
+import java.util.Collection;
 import java.util.Set;
 import java.util.stream.Collectors;
 
@@ -51,7 +53,7 @@ import static org.apache.flink.configuration.description.TextElement.text;
                     name = "FixedDelayCleanupStrategy",
                     keyPrefix = "cleanup-strategy.fixed-delay"),
         })
-public class CleanupOptions {
+public class CleanupOptions implements ConfigOptionProvider {
 
     private static final String CLEANUP_STRATEGY_PARAM = "cleanup-strategy";
 
@@ -208,4 +210,15 @@ public class CleanupOptions {
                                             code(CLEANUP_STRATEGY.key()),
                                             code(EXPONENTIAL_DELAY_LABEL))
                                     .build());
+
+    @Override
+    public Collection<ConfigOption<?>> options() {
+        return Arrays.asList(
+                CLEANUP_STRATEGY,
+                CLEANUP_STRATEGY_FIXED_DELAY_ATTEMPTS,
+                CLEANUP_STRATEGY_FIXED_DELAY_DELAY,
+                CLEANUP_STRATEGY_EXPONENTIAL_DELAY_INITIAL_BACKOFF,
+                CLEANUP_STRATEGY_EXPONENTIAL_DELAY_MAX_BACKOFF,
+                CLEANUP_STRATEGY_EXPONENTIAL_DELAY_MAX_ATTEMPTS);
+    }
 }

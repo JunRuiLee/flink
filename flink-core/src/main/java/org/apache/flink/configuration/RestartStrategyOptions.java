@@ -30,6 +30,8 @@ import org.apache.flink.configuration.description.TextElement;
 import org.apache.commons.compress.utils.Sets;
 
 import java.time.Duration;
+import java.util.Arrays;
+import java.util.Collection;
 import java.util.Set;
 
 import static org.apache.flink.configuration.RestartStrategyOptions.RESTART_STRATEGY_CONFIG_PREFIX;
@@ -60,7 +62,7 @@ import static org.apache.flink.configuration.description.TextElement.text;
                     name = "FailureRateRestartStrategy",
                     keyPrefix = RESTART_STRATEGY_CONFIG_PREFIX + ".failure-rate")
         })
-public class RestartStrategyOptions {
+public class RestartStrategyOptions implements ConfigOptionProvider {
 
     @Internal public static final String RESTART_STRATEGY_CONFIG_PREFIX = "restart-strategy";
 
@@ -312,7 +314,22 @@ public class RestartStrategyOptions {
                                             code(EXPONENTIAL_DELAY.getMainValue()))
                                     .build());
 
-    private RestartStrategyOptions() {
-        throw new UnsupportedOperationException("This class should never be instantiated.");
+    public RestartStrategyOptions() {}
+
+    @Override
+    public Collection<ConfigOption<?>> options() {
+        return Arrays.asList(
+                RESTART_STRATEGY,
+                RESTART_STRATEGY_FIXED_DELAY_ATTEMPTS,
+                RESTART_STRATEGY_FIXED_DELAY_DELAY,
+                RESTART_STRATEGY_FAILURE_RATE_MAX_FAILURES_PER_INTERVAL,
+                RESTART_STRATEGY_FAILURE_RATE_FAILURE_RATE_INTERVAL,
+                RESTART_STRATEGY_FAILURE_RATE_DELAY,
+                RESTART_STRATEGY_EXPONENTIAL_DELAY_INITIAL_BACKOFF,
+                RESTART_STRATEGY_EXPONENTIAL_DELAY_MAX_BACKOFF,
+                RESTART_STRATEGY_EXPONENTIAL_DELAY_BACKOFF_MULTIPLIER,
+                RESTART_STRATEGY_EXPONENTIAL_DELAY_RESET_BACKOFF_THRESHOLD,
+                RESTART_STRATEGY_EXPONENTIAL_DELAY_JITTER_FACTOR,
+                RESTART_STRATEGY_EXPONENTIAL_DELAY_ATTEMPTS);
     }
 }

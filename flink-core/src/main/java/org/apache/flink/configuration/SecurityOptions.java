@@ -24,6 +24,8 @@ import org.apache.flink.configuration.description.Description;
 import org.apache.flink.core.security.token.DelegationTokenProvider;
 
 import java.time.Duration;
+import java.util.Arrays;
+import java.util.Collection;
 import java.util.List;
 
 import static org.apache.flink.configuration.ConfigOptions.key;
@@ -34,7 +36,7 @@ import static org.apache.flink.configuration.description.TextElement.text;
 import static org.apache.flink.util.Preconditions.checkNotNull;
 
 /** The set of configuration options relating to security. */
-public class SecurityOptions {
+public class SecurityOptions implements ConfigOptionProvider {
 
     public static final String DELEGATION_TOKEN_PROVIDER_PREFIX =
             DelegationTokenProvider.CONFIG_PREFIX + ".<serviceName>";
@@ -645,5 +647,58 @@ public class SecurityOptions {
     public static boolean isRestSSLAuthenticationEnabled(Configuration sslConfig) {
         checkNotNull(sslConfig, "sslConfig");
         return isRestSSLEnabled(sslConfig) && sslConfig.get(SSL_REST_AUTHENTICATION_ENABLED);
+    }
+
+    @Override
+    public Collection<ConfigOption<?>> options() {
+        return Arrays.asList(
+                SECURITY_CONTEXT_FACTORY_CLASSES,
+                SECURITY_MODULE_FACTORY_CLASSES,
+                KERBEROS_LOGIN_PRINCIPAL,
+                KERBEROS_LOGIN_KEYTAB,
+                KERBEROS_KRB5_PATH,
+                KERBEROS_LOGIN_USETICKETCACHE,
+                KERBEROS_LOGIN_CONTEXTS,
+                KERBEROS_FETCH_DELEGATION_TOKEN,
+                KERBEROS_RELOGIN_PERIOD,
+                KERBEROS_TOKENS_RENEWAL_RETRY_BACKOFF,
+                KERBEROS_TOKENS_RENEWAL_TIME_RATIO,
+                KERBEROS_HADOOP_FILESYSTEMS_TO_ACCESS,
+                DELEGATION_TOKENS_ENABLED,
+                DELEGATION_TOKENS_RENEWAL_RETRY_BACKOFF,
+                DELEGATION_TOKENS_RENEWAL_TIME_RATIO,
+                DELEGATION_TOKEN_PROVIDER_ENABLED,
+                ZOOKEEPER_SASL_DISABLE,
+                ZOOKEEPER_SASL_SERVICE_NAME,
+                ZOOKEEPER_SASL_LOGIN_CONTEXT_NAME,
+                SSL_ENABLED,
+                SSL_INTERNAL_ENABLED,
+                SSL_REST_ENABLED,
+                SSL_REST_AUTHENTICATION_ENABLED,
+                SSL_KEYSTORE,
+                SSL_KEYSTORE_PASSWORD,
+                SSL_KEY_PASSWORD,
+                SSL_TRUSTSTORE,
+                SSL_TRUSTSTORE_PASSWORD,
+                SSL_INTERNAL_KEYSTORE,
+                SSL_INTERNAL_KEYSTORE_PASSWORD,
+                SSL_INTERNAL_KEY_PASSWORD,
+                SSL_INTERNAL_TRUSTSTORE,
+                SSL_INTERNAL_TRUSTSTORE_PASSWORD,
+                SSL_INTERNAL_CERT_FINGERPRINT,
+                SSL_REST_KEYSTORE,
+                SSL_REST_KEYSTORE_PASSWORD,
+                SSL_REST_KEY_PASSWORD,
+                SSL_REST_TRUSTSTORE,
+                SSL_REST_TRUSTSTORE_PASSWORD,
+                SSL_REST_CERT_FINGERPRINT,
+                SSL_PROTOCOL,
+                SSL_ALGORITHMS,
+                SSL_VERIFY_HOSTNAME,
+                SSL_PROVIDER,
+                SSL_INTERNAL_SESSION_CACHE_SIZE,
+                SSL_INTERNAL_SESSION_TIMEOUT,
+                SSL_INTERNAL_HANDSHAKE_TIMEOUT,
+                SSL_INTERNAL_CLOSE_NOTIFY_FLUSH_TIMEOUT);
     }
 }

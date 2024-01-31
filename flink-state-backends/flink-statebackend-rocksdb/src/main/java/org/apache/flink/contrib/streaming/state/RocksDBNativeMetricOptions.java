@@ -20,12 +20,14 @@ package org.apache.flink.contrib.streaming.state;
 
 import org.apache.flink.annotation.VisibleForTesting;
 import org.apache.flink.configuration.ConfigOption;
+import org.apache.flink.configuration.ConfigOptionProvider;
 import org.apache.flink.configuration.ConfigOptions;
 import org.apache.flink.configuration.ReadableConfig;
 
 import org.rocksdb.TickerType;
 
 import java.io.Serializable;
+import java.util.Arrays;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.HashMap;
@@ -46,7 +48,7 @@ import java.util.Set;
  * href="https://github.com/facebook/rocksdb/blob/64324e329eb0a9b4e77241a425a1615ff524c7f1/include/rocksdb/db.h#L429">
  * db.h</a> for more information.
  */
-public class RocksDBNativeMetricOptions implements Serializable {
+public class RocksDBNativeMetricOptions implements Serializable, ConfigOptionProvider {
     private static final long serialVersionUID = 1L;
 
     // --------------------------------------------------------------------------------------------
@@ -648,5 +650,45 @@ public class RocksDBNativeMetricOptions implements Serializable {
      */
     public boolean isColumnFamilyAsVariable() {
         return this.columnFamilyAsVariable;
+    }
+
+    @Override
+    public Collection<ConfigOption<?>> options() {
+        return Arrays.asList(
+                MONITOR_NUM_IMMUTABLE_MEM_TABLES,
+                MONITOR_MEM_TABLE_FLUSH_PENDING,
+                TRACK_COMPACTION_PENDING,
+                MONITOR_BACKGROUND_ERRORS,
+                MONITOR_CUR_SIZE_ACTIVE_MEM_TABLE,
+                MONITOR_CUR_SIZE_ALL_MEM_TABLE,
+                MONITOR_SIZE_ALL_MEM_TABLES,
+                MONITOR_NUM_ENTRIES_ACTIVE_MEM_TABLE,
+                MONITOR_NUM_ENTRIES_IMM_MEM_TABLES,
+                MONITOR_NUM_DELETES_ACTIVE_MEM_TABLE,
+                MONITOR_NUM_DELETES_IMM_MEM_TABLE,
+                ESTIMATE_NUM_KEYS,
+                ESTIMATE_TABLE_READERS_MEM,
+                MONITOR_NUM_SNAPSHOTS,
+                MONITOR_NUM_LIVE_VERSIONS,
+                ESTIMATE_LIVE_DATA_SIZE,
+                MONITOR_TOTAL_SST_FILES_SIZE,
+                MONITOR_LIVE_SST_FILES_SIZE,
+                ESTIMATE_PENDING_COMPACTION_BYTES,
+                MONITOR_NUM_RUNNING_COMPACTIONS,
+                MONITOR_NUM_RUNNING_FLUSHES,
+                MONITOR_ACTUAL_DELAYED_WRITE_RATE,
+                IS_WRITE_STOPPED,
+                BLOCK_CACHE_CAPACITY,
+                BLOCK_CACHE_USAGE,
+                BLOCK_CACHE_PINNED_USAGE,
+                COLUMN_FAMILY_AS_VARIABLE,
+                MONITOR_BLOCK_CACHE_HIT,
+                MONITOR_BLOCK_CACHE_MISS,
+                MONITOR_BYTES_READ,
+                MONITOR_ITER_BYTES_READ,
+                MONITOR_BYTES_WRITTEN,
+                MONITOR_COMPACTION_READ_BYTES,
+                MONITOR_COMPACTION_WRITE_BYTES,
+                MONITOR_STALL_MICROS);
     }
 }

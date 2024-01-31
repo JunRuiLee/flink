@@ -20,6 +20,7 @@ package org.apache.flink.connector.file.table;
 
 import org.apache.flink.annotation.PublicEvolving;
 import org.apache.flink.configuration.ConfigOption;
+import org.apache.flink.configuration.ConfigOptionProvider;
 import org.apache.flink.configuration.DescribedEnum;
 import org.apache.flink.configuration.MemorySize;
 import org.apache.flink.configuration.description.Description;
@@ -27,6 +28,8 @@ import org.apache.flink.configuration.description.InlineElement;
 import org.apache.flink.table.factories.FactoryUtil;
 
 import java.time.Duration;
+import java.util.Arrays;
+import java.util.Collection;
 import java.util.List;
 
 import static org.apache.flink.configuration.ConfigOptions.key;
@@ -34,7 +37,7 @@ import static org.apache.flink.configuration.description.TextElement.text;
 
 /** Options for the filesystem connector. */
 @PublicEvolving
-public class FileSystemConnectorOptions {
+public class FileSystemConnectorOptions implements ConfigOptionProvider {
 
     public static final ConfigOption<String> PATH =
             key("path").stringType().noDefaultValue().withDescription("The path of a directory");
@@ -279,6 +282,36 @@ public class FileSystemConnectorOptions {
 
     public static final ConfigOption<Integer> SINK_PARALLELISM = FactoryUtil.SINK_PARALLELISM;
 
+    @Override
+    public Collection<ConfigOption<?>> options() {
+        return Arrays.asList(
+                PATH,
+                PARTITION_DEFAULT_NAME,
+                SOURCE_MONITOR_INTERVAL,
+                SOURCE_REPORT_STATISTICS,
+                SOURCE_PATH_REGEX_PATTERN,
+                SINK_ROLLING_POLICY_FILE_SIZE,
+                SINK_ROLLING_POLICY_ROLLOVER_INTERVAL,
+                SINK_ROLLING_POLICY_INACTIVITY_INTERVAL,
+                SINK_ROLLING_POLICY_CHECK_INTERVAL,
+                SINK_SHUFFLE_BY_PARTITION,
+                PARTITION_TIME_EXTRACTOR_KIND,
+                PARTITION_TIME_EXTRACTOR_CLASS,
+                PARTITION_TIME_EXTRACTOR_TIMESTAMP_FORMATTER,
+                PARTITION_TIME_EXTRACTOR_TIMESTAMP_PATTERN,
+                SINK_PARTITION_COMMIT_TRIGGER,
+                SINK_PARTITION_COMMIT_DELAY,
+                SINK_PARTITION_COMMIT_WATERMARK_TIME_ZONE,
+                SINK_PARTITION_COMMIT_POLICY_KIND,
+                SINK_PARTITION_COMMIT_POLICY_CLASS,
+                SINK_PARTITION_COMMIT_POLICY_CLASS_PARAMETERS,
+                SINK_PARTITION_COMMIT_SUCCESS_FILE_NAME,
+                AUTO_COMPACTION,
+                COMPACTION_FILE_SIZE,
+                COMPACTION_PARALLELISM,
+                SINK_PARALLELISM);
+    }
+
     // --------------------------------------------------------------------------------------------
     // Enums
     // --------------------------------------------------------------------------------------------
@@ -338,6 +371,4 @@ public class FileSystemConnectorOptions {
             return description;
         }
     }
-
-    private FileSystemConnectorOptions() {}
 }

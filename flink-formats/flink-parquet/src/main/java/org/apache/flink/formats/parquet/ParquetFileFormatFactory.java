@@ -21,6 +21,7 @@ package org.apache.flink.formats.parquet;
 import org.apache.flink.annotation.VisibleForTesting;
 import org.apache.flink.api.common.serialization.BulkWriter;
 import org.apache.flink.configuration.ConfigOption;
+import org.apache.flink.configuration.ConfigOptionProvider;
 import org.apache.flink.configuration.ReadableConfig;
 import org.apache.flink.connector.file.src.FileSourceSplit;
 import org.apache.flink.connector.file.src.reader.BulkFormat;
@@ -46,6 +47,8 @@ import org.apache.flink.table.types.logical.RowType;
 
 import org.apache.hadoop.conf.Configuration;
 
+import java.util.Arrays;
+import java.util.Collection;
 import java.util.Collections;
 import java.util.HashSet;
 import java.util.List;
@@ -55,7 +58,8 @@ import java.util.Set;
 import static org.apache.flink.configuration.ConfigOptions.key;
 
 /** Parquet format factory for file system. */
-public class ParquetFileFormatFactory implements BulkReaderFormatFactory, BulkWriterFormatFactory {
+public class ParquetFileFormatFactory
+        implements BulkReaderFormatFactory, BulkWriterFormatFactory, ConfigOptionProvider {
 
     public static final String IDENTIFIER = "parquet";
 
@@ -130,6 +134,11 @@ public class ParquetFileFormatFactory implements BulkReaderFormatFactory, BulkWr
     @Override
     public Set<ConfigOption<?>> optionalOptions() {
         return new HashSet<>();
+    }
+
+    @Override
+    public Collection<ConfigOption<?>> options() {
+        return Arrays.asList(UTC_TIMEZONE, TIMESTAMP_TIME_UNIT, WRITE_INT64_TIMESTAMP);
     }
 
     /**

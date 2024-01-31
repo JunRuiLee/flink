@@ -20,12 +20,16 @@ package org.apache.flink.yarn.configuration;
 
 import org.apache.flink.annotation.Internal;
 import org.apache.flink.configuration.ConfigOption;
+import org.apache.flink.configuration.ConfigOptionProvider;
+
+import java.util.Collection;
+import java.util.Collections;
 
 import static org.apache.flink.configuration.ConfigOptions.key;
 
 /** Yarn configuration options that are not meant to be set by the user. */
 @Internal
-public class YarnConfigOptionsInternal {
+public class YarnConfigOptionsInternal implements ConfigOptionProvider {
 
     public static final ConfigOption<String> APPLICATION_LOG_CONFIG_FILE =
             key("$internal.yarn.log-config-file")
@@ -33,4 +37,9 @@ public class YarnConfigOptionsInternal {
                     .noDefaultValue()
                     .withDescription(
                             "**DO NOT USE** The location of the log config file, e.g. the path to your log4j.properties for log4j.");
+
+    @Override
+    public Collection<ConfigOption<?>> options() {
+        return Collections.singletonList(APPLICATION_LOG_CONFIG_FILE);
+    }
 }

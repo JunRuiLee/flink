@@ -20,16 +20,19 @@ package org.apache.flink.table.endpoint.hive;
 
 import org.apache.flink.annotation.PublicEvolving;
 import org.apache.flink.configuration.ConfigOption;
+import org.apache.flink.configuration.ConfigOptionProvider;
 import org.apache.flink.configuration.ConfigOptions;
 
 import java.time.Duration;
+import java.util.Arrays;
+import java.util.Collection;
 
 import static org.apache.flink.table.catalog.hive.factories.HiveCatalogFactoryOptions.DEFAULT_DATABASE;
 import static org.apache.flink.table.catalog.hive.factories.HiveCatalogFactoryOptions.HIVE_CONF_DIR;
 
 /** Config Options for {@code HiveServer2Endpoint}. */
 @PublicEvolving
-public class HiveServer2EndpointConfigOptions {
+public class HiveServer2EndpointConfigOptions implements ConfigOptionProvider {
 
     // --------------------------------------------------------------------------------------------
     // Server Options
@@ -125,4 +128,21 @@ public class HiveServer2EndpointConfigOptions {
                     .stringType()
                     .defaultValue("hive")
                     .withDescription("Name for the pre-registered hive module.");
+
+    @Override
+    public Collection<ConfigOption<?>> options() {
+        return Arrays.asList(
+                THRIFT_HOST,
+                THRIFT_PORT,
+                THRIFT_WORKER_THREADS_MIN,
+                THRIFT_WORKER_THREADS_MAX,
+                THRIFT_WORKER_KEEPALIVE_TIME,
+                THRIFT_MAX_MESSAGE_SIZE,
+                THRIFT_LOGIN_TIMEOUT,
+                THRIFT_LOGIN_BEBACKOFF_SLOT_LENGTH,
+                CATALOG_HIVE_CONF_DIR,
+                CATALOG_NAME,
+                CATALOG_DEFAULT_DATABASE,
+                MODULE_NAME);
+    }
 }

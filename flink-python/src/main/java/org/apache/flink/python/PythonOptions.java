@@ -22,15 +22,18 @@ import org.apache.flink.annotation.Experimental;
 import org.apache.flink.annotation.PublicEvolving;
 import org.apache.flink.annotation.docs.Documentation;
 import org.apache.flink.configuration.ConfigOption;
+import org.apache.flink.configuration.ConfigOptionProvider;
 import org.apache.flink.configuration.ConfigOptions;
 import org.apache.flink.configuration.TaskManagerOptions;
 import org.apache.flink.configuration.description.Description;
 
+import java.util.Arrays;
+import java.util.Collection;
 import java.util.Map;
 
 /** Configuration options for the Python API. */
 @PublicEvolving
-public class PythonOptions {
+public class PythonOptions implements ConfigOptionProvider {
 
     /** The maximum number of elements to include in a bundle. */
     public static final ConfigOption<Integer> MAX_BUNDLE_SIZE =
@@ -291,4 +294,33 @@ public class PythonOptions {
     @Documentation.ExcludeFromDocumentation("Internal use only. Used for local debug.")
     public static final ConfigOption<String> PYTHON_LOOPBACK_SERVER_ADDRESS =
             ConfigOptions.key("python.loopback-server.address").stringType().noDefaultValue();
+
+    @Override
+    public Collection<ConfigOption<?>> options() {
+        return Arrays.asList(
+                MAX_BUNDLE_SIZE,
+                MAX_BUNDLE_TIME_MILLS,
+                MAX_ARROW_BATCH_SIZE,
+                PYTHON_METRIC_ENABLED,
+                PYTHON_PROFILE_ENABLED,
+                PYTHON_SYSTEMENV_ENABLED,
+                PYTHON_OPERATOR_CHAINING_ENABLED,
+                PYTHON_FILES,
+                PYTHON_REQUIREMENTS,
+                PYTHON_PATH,
+                PYTHON_ARCHIVES,
+                PYTHON_EXECUTABLE,
+                PYTHON_CLIENT_EXECUTABLE,
+                USE_MANAGED_MEMORY,
+                STATE_CACHE_SIZE,
+                MAP_STATE_READ_CACHE_SIZE,
+                MAP_STATE_WRITE_CACHE_SIZE,
+                MAP_STATE_ITERATE_RESPONSE_BATCH_SIZE,
+                PYTHON_EXECUTION_MODE,
+                PYTHON_JOB_OPTIONS,
+                PYTHON_FILES_DISTRIBUTED_CACHE_INFO,
+                PYTHON_REQUIREMENTS_FILE_DISTRIBUTED_CACHE_INFO,
+                PYTHON_ARCHIVES_DISTRIBUTED_CACHE_INFO,
+                PYTHON_LOOPBACK_SERVER_ADDRESS);
+    }
 }

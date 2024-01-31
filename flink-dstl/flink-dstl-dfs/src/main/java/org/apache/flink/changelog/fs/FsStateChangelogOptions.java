@@ -19,16 +19,19 @@ package org.apache.flink.changelog.fs;
 
 import org.apache.flink.annotation.Experimental;
 import org.apache.flink.configuration.ConfigOption;
+import org.apache.flink.configuration.ConfigOptionProvider;
 import org.apache.flink.configuration.ConfigOptions;
 import org.apache.flink.configuration.MemorySize;
 
 import java.time.Duration;
+import java.util.Arrays;
+import java.util.Collection;
 
 import static org.apache.flink.streaming.api.environment.ExecutionCheckpointingOptions.CHECKPOINTING_TIMEOUT;
 
 /** {@link ConfigOptions} for {@link FsStateChangelogStorage}. */
 @Experimental
-public class FsStateChangelogOptions {
+public class FsStateChangelogOptions implements ConfigOptionProvider {
 
     public static final ConfigOption<String> BASE_PATH =
             ConfigOptions.key("dstl.dfs.base-path")
@@ -152,4 +155,23 @@ public class FsStateChangelogOptions {
                     .withDescription(
                             "Maximum idle time for cache files of distributed changelog file, "
                                     + "after which the cache files will be deleted.");
+
+    @Override
+    public Collection<ConfigOption<?>> options() {
+        return Arrays.asList(
+                BASE_PATH,
+                COMPRESSION_ENABLED,
+                PREEMPTIVE_PERSIST_THRESHOLD,
+                PERSIST_DELAY,
+                PERSIST_SIZE_THRESHOLD,
+                UPLOAD_BUFFER_SIZE,
+                NUM_UPLOAD_THREADS,
+                NUM_DISCARD_THREADS,
+                IN_FLIGHT_DATA_LIMIT,
+                RETRY_POLICY,
+                UPLOAD_TIMEOUT,
+                RETRY_MAX_ATTEMPTS,
+                RETRY_DELAY_AFTER_FAILURE,
+                CACHE_IDLE_TIMEOUT);
+    }
 }

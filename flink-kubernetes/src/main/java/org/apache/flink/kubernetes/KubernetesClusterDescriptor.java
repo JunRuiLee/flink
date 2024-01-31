@@ -64,6 +64,7 @@ import java.net.URI;
 import java.util.List;
 import java.util.Optional;
 
+import static org.apache.flink.runtime.entrypoint.ClusterEntrypoint.ClusterEntrypointConfigOptionProvider.INTERNAL_CLUSTER_EXECUTION_MODE;
 import static org.apache.flink.util.Preconditions.checkNotNull;
 
 /** Kubernetes specific {@link ClusterDescriptor} implementation. */
@@ -247,8 +248,7 @@ public class KubernetesClusterDescriptor implements ClusterDescriptor<String> {
                 detached
                         ? ClusterEntrypoint.ExecutionMode.DETACHED
                         : ClusterEntrypoint.ExecutionMode.NORMAL;
-        flinkConfig.set(
-                ClusterEntrypoint.INTERNAL_CLUSTER_EXECUTION_MODE, executionMode.toString());
+        flinkConfig.set(INTERNAL_CLUSTER_EXECUTION_MODE, executionMode.toString());
 
         flinkConfig.set(KubernetesConfigOptionsInternal.ENTRY_POINT_CLASS, entryPoint);
 
