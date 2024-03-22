@@ -39,6 +39,7 @@ public class RestOptions {
     public static final ConfigOption<String> BIND_ADDRESS =
             key("rest.bind-address")
                     .stringType()
+                    .asClusterConfig()
                     .noDefaultValue()
                     .withFallbackKeys(WebOptions.ADDRESS.key())
                     .withDeprecatedKeys(
@@ -50,6 +51,7 @@ public class RestOptions {
     public static final ConfigOption<String> BIND_PORT =
             key("rest.bind-port")
                     .stringType()
+                    .asClusterConfig()
                     .defaultValue("8081")
                     .withFallbackKeys(REST_PORT_KEY)
                     .withDeprecatedKeys(
@@ -63,6 +65,7 @@ public class RestOptions {
     public static final ConfigOption<String> URL_PREFIX =
             key("rest.url-prefix")
                     .stringType()
+                    .asClusterConfig()
                     .defaultValue("/")
                     .withDescription(
                             "The url prefix that should be used by clients to construct the full target url, must start and end with '/'."
@@ -75,6 +78,7 @@ public class RestOptions {
     public static final ConfigOption<String> ADDRESS =
             key("rest.address")
                     .stringType()
+                    .asClusterConfig()
                     .noDefaultValue()
                     .withFallbackKeys(JobManagerOptions.ADDRESS.key())
                     .withDescription(
@@ -85,6 +89,7 @@ public class RestOptions {
     public static final ConfigOption<String> PATH =
             key("rest.path")
                     .stringType()
+                    .asClusterConfig()
                     .defaultValue("")
                     .withDescription(
                             "The path that should be used by clients to interact to the server which is accessible via URL.");
@@ -97,6 +102,7 @@ public class RestOptions {
     public static final ConfigOption<Integer> PORT =
             key(REST_PORT_KEY)
                     .intType()
+                    .asClusterConfig()
                     .defaultValue(8081)
                     .withDeprecatedKeys(WebOptions.PORT.key())
                     .withDescription(
@@ -114,6 +120,7 @@ public class RestOptions {
     public static final ConfigOption<Duration> AWAIT_LEADER_TIMEOUT =
             key("rest.await-leader-timeout")
                     .durationType()
+                    .asClusterConfig()
                     .defaultValue(Duration.ofMillis(30_000L))
                     .withDescription(
                             "The time that the client waits for the leader address, e.g., "
@@ -128,6 +135,7 @@ public class RestOptions {
     public static final ConfigOption<Integer> RETRY_MAX_ATTEMPTS =
             key("rest.retry.max-attempts")
                     .intType()
+                    .asClusterConfig()
                     .defaultValue(20)
                     .withDescription(
                             "The number of retries the client will attempt if a retryable "
@@ -142,6 +150,7 @@ public class RestOptions {
     public static final ConfigOption<Duration> RETRY_DELAY =
             key("rest.retry.delay")
                     .durationType()
+                    .asClusterConfig()
                     .defaultValue(Duration.ofMillis(3_000L))
                     .withDescription(
                             String.format(
@@ -154,6 +163,7 @@ public class RestOptions {
     public static final ConfigOption<Duration> CONNECTION_TIMEOUT =
             key("rest.connection-timeout")
                     .durationType()
+                    .asClusterConfig()
                     .defaultValue(Duration.ofMillis(15_000L))
                     .withDescription(
                             "The maximum time for the client to establish a TCP connection.");
@@ -163,6 +173,7 @@ public class RestOptions {
     public static final ConfigOption<Duration> IDLENESS_TIMEOUT =
             key("rest.idleness-timeout")
                     .durationType()
+                    .asClusterConfig()
                     .defaultValue(Duration.ofMinutes(5))
                     .withDescription(
                             "The maximum time for a connection to stay idle before failing.");
@@ -172,6 +183,7 @@ public class RestOptions {
     public static final ConfigOption<Integer> SERVER_MAX_CONTENT_LENGTH =
             key("rest.server.max-content-length")
                     .intType()
+                    .asClusterConfig()
                     .defaultValue(104_857_600)
                     .withDescription(
                             "The maximum content length in bytes that the server will handle.");
@@ -181,6 +193,7 @@ public class RestOptions {
     public static final ConfigOption<Integer> CLIENT_MAX_CONTENT_LENGTH =
             key("rest.client.max-content-length")
                     .intType()
+                    .asClusterConfig()
                     .defaultValue(104_857_600)
                     .withDescription(
                             "The maximum content length in bytes that the client will handle.");
@@ -189,6 +202,7 @@ public class RestOptions {
     public static final ConfigOption<Integer> SERVER_NUM_THREADS =
             key("rest.server.numThreads")
                     .intType()
+                    .asClusterConfig()
                     .defaultValue(4)
                     .withDescription(
                             "The number of threads for the asynchronous processing of requests.");
@@ -197,6 +211,7 @@ public class RestOptions {
     public static final ConfigOption<Integer> SERVER_THREAD_PRIORITY =
             key("rest.server.thread-priority")
                     .intType()
+                    .asClusterConfig()
                     .defaultValue(Thread.NORM_PRIORITY)
                     .withDescription(
                             "Thread priority of the REST server's executor for processing asynchronous requests. "
@@ -208,6 +223,7 @@ public class RestOptions {
     public static final ConfigOption<Duration> CACHE_CHECKPOINT_STATISTICS_TIMEOUT =
             key("rest.cache.checkpoint-statistics.timeout")
                     .durationType()
+                    .asClusterConfig()
                     .defaultValue(WebOptions.REFRESH_INTERVAL.defaultValue())
                     .withFallbackKeys(WebOptions.REFRESH_INTERVAL.key())
                     .withDescription(
@@ -222,6 +238,7 @@ public class RestOptions {
     public static final ConfigOption<Integer> CACHE_CHECKPOINT_STATISTICS_SIZE =
             key("rest.cache.checkpoint-statistics.size")
                     .intType()
+                    .asClusterConfig()
                     .defaultValue(1000)
                     .withDescription(
                             "Maximum number of entries in the checkpoint statistics cache.");
@@ -231,6 +248,7 @@ public class RestOptions {
     public static final ConfigOption<Boolean> ENABLE_FLAMEGRAPH =
             key("rest.flamegraph.enabled")
                     .booleanType()
+                    .asClusterConfig()
                     .defaultValue(false)
                     .withDescription("Enables the experimental flame graph feature.");
 
@@ -242,6 +260,7 @@ public class RestOptions {
     public static final ConfigOption<Duration> FLAMEGRAPH_CLEANUP_INTERVAL =
             key("rest.flamegraph.cleanup-interval")
                     .durationType()
+                    .asClusterConfig()
                     .defaultValue(Duration.ofMinutes(10))
                     .withDescription(
                             "Time after which cached stats are cleaned up if not accessed. It can"
@@ -255,6 +274,7 @@ public class RestOptions {
     public static final ConfigOption<Duration> FLAMEGRAPH_REFRESH_INTERVAL =
             key("rest.flamegraph.refresh-interval")
                     .durationType()
+                    .asClusterConfig()
                     .defaultValue(Duration.ofSeconds(60))
                     .withDescription(
                             "Time after which available stats are deprecated and need to be refreshed"
@@ -265,6 +285,7 @@ public class RestOptions {
     public static final ConfigOption<Integer> FLAMEGRAPH_NUM_SAMPLES =
             key("rest.flamegraph.num-samples")
                     .intType()
+                    .asClusterConfig()
                     .defaultValue(100)
                     .withDescription("Number of samples to take to build a FlameGraph.");
 
@@ -276,6 +297,7 @@ public class RestOptions {
     public static final ConfigOption<Duration> FLAMEGRAPH_DELAY =
             key("rest.flamegraph.delay-between-samples")
                     .durationType()
+                    .asClusterConfig()
                     .defaultValue(Duration.ofMillis(50))
                     .withDescription(
                             "Delay between individual stack trace samples taken for building a FlameGraph. It can be specified using notation: \"100 ms\", \"1 s\".");
@@ -285,6 +307,7 @@ public class RestOptions {
     public static final ConfigOption<Integer> FLAMEGRAPH_STACK_TRACE_DEPTH =
             key("rest.flamegraph.stack-depth")
                     .intType()
+                    .asClusterConfig()
                     .defaultValue(100)
                     .withDescription("Maximum depth of stack traces used to create FlameGraphs.");
 
@@ -292,6 +315,7 @@ public class RestOptions {
     public static final ConfigOption<Duration> ASYNC_OPERATION_STORE_DURATION =
             key("rest.async.store-duration")
                     .durationType()
+                    .asClusterConfig()
                     .defaultValue(Duration.ofMinutes(5))
                     .withDescription(
                             "Maximum duration that the result of an async operation is stored. Once elapsed the result of the operation can no longer be retrieved.");
@@ -301,6 +325,7 @@ public class RestOptions {
     public static final ConfigOption<Boolean> ENABLE_PROFILER =
             key("rest.profiling.enabled")
                     .booleanType()
+                    .asClusterConfig()
                     .defaultValue(false)
                     .withDescription("Enables the experimental profiler feature.");
 
@@ -309,6 +334,7 @@ public class RestOptions {
     public static final ConfigOption<Integer> MAX_PROFILING_HISTORY_SIZE =
             key("rest.profiling.history-size")
                     .intType()
+                    .asClusterConfig()
                     .defaultValue(10)
                     .withDescription(
                             "Maximum profiling history instance to be maintained for JobManager or each TaskManager. "
@@ -319,6 +345,7 @@ public class RestOptions {
     public static final ConfigOption<Duration> MAX_PROFILING_DURATION =
             key("rest.profiling.duration-max")
                     .durationType()
+                    .asClusterConfig()
                     .defaultValue(Duration.ofSeconds(300))
                     .withDescription(
                             "Maximum profiling duration for each profiling request. "
@@ -330,6 +357,7 @@ public class RestOptions {
     public static final ConfigOption<String> PROFILING_RESULT_DIR =
             key("rest.profiling.dir")
                     .stringType()
+                    .asClusterConfig()
                     .defaultValue(System.getProperty("java.io.tmpdir"))
                     .withDescription("Profiling result storing directory.");
 }

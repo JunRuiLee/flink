@@ -46,6 +46,7 @@ public class StateBackendOptions {
     public static final ConfigOption<String> STATE_BACKEND =
             ConfigOptions.key("state.backend.type")
                     .stringType()
+                    .asJobConfig()
                     .defaultValue("hashmap")
                     .withDeprecatedKeys("state.backend")
                     .withDescription(

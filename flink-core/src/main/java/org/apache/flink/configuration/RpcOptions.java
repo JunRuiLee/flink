@@ -36,6 +36,7 @@ public class RpcOptions {
     public static final ConfigOption<Boolean> FORCE_RPC_INVOCATION_SERIALIZATION =
             ConfigOptions.key("pekko.rpc.force-invocation-serialization")
                     .booleanType()
+                    .asClusterConfig()
                     .defaultValue(false)
                     .withDeprecatedKeys("akka.rpc.force-invocation-serialization")
                     .withDescription(
@@ -59,6 +60,7 @@ public class RpcOptions {
     public static final ConfigOption<Boolean> CAPTURE_ASK_CALLSTACK =
             ConfigOptions.key("pekko.ask.callstack")
                     .booleanType()
+                    .asClusterConfig()
                     .defaultValue(true)
                     .withDeprecatedKeys("akka.ask.callstack")
                     .withDescription(
@@ -71,6 +73,7 @@ public class RpcOptions {
     public static final ConfigOption<Duration> ASK_TIMEOUT_DURATION =
             ConfigOptions.key("pekko.ask.timeout")
                     .durationType()
+                    .asClusterConfig()
                     .defaultValue(Duration.ofSeconds(10))
                     .withDeprecatedKeys("akka.ask.timeout")
                     .withDescription(
@@ -82,6 +85,7 @@ public class RpcOptions {
     public static final ConfigOption<Duration> TCP_TIMEOUT =
             ConfigOptions.key("pekko.tcp.timeout")
                     .durationType()
+                    .asClusterConfig()
                     .defaultValue(Duration.ofSeconds(20))
                     .withDeprecatedKeys("akka.tcp.timeout")
                     .withDescription(
@@ -92,6 +96,7 @@ public class RpcOptions {
     public static final ConfigOption<Duration> STARTUP_TIMEOUT =
             ConfigOptions.key("pekko.startup-timeout")
                     .durationType()
+                    .asClusterConfig()
                     .noDefaultValue()
                     .withDeprecatedKeys("akka.startup-timeout")
                     .withDescription(
@@ -101,6 +106,7 @@ public class RpcOptions {
     public static final ConfigOption<Boolean> SSL_ENABLED =
             ConfigOptions.key("pekko.ssl.enabled")
                     .booleanType()
+                    .asClusterConfig()
                     .defaultValue(true)
                     .withDeprecatedKeys("akka.ssl.enabled")
                     .withDescription(
@@ -111,6 +117,7 @@ public class RpcOptions {
     public static final ConfigOption<String> FRAMESIZE =
             ConfigOptions.key("pekko.framesize")
                     .stringType()
+                    .asClusterConfig()
                     .defaultValue("10485760b")
                     .withDeprecatedKeys("akka.framesize")
                     .withDescription(
@@ -122,6 +129,7 @@ public class RpcOptions {
     public static final ConfigOption<Integer> DISPATCHER_THROUGHPUT =
             ConfigOptions.key("pekko.throughput")
                     .intType()
+                    .asClusterConfig()
                     .defaultValue(15)
                     .withDeprecatedKeys("akka.throughput")
                     .withDescription(
@@ -132,6 +140,7 @@ public class RpcOptions {
     public static final ConfigOption<Boolean> LOG_LIFECYCLE_EVENTS =
             ConfigOptions.key("pekko.log.lifecycle.events")
                     .booleanType()
+                    .asClusterConfig()
                     .defaultValue(false)
                     .withDeprecatedKeys("akka.log.lifecycle.events")
                     .withDescription(
@@ -141,6 +150,7 @@ public class RpcOptions {
     public static final ConfigOption<Duration> LOOKUP_TIMEOUT_DURATION =
             ConfigOptions.key("pekko.lookup.timeout")
                     .durationType()
+                    .asClusterConfig()
                     .defaultValue(Duration.ofSeconds(10))
                     .withDeprecatedKeys("akka.lookup.timeout")
                     .withDescription(
@@ -151,6 +161,7 @@ public class RpcOptions {
     public static final ConfigOption<Boolean> JVM_EXIT_ON_FATAL_ERROR =
             ConfigOptions.key("pekko.jvm-exit-on-fatal-error")
                     .booleanType()
+                    .asClusterConfig()
                     .defaultValue(true)
                     .withDeprecatedKeys("akka.jvm-exit-on-fatal-error")
                     .withDescription("Exit JVM on fatal Pekko errors.");
@@ -159,6 +170,7 @@ public class RpcOptions {
     public static final ConfigOption<Long> RETRY_GATE_CLOSED_FOR =
             ConfigOptions.key("pekko.retry-gate-closed-for")
                     .longType()
+                    .asClusterConfig()
                     .defaultValue(50L)
                     .withDeprecatedKeys("akka.retry-gate-closed-for")
                     .withDescription(
@@ -171,6 +183,7 @@ public class RpcOptions {
     public static final ConfigOption<Double> FORK_JOIN_EXECUTOR_PARALLELISM_FACTOR =
             ConfigOptions.key("pekko.fork-join-executor.parallelism-factor")
                     .doubleType()
+                    .asClusterConfig()
                     .defaultValue(2.0)
                     .withDeprecatedKeys("akka.fork-join-executor.parallelism-factor")
                     .withDescription(
@@ -184,6 +197,7 @@ public class RpcOptions {
     public static final ConfigOption<Integer> FORK_JOIN_EXECUTOR_PARALLELISM_MIN =
             ConfigOptions.key("pekko.fork-join-executor.parallelism-min")
                     .intType()
+                    .asClusterConfig()
                     .defaultValue(8)
                     .withDeprecatedKeys("akka.fork-join-executor.parallelism-min")
                     .withDescription(
@@ -195,6 +209,7 @@ public class RpcOptions {
     public static final ConfigOption<Integer> FORK_JOIN_EXECUTOR_PARALLELISM_MAX =
             ConfigOptions.key("pekko.fork-join-executor.parallelism-max")
                     .intType()
+                    .asClusterConfig()
                     .defaultValue(64)
                     .withDeprecatedKeys("akka.fork-join-executor.parallelism-max")
                     .withDescription(
@@ -206,6 +221,7 @@ public class RpcOptions {
     public static final ConfigOption<Double> REMOTE_FORK_JOIN_EXECUTOR_PARALLELISM_FACTOR =
             ConfigOptions.key("pekko.remote-fork-join-executor.parallelism-factor")
                     .doubleType()
+                    .asClusterConfig()
                     .defaultValue(2.0)
                     .withDescription(
                             Description.builder()
@@ -218,6 +234,7 @@ public class RpcOptions {
     public static final ConfigOption<Integer> REMOTE_FORK_JOIN_EXECUTOR_PARALLELISM_MIN =
             ConfigOptions.key("pekko.remote-fork-join-executor.parallelism-min")
                     .intType()
+                    .asClusterConfig()
                     .defaultValue(8)
                     .withDescription(
                             Description.builder()
@@ -228,6 +245,7 @@ public class RpcOptions {
     public static final ConfigOption<Integer> REMOTE_FORK_JOIN_EXECUTOR_PARALLELISM_MAX =
             ConfigOptions.key("pekko.remote-fork-join-executor.parallelism-max")
                     .intType()
+                    .asClusterConfig()
                     .defaultValue(16)
                     .withDescription(
                             Description.builder()
@@ -242,6 +260,7 @@ public class RpcOptions {
     public static final ConfigOption<Integer> CLIENT_SOCKET_WORKER_POOL_SIZE_MIN =
             ConfigOptions.key("pekko.client-socket-worker-pool.pool-size-min")
                     .intType()
+                    .asClusterConfig()
                     .defaultValue(1)
                     .withDeprecatedKeys("akka.client-socket-worker-pool.pool-size-min")
                     .withDescription(
@@ -252,6 +271,7 @@ public class RpcOptions {
     public static final ConfigOption<Integer> CLIENT_SOCKET_WORKER_POOL_SIZE_MAX =
             ConfigOptions.key("pekko.client-socket-worker-pool.pool-size-max")
                     .intType()
+                    .asClusterConfig()
                     .defaultValue(2)
                     .withDeprecatedKeys("akka.client-socket-worker-pool.pool-size-max")
                     .withDescription(
@@ -262,6 +282,7 @@ public class RpcOptions {
     public static final ConfigOption<Double> CLIENT_SOCKET_WORKER_POOL_SIZE_FACTOR =
             ConfigOptions.key("pekko.client-socket-worker-pool.pool-size-factor")
                     .doubleType()
+                    .asClusterConfig()
                     .defaultValue(1.0)
                     .withDeprecatedKeys("akka.client-socket-worker-pool.pool-size-factor")
                     .withDescription(
@@ -280,6 +301,7 @@ public class RpcOptions {
     public static final ConfigOption<Integer> SERVER_SOCKET_WORKER_POOL_SIZE_MIN =
             ConfigOptions.key("pekko.server-socket-worker-pool.pool-size-min")
                     .intType()
+                    .asClusterConfig()
                     .defaultValue(1)
                     .withDeprecatedKeys("akka.server-socket-worker-pool.pool-size-min")
                     .withDescription(
@@ -290,6 +312,7 @@ public class RpcOptions {
     public static final ConfigOption<Integer> SERVER_SOCKET_WORKER_POOL_SIZE_MAX =
             ConfigOptions.key("pekko.server-socket-worker-pool.pool-size-max")
                     .intType()
+                    .asClusterConfig()
                     .defaultValue(2)
                     .withDeprecatedKeys("akka.server-socket-worker-pool.pool-size-max")
                     .withDescription(
@@ -300,6 +323,7 @@ public class RpcOptions {
     public static final ConfigOption<Double> SERVER_SOCKET_WORKER_POOL_SIZE_FACTOR =
             ConfigOptions.key("pekko.server-socket-worker-pool.pool-size-factor")
                     .doubleType()
+                    .asClusterConfig()
                     .defaultValue(1.0)
                     .withDeprecatedKeys("akka.server-socket-worker-pool.pool-size-factor")
                     .withDescription(

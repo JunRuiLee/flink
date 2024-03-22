@@ -43,6 +43,7 @@ public class RocksDBOptions {
     public static final ConfigOption<String> LOCAL_DIRECTORIES =
             ConfigOptions.key("state.backend.rocksdb.localdir")
                     .stringType()
+                    .asJobConfig()
                     .noDefaultValue()
                     .withDeprecatedKeys("state.backend.rocksdb.checkpointdir")
                     .withDescription(
@@ -61,6 +62,7 @@ public class RocksDBOptions {
             TIMER_SERVICE_FACTORY =
                     ConfigOptions.key("state.backend.rocksdb.timer-service.factory")
                             .enumType(EmbeddedRocksDBStateBackend.PriorityQueueStateType.class)
+                            .asJobConfig()
                             .defaultValue(ROCKSDB)
                             .withDescription(
                                     "This determines the factory for timer service state implementation.");
@@ -70,6 +72,7 @@ public class RocksDBOptions {
     public static final ConfigOption<Integer> ROCKSDB_TIMER_SERVICE_FACTORY_CACHE_SIZE =
             ConfigOptions.key("state.backend.rocksdb.timer-service.cache-size")
                     .intType()
+                    .asJobConfig()
                     .defaultValue(128)
                     .withDescription(
                             String.format(
@@ -85,6 +88,7 @@ public class RocksDBOptions {
     public static final ConfigOption<Integer> CHECKPOINT_TRANSFER_THREAD_NUM =
             ConfigOptions.key("state.backend.rocksdb.checkpoint.transfer.thread.num")
                     .intType()
+                    .asJobConfig()
                     .defaultValue(4)
                     .withDescription(
                             "The number of threads (per stateful operator) used to transfer (download and upload) files in RocksDBStateBackend."
@@ -97,6 +101,7 @@ public class RocksDBOptions {
     public static final ConfigOption<String> PREDEFINED_OPTIONS =
             ConfigOptions.key("state.backend.rocksdb.predefined-options")
                     .stringType()
+                    .asJobConfig()
                     .defaultValue(DEFAULT.name())
                     .withDescription(
                             String.format(
@@ -113,6 +118,7 @@ public class RocksDBOptions {
     public static final ConfigOption<String> OPTIONS_FACTORY =
             ConfigOptions.key("state.backend.rocksdb.options-factory")
                     .stringType()
+                    .asJobConfig()
                     .noDefaultValue()
                     .withDescription(
                             "The options factory class for users to add customized options in DBOptions and ColumnFamilyOptions for RocksDB. "
@@ -123,6 +129,7 @@ public class RocksDBOptions {
     public static final ConfigOption<Boolean> USE_MANAGED_MEMORY =
             ConfigOptions.key("state.backend.rocksdb.memory.managed")
                     .booleanType()
+                    .asJobConfig()
                     .defaultValue(true)
                     .withDescription(
                             "If set, the RocksDB state backend will automatically configure itself to use the "
@@ -133,6 +140,7 @@ public class RocksDBOptions {
     public static final ConfigOption<MemorySize> FIX_PER_SLOT_MEMORY_SIZE =
             ConfigOptions.key("state.backend.rocksdb.memory.fixed-per-slot")
                     .memoryType()
+                    .asJobConfig()
                     .noDefaultValue()
                     .withDescription(
                             String.format(
@@ -144,6 +152,7 @@ public class RocksDBOptions {
     public static final ConfigOption<MemorySize> FIX_PER_TM_MEMORY_SIZE =
             ConfigOptions.key("state.backend.rocksdb.memory.fixed-per-tm")
                     .memoryType()
+                    .asJobConfig()
                     .noDefaultValue()
                     .withDescription(
                             String.format(
@@ -159,6 +168,7 @@ public class RocksDBOptions {
     public static final ConfigOption<Double> WRITE_BUFFER_RATIO =
             ConfigOptions.key("state.backend.rocksdb.memory.write-buffer-ratio")
                     .doubleType()
+                    .asJobConfig()
                     .defaultValue(0.5)
                     .withDescription(
                             String.format(
@@ -170,6 +180,7 @@ public class RocksDBOptions {
     public static final ConfigOption<Double> HIGH_PRIORITY_POOL_RATIO =
             ConfigOptions.key("state.backend.rocksdb.memory.high-prio-pool-ratio")
                     .doubleType()
+                    .asJobConfig()
                     .defaultValue(0.1)
                     .withDescription(
                             String.format(
@@ -181,6 +192,7 @@ public class RocksDBOptions {
     public static final ConfigOption<Boolean> USE_PARTITIONED_INDEX_FILTERS =
             ConfigOptions.key("state.backend.rocksdb.memory.partitioned-index-filters")
                     .booleanType()
+                    .asJobConfig()
                     .defaultValue(false)
                     .withDescription(
                             String.format(

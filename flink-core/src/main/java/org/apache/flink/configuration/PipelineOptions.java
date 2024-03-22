@@ -40,6 +40,7 @@ public class PipelineOptions {
     public static final ConfigOption<String> NAME =
             key("pipeline.name")
                     .stringType()
+                    .asJobConfig()
                     .noDefaultValue()
                     .withDescription("The job name used for printing and logging.");
 
@@ -50,6 +51,7 @@ public class PipelineOptions {
     public static final ConfigOption<List<String>> JARS =
             key("pipeline.jars")
                     .stringType()
+                    .asJobConfig()
                     .asList()
                     .noDefaultValue()
                     .withDescription(
@@ -62,6 +64,7 @@ public class PipelineOptions {
     public static final ConfigOption<List<String>> CLASSPATHS =
             key("pipeline.classpaths")
                     .stringType()
+                    .asJobConfig()
                     .asList()
                     .noDefaultValue()
                     .withDescription(
@@ -71,6 +74,7 @@ public class PipelineOptions {
     public static final ConfigOption<Boolean> AUTO_GENERATE_UIDS =
             key("pipeline.auto-generate-uids")
                     .booleanType()
+                    .asJobConfig()
                     .defaultValue(true)
                     .withDescription(
                             Description.builder()
@@ -110,6 +114,7 @@ public class PipelineOptions {
     public static final ConfigOption<Duration> AUTO_WATERMARK_INTERVAL =
             key("pipeline.auto-watermark-interval")
                     .durationType()
+                    .asJobConfig()
                     .defaultValue(Duration.ofMillis(200))
                     .withDescription(
                             "The interval of the automatic watermark emission. Watermarks are used throughout"
@@ -119,12 +124,14 @@ public class PipelineOptions {
     public static final ConfigOption<ClosureCleanerLevel> CLOSURE_CLEANER_LEVEL =
             key("pipeline.closure-cleaner-level")
                     .enumType(ClosureCleanerLevel.class)
+                    .asJobConfig()
                     .defaultValue(ClosureCleanerLevel.RECURSIVE)
                     .withDescription("Configures the mode in which the closure cleaner works.");
 
     public static final ConfigOption<Boolean> FORCE_AVRO =
             key("pipeline.force-avro")
                     .booleanType()
+                    .asJobConfig()
                     .defaultValue(false)
                     .withDescription(
                             Description.builder()
@@ -140,6 +147,7 @@ public class PipelineOptions {
     public static final ConfigOption<Boolean> FORCE_KRYO =
             key("pipeline.force-kryo")
                     .booleanType()
+                    .asJobConfig()
                     .defaultValue(false)
                     .withDescription(
                             "If enabled, forces TypeExtractor to use Kryo serializer for POJOS even though we could"
@@ -149,6 +157,7 @@ public class PipelineOptions {
     public static final ConfigOption<Boolean> FORCE_KRYO_AVRO =
             key("pipeline.force-kryo-avro")
                     .booleanType()
+                    .asJobConfig()
                     .noDefaultValue()
                     .withDescription(
                             Description.builder()
@@ -167,6 +176,7 @@ public class PipelineOptions {
     public static final ConfigOption<Boolean> GENERIC_TYPES =
             key("pipeline.generic-types")
                     .booleanType()
+                    .asJobConfig()
                     .defaultValue(true)
                     .withDescription(
                             Description.builder()
@@ -193,6 +203,7 @@ public class PipelineOptions {
     public static final ConfigOption<Map<String, String>> GLOBAL_JOB_PARAMETERS =
             key("pipeline.global-job-parameters")
                     .mapType()
+                    .asJobConfig()
                     .noDefaultValue()
                     .withDescription(
                             "Register a custom, serializable user configuration object. The configuration can be "
@@ -201,6 +212,7 @@ public class PipelineOptions {
     public static final ConfigOption<Map<String, String>> PARALLELISM_OVERRIDES =
             key("pipeline.jobvertex-parallelism-overrides")
                     .mapType()
+                    .asJobConfig()
                     .defaultValue(Collections.emptyMap())
                     .withDescription(
                             "A parallelism override map (jobVertexId -> parallelism) which will be used to update"
@@ -209,6 +221,7 @@ public class PipelineOptions {
     public static final ConfigOption<Integer> MAX_PARALLELISM =
             key("pipeline.max-parallelism")
                     .intType()
+                    .asJobConfig()
                     .defaultValue(-1)
                     .withDescription(
                             "The program-wide maximum parallelism used for operators which haven't specified a"
@@ -220,6 +233,7 @@ public class PipelineOptions {
     public static final ConfigOption<Boolean> OBJECT_REUSE =
             key("pipeline.object-reuse")
                     .booleanType()
+                    .asJobConfig()
                     .defaultValue(false)
                     .withDescription(
                             "When enabled objects that Flink internally uses for deserialization and passing"
@@ -298,6 +312,7 @@ public class PipelineOptions {
     public static final ConfigOption<List<String>> SERIALIZATION_CONFIG =
             key("pipeline.serialization-config")
                     .stringType()
+                    .asJobConfig()
                     .asList()
                     .noDefaultValue()
                     .withDescription(
@@ -343,6 +358,7 @@ public class PipelineOptions {
     public static final ConfigOption<Boolean> OPERATOR_CHAINING =
             key("pipeline.operator-chaining.enabled")
                     .booleanType()
+                    .asJobConfig()
                     .defaultValue(true)
                     .withDeprecatedKeys("pipeline.operator-chaining")
                     .withDescription(
@@ -353,6 +369,7 @@ public class PipelineOptions {
             OPERATOR_CHAINING_CHAIN_OPERATORS_WITH_DIFFERENT_MAX_PARALLELISM =
                     key("pipeline.operator-chaining.chain-operators-with-different-max-parallelism")
                             .booleanType()
+                            .asJobConfig()
                             .defaultValue(true)
                             .withDescription(
                                     "Operators with different max parallelism can be chained together. Default behavior may prevent rescaling when the AdaptiveScheduler is used.");
@@ -360,6 +377,7 @@ public class PipelineOptions {
     public static final ConfigOption<List<String>> CACHED_FILES =
             key("pipeline.cached-files")
                     .stringType()
+                    .asJobConfig()
                     .asList()
                     .noDefaultValue()
                     .withDescription(
@@ -381,6 +399,7 @@ public class PipelineOptions {
     public static final ConfigOption<VertexDescriptionMode> VERTEX_DESCRIPTION_MODE =
             key("pipeline.vertex-description-mode")
                     .enumType(VertexDescriptionMode.class)
+                    .asJobConfig()
                     .defaultValue(VertexDescriptionMode.TREE)
                     .withDescription("The mode how we organize description of a job vertex.");
 
@@ -396,6 +415,7 @@ public class PipelineOptions {
     public static final ConfigOption<Boolean> VERTEX_NAME_INCLUDE_INDEX_PREFIX =
             key("pipeline.vertex-name-include-index-prefix")
                     .booleanType()
+                    .asJobConfig()
                     .defaultValue(false)
                     .withDescription(
                             "Whether name of vertex includes topological index or not. "
@@ -405,6 +425,7 @@ public class PipelineOptions {
     public static final ConfigOption<Boolean> ALLOW_UNALIGNED_SOURCE_SPLITS =
             key("pipeline.watermark-alignment.allow-unaligned-source-splits")
                     .booleanType()
+                    .asJobConfig()
                     .defaultValue(false)
                     .withDescription(
                             "If watermark alignment is used, sources with multiple splits will "

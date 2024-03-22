@@ -37,6 +37,7 @@ public class HistoryServerOptions {
     public static final ConfigOption<Duration> HISTORY_SERVER_ARCHIVE_REFRESH_INTERVAL =
             key("historyserver.archive.fs.refresh-interval")
                     .durationType()
+                    .asClusterConfig()
                     .defaultValue(Duration.ofMillis(10000L))
                     .withDescription("Interval for refreshing the archived job directories.");
 
@@ -44,6 +45,7 @@ public class HistoryServerOptions {
     public static final ConfigOption<String> HISTORY_SERVER_ARCHIVE_DIRS =
             key("historyserver.archive.fs.dir")
                     .stringType()
+                    .asClusterConfig()
                     .noDefaultValue()
                     .withDescription(
                             "Comma separated list of directories to fetch archived jobs from. The history server will"
@@ -54,6 +56,7 @@ public class HistoryServerOptions {
     public static final ConfigOption<Boolean> HISTORY_SERVER_CLEANUP_EXPIRED_JOBS =
             key("historyserver.archive.clean-expired-jobs")
                     .booleanType()
+                    .asClusterConfig()
                     .defaultValue(false)
                     .withDescription(
                             String.format(
@@ -67,6 +70,7 @@ public class HistoryServerOptions {
     public static final ConfigOption<String> HISTORY_SERVER_TASKMANAGER_LOG_URL_PATTERN =
             key("historyserver.log.taskmanager.url-pattern")
                     .stringType()
+                    .asClusterConfig()
                     .noDefaultValue()
                     .withDescription(
                             "Pattern of the log URL of TaskManager. The HistoryServer will generate actual URLs from it,"
@@ -79,6 +83,7 @@ public class HistoryServerOptions {
     public static final ConfigOption<String> HISTORY_SERVER_JOBMANAGER_LOG_URL_PATTERN =
             key("historyserver.log.jobmanager.url-pattern")
                     .stringType()
+                    .asClusterConfig()
                     .noDefaultValue()
                     .withDescription(
                             "Pattern of the log URL of JobManager. The HistoryServer will generate actual URLs from it,"
@@ -89,6 +94,7 @@ public class HistoryServerOptions {
     public static final ConfigOption<String> HISTORY_SERVER_WEB_DIR =
             key("historyserver.web.tmpdir")
                     .stringType()
+                    .asClusterConfig()
                     .noDefaultValue()
                     .withDescription(
                             "Local directory that is used by the history server REST API for temporary files.");
@@ -97,6 +103,7 @@ public class HistoryServerOptions {
     public static final ConfigOption<String> HISTORY_SERVER_WEB_ADDRESS =
             key("historyserver.web.address")
                     .stringType()
+                    .asClusterConfig()
                     .noDefaultValue()
                     .withDescription("Address of the HistoryServer's web interface.");
 
@@ -104,6 +111,7 @@ public class HistoryServerOptions {
     public static final ConfigOption<Integer> HISTORY_SERVER_WEB_PORT =
             key("historyserver.web.port")
                     .intType()
+                    .asClusterConfig()
                     .defaultValue(8082)
                     .withDescription("Port of the HistoryServers's web interface.");
 
@@ -111,6 +119,7 @@ public class HistoryServerOptions {
     public static final ConfigOption<Duration> HISTORY_SERVER_WEB_REFRESH_INTERVAL =
             key("historyserver.web.refresh-interval")
                     .durationType()
+                    .asClusterConfig()
                     .defaultValue(Duration.ofMillis(10000L))
                     .withDescription("The refresh interval for the HistoryServer web-frontend.");
 
@@ -121,6 +130,7 @@ public class HistoryServerOptions {
     public static final ConfigOption<Boolean> HISTORY_SERVER_WEB_SSL_ENABLED =
             key("historyserver.web.ssl.enabled")
                     .booleanType()
+                    .asClusterConfig()
                     .defaultValue(false)
                     .withDescription(
                             "Enable HTTPs access to the HistoryServer web frontend. This is applicable only when the"
@@ -129,6 +139,7 @@ public class HistoryServerOptions {
     public static final ConfigOption<Integer> HISTORY_SERVER_RETAINED_JOBS =
             key("historyserver.archive.retained-jobs")
                     .intType()
+                    .asClusterConfig()
                     .defaultValue(-1)
                     .withDescription(
                             Description.builder()

@@ -36,6 +36,7 @@ public class ResourceManagerOptions {
     public static final ConfigOption<Duration> JOB_TIMEOUT =
             ConfigOptions.key("resourcemanager.job.timeout")
                     .durationType()
+                    .asClusterConfig()
                     .defaultValue(Duration.ofMinutes(5))
                     .withDescription(
                             "Timeout for jobs which don't have a job manager as leader assigned.");
@@ -56,6 +57,7 @@ public class ResourceManagerOptions {
     public static final ConfigOption<Integer> IPC_PORT =
             ConfigOptions.key("resourcemanager.rpc.port")
                     .intType()
+                    .asClusterConfig()
                     .defaultValue(0)
                     .withDescription(
                             "Defines the network port to connect to for communication with the resource manager. By"
@@ -66,6 +68,7 @@ public class ResourceManagerOptions {
     public static final ConfigOption<Integer> MIN_SLOT_NUM =
             ConfigOptions.key("slotmanager.number-of-slots.min")
                     .intType()
+                    .asClusterConfig()
                     .defaultValue(0)
                     .withDescription(
                             "Defines the minimum number of slots that the Flink cluster allocates. This configuration option "
@@ -78,6 +81,7 @@ public class ResourceManagerOptions {
     public static final ConfigOption<Integer> MAX_SLOT_NUM =
             ConfigOptions.key("slotmanager.number-of-slots.max")
                     .intType()
+                    .asClusterConfig()
                     .defaultValue(Integer.MAX_VALUE)
                     .withDescription(
                             "Defines the maximum number of slots that the Flink cluster allocates. This configuration option "
@@ -89,6 +93,7 @@ public class ResourceManagerOptions {
     public static final ConfigOption<Double> MIN_TOTAL_CPU =
             ConfigOptions.key("slotmanager.min-total-resource.cpu")
                     .doubleType()
+                    .asClusterConfig()
                     .noDefaultValue()
                     .withDescription(
                             "Minimum cpu cores the Flink cluster allocates for slots. Resources "
@@ -101,6 +106,7 @@ public class ResourceManagerOptions {
     public static final ConfigOption<Double> MAX_TOTAL_CPU =
             ConfigOptions.key("slotmanager.max-total-resource.cpu")
                     .doubleType()
+                    .asClusterConfig()
                     .noDefaultValue()
                     .withDescription(
                             "Maximum cpu cores the Flink cluster allocates for slots. Resources "
@@ -113,6 +119,7 @@ public class ResourceManagerOptions {
     public static final ConfigOption<MemorySize> MIN_TOTAL_MEM =
             ConfigOptions.key("slotmanager.min-total-resource.memory")
                     .memoryType()
+                    .asClusterConfig()
                     .noDefaultValue()
                     .withDescription(
                             "Minimum memory size the Flink cluster allocates for slots. Resources "
@@ -125,6 +132,7 @@ public class ResourceManagerOptions {
     public static final ConfigOption<MemorySize> MAX_TOTAL_MEM =
             ConfigOptions.key("slotmanager.max-total-resource.memory")
                     .memoryType()
+                    .asClusterConfig()
                     .noDefaultValue()
                     .withDescription(
                             "Maximum memory size the Flink cluster allocates for slots. Resources "
@@ -145,6 +153,7 @@ public class ResourceManagerOptions {
     public static final ConfigOption<Integer> REDUNDANT_TASK_MANAGER_NUM =
             ConfigOptions.key("slotmanager.redundant-taskmanager-num")
                     .intType()
+                    .asClusterConfig()
                     .defaultValue(0)
                     .withDescription(
                             "The number of redundant task managers. Redundant task managers are extra task managers "
@@ -163,6 +172,7 @@ public class ResourceManagerOptions {
     public static final ConfigOption<Double> START_WORKER_MAX_FAILURE_RATE =
             ConfigOptions.key("resourcemanager.start-worker.max-failure-rate")
                     .doubleType()
+                    .asClusterConfig()
                     .defaultValue(10.0)
                     .withDescription(
                             "The maximum number of start worker failures (Native Kubernetes / Yarn) per minute "
@@ -178,6 +188,7 @@ public class ResourceManagerOptions {
     public static final ConfigOption<Duration> START_WORKER_RETRY_INTERVAL =
             ConfigOptions.key(START_WORKER_RETRY_INTERVAL_KEY)
                     .durationType()
+                    .asClusterConfig()
                     .defaultValue(Duration.ofSeconds(3))
                     .withDescription(
                             "The time to wait before requesting new workers (Native Kubernetes / Yarn) once the "
@@ -190,6 +201,7 @@ public class ResourceManagerOptions {
     public static final ConfigOption<Duration> REQUIREMENTS_CHECK_DELAY =
             ConfigOptions.key("slotmanager.requirement-check.delay")
                     .durationType()
+                    .asClusterConfig()
                     .defaultValue(Duration.ofMillis(50))
                     .withDescription("The delay of the resource requirements check.");
 
@@ -198,6 +210,7 @@ public class ResourceManagerOptions {
     public static final ConfigOption<Duration> DECLARE_NEEDED_RESOURCE_DELAY =
             ConfigOptions.key("slotmanager.declare-needed-resource.delay")
                     .durationType()
+                    .asClusterConfig()
                     .defaultValue(Duration.ofMillis(50))
                     .withDescription("The delay of the declare needed resources.");
 
@@ -212,6 +225,7 @@ public class ResourceManagerOptions {
     public static final ConfigOption<Duration> STANDALONE_CLUSTER_STARTUP_PERIOD_TIME =
             ConfigOptions.key("resourcemanager.standalone.start-up-time")
                     .durationType()
+                    .asClusterConfig()
                     .noDefaultValue()
                     .withDescription(
                             Description.builder()
@@ -241,6 +255,7 @@ public class ResourceManagerOptions {
     public static final ConfigOption<Duration> TASK_MANAGER_TIMEOUT =
             ConfigOptions.key("resourcemanager.taskmanager-timeout")
                     .durationType()
+                    .asClusterConfig()
                     .defaultValue(Duration.ofMillis(30000L))
                     .withDeprecatedKeys(SLOT_MANAGER_TASK_MANAGER_TIMEOUT.key())
                     .withDescription(
@@ -291,6 +306,7 @@ public class ResourceManagerOptions {
     public static final ConfigOption<Duration> TASK_MANAGER_REGISTRATION_TIMEOUT =
             ConfigOptions.key("resourcemanager.taskmanager-registration.timeout")
                     .durationType()
+                    .asClusterConfig()
                     .defaultValue(TaskManagerOptions.REGISTRATION_TIMEOUT.defaultValue())
                     .withFallbackKeys(TaskManagerOptions.REGISTRATION_TIMEOUT.key())
                     .withDescription(
@@ -305,6 +321,7 @@ public class ResourceManagerOptions {
     public static final ConfigOption<Duration> RESOURCE_MANAGER_PREVIOUS_WORKER_RECOVERY_TIMEOUT =
             ConfigOptions.key("resourcemanager.previous-worker.recovery.timeout")
                     .durationType()
+                    .asClusterConfig()
                     .defaultValue(Duration.ofSeconds(0))
                     .withDescription(
                             "Timeout for resource manager to recover all the previous attempts workers. If exceeded,"

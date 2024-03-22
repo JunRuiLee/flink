@@ -79,6 +79,7 @@ public class CleanupOptions {
     public static final ConfigOption<String> CLEANUP_STRATEGY =
             ConfigOptions.key(CLEANUP_STRATEGY_PARAM + ".type")
                     .stringType()
+                    .asClusterConfig()
                     .defaultValue(EXPONENTIAL_DELAY_LABEL)
                     .withDeprecatedKeys(CLEANUP_STRATEGY_PARAM)
                     .withDescription(
@@ -137,6 +138,7 @@ public class CleanupOptions {
     public static final ConfigOption<Integer> CLEANUP_STRATEGY_FIXED_DELAY_ATTEMPTS =
             ConfigOptions.key(createFixedDelayParameterPrefix("attempts"))
                     .intType()
+                    .asClusterConfig()
                     .defaultValue(Integer.MAX_VALUE)
                     .withDescription(
                             Description.builder()
@@ -152,6 +154,7 @@ public class CleanupOptions {
     public static final ConfigOption<Duration> CLEANUP_STRATEGY_FIXED_DELAY_DELAY =
             ConfigOptions.key(createFixedDelayParameterPrefix("delay"))
                     .durationType()
+                    .asClusterConfig()
                     .defaultValue(Duration.ofMinutes(1))
                     .withDescription(
                             Description.builder()
@@ -166,6 +169,7 @@ public class CleanupOptions {
     public static final ConfigOption<Duration> CLEANUP_STRATEGY_EXPONENTIAL_DELAY_INITIAL_BACKOFF =
             ConfigOptions.key(createExponentialBackoffParameterPrefix("initial-backoff"))
                     .durationType()
+                    .asClusterConfig()
                     .defaultValue(Duration.ofSeconds(1))
                     .withDescription(
                             Description.builder()
@@ -180,6 +184,7 @@ public class CleanupOptions {
     public static final ConfigOption<Duration> CLEANUP_STRATEGY_EXPONENTIAL_DELAY_MAX_BACKOFF =
             ConfigOptions.key(createExponentialBackoffParameterPrefix("max-backoff"))
                     .durationType()
+                    .asClusterConfig()
                     .defaultValue(Duration.ofHours(1))
                     .withDescription(
                             Description.builder()
@@ -196,6 +201,7 @@ public class CleanupOptions {
     public static final ConfigOption<Integer> CLEANUP_STRATEGY_EXPONENTIAL_DELAY_MAX_ATTEMPTS =
             ConfigOptions.key(createExponentialBackoffParameterPrefix("attempts"))
                     .intType()
+                    .asClusterConfig()
                     .defaultValue(Integer.MAX_VALUE)
                     .withDescription(
                             Description.builder()

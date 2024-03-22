@@ -33,6 +33,7 @@ public class JobResultStoreOptions {
     public static final ConfigOption<String> STORAGE_PATH =
             ConfigOptions.key("job-result-store.storage-path")
                     .stringType()
+                    .asClusterConfig()
                     .noDefaultValue()
                     .withDescription(
                             Description.builder()
@@ -59,6 +60,7 @@ public class JobResultStoreOptions {
     public static final ConfigOption<Boolean> DELETE_ON_COMMIT =
             ConfigOptions.key("job-result-store.delete-on-commit")
                     .booleanType()
+                    .asClusterConfig()
                     .defaultValue(Boolean.TRUE)
                     .withDescription(
                             "Determines whether job results should be automatically removed "

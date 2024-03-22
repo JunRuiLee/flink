@@ -56,6 +56,7 @@ public class WebOptions {
     public static final ConfigOption<String> ACCESS_CONTROL_ALLOW_ORIGIN =
             key("web.access-control-allow-origin")
                     .stringType()
+                    .asClusterConfig()
                     .defaultValue("*")
                     .withDeprecatedKeys("jobmanager.web.access-control-allow-origin")
                     .withDescription(
@@ -65,6 +66,7 @@ public class WebOptions {
     public static final ConfigOption<Duration> REFRESH_INTERVAL =
             key("web.refresh-interval")
                     .durationType()
+                    .asClusterConfig()
                     .defaultValue(Duration.ofMillis(3000L))
                     .withDeprecatedKeys("jobmanager.web.refresh-interval")
                     .withDescription("Refresh interval for the web-frontend.");
@@ -74,6 +76,7 @@ public class WebOptions {
     public static final ConfigOption<Boolean> SSL_ENABLED =
             key("web.ssl.enabled")
                     .booleanType()
+                    .asClusterConfig()
                     .defaultValue(true)
                     .withDeprecatedKeys("jobmanager.web.ssl.enabled")
                     .withDescription(
@@ -84,6 +87,7 @@ public class WebOptions {
     public static final ConfigOption<String> TMP_DIR =
             key("web.tmpdir")
                     .stringType()
+                    .asClusterConfig()
                     .defaultValue(System.getProperty("java.io.tmpdir"))
                     .withDeprecatedKeys("jobmanager.web.tmpdir")
                     .withDescription(
@@ -96,6 +100,7 @@ public class WebOptions {
     public static final ConfigOption<String> UPLOAD_DIR =
             key("web.upload.dir")
                     .stringType()
+                    .asClusterConfig()
                     .noDefaultValue()
                     .withDeprecatedKeys("jobmanager.web.upload.dir")
                     .withDescription(
@@ -110,6 +115,7 @@ public class WebOptions {
     public static final ConfigOption<Integer> ARCHIVE_COUNT =
             key("web.history")
                     .intType()
+                    .asClusterConfig()
                     .defaultValue(5)
                     .withDeprecatedKeys("jobmanager.web.history")
                     .withDescription("Number of archived jobs for the JobManager.");
@@ -121,6 +127,7 @@ public class WebOptions {
     public static final ConfigOption<String> LOG_PATH =
             key("web.log.path")
                     .stringType()
+                    .asClusterConfig()
                     .noDefaultValue()
                     .withDeprecatedKeys("jobmanager.web.log.path")
                     .withDescription(
@@ -130,6 +137,7 @@ public class WebOptions {
     public static final ConfigOption<Boolean> SUBMIT_ENABLE =
             key("web.submit.enable")
                     .booleanType()
+                    .asClusterConfig()
                     .defaultValue(true)
                     .withDeprecatedKeys("jobmanager.web.submit.enable")
                     .withDescription(
@@ -139,6 +147,7 @@ public class WebOptions {
     public static final ConfigOption<Boolean> CANCEL_ENABLE =
             key("web.cancel.enable")
                     .booleanType()
+                    .asClusterConfig()
                     .defaultValue(true)
                     .withDescription(
                             "Flag indicating whether jobs can be canceled from the web-frontend.");
@@ -147,6 +156,7 @@ public class WebOptions {
     public static final ConfigOption<Boolean> RESCALE_ENABLE =
             key("web.rescale.enable")
                     .booleanType()
+                    .asClusterConfig()
                     .defaultValue(true)
                     .withDescription(
                             "Flag indicating whether jobs can be rescaled from the web-frontend.");
@@ -155,6 +165,7 @@ public class WebOptions {
     public static final ConfigOption<Integer> CHECKPOINTS_HISTORY_SIZE =
             key("web.checkpoints.history")
                     .intType()
+                    .asClusterConfig()
                     .defaultValue(10)
                     .withDeprecatedKeys("jobmanager.web.checkpoints.history")
                     .withDescription("Number of checkpoints to remember for recent history.");
@@ -165,6 +176,7 @@ public class WebOptions {
     public static final ConfigOption<Integer> MAX_EXCEPTION_HISTORY_SIZE =
             key("web.exception-history-size")
                     .intType()
+                    .asClusterConfig()
                     .defaultValue(16)
                     .withDescription(
                             "The maximum number of failures collected by the exception history per job.");
@@ -209,6 +221,7 @@ public class WebOptions {
     public static final ConfigOption<Duration> TIMEOUT =
             key("web.timeout")
                     .durationType()
+                    .asClusterConfig()
                     .defaultValue(Duration.ofMillis(10L * 60L * 1000L))
                     .withDescription("Timeout for asynchronous operations by the web monitor.");
 

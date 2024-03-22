@@ -34,6 +34,7 @@ public class KubernetesHighAvailabilityOptions {
     public static final ConfigOption<Duration> KUBERNETES_LEASE_DURATION =
             key("high-availability.kubernetes.leader-election.lease-duration")
                     .durationType()
+                    .asClusterConfig()
                     .defaultValue(Duration.ofSeconds(15))
                     .withDescription(
                             "Define the lease duration for the Kubernetes leader election. The leader will "
@@ -44,6 +45,7 @@ public class KubernetesHighAvailabilityOptions {
     public static final ConfigOption<Duration> KUBERNETES_RENEW_DEADLINE =
             key("high-availability.kubernetes.leader-election.renew-deadline")
                     .durationType()
+                    .asClusterConfig()
                     .defaultValue(Duration.ofSeconds(15))
                     .withDescription(
                             "Defines the deadline duration when the leader tries to renew the lease. The leader will "
@@ -53,6 +55,7 @@ public class KubernetesHighAvailabilityOptions {
     public static final ConfigOption<Duration> KUBERNETES_RETRY_PERIOD =
             key("high-availability.kubernetes.leader-election.retry-period")
                     .durationType()
+                    .asClusterConfig()
                     .defaultValue(Duration.ofSeconds(5))
                     .withDescription(
                             "Defines the pause duration between consecutive retries. All the contenders, including "

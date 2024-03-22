@@ -72,6 +72,8 @@ public class ConfigOption<T> {
 
     private final boolean isList;
 
+    private final ConfigOptionScope scope;
+
     // ------------------------------------------------------------------------
 
     Class<?> getClazz() {
@@ -80,6 +82,10 @@ public class ConfigOption<T> {
 
     boolean isList() {
         return isList;
+    }
+
+    public ConfigOptionScope getScope() {
+        return scope;
     }
 
     /**
@@ -99,6 +105,7 @@ public class ConfigOption<T> {
             Description description,
             T defaultValue,
             boolean isList,
+            ConfigOptionScope scope,
             FallbackKey... fallbackKeys) {
         this.key = checkNotNull(key);
         this.description = description;
@@ -106,6 +113,7 @@ public class ConfigOption<T> {
         this.fallbackKeys = fallbackKeys == null || fallbackKeys.length == 0 ? EMPTY : fallbackKeys;
         this.clazz = checkNotNull(clazz);
         this.isList = isList;
+        this.scope = checkNotNull(scope);
     }
 
     // ------------------------------------------------------------------------
@@ -131,7 +139,7 @@ public class ConfigOption<T> {
         final FallbackKey[] mergedAlternativeKeys =
                 Stream.concat(newFallbackKeys, currentAlternativeKeys).toArray(FallbackKey[]::new);
         return new ConfigOption<>(
-                key, clazz, description, defaultValue, isList, mergedAlternativeKeys);
+                key, clazz, description, defaultValue, isList, scope, mergedAlternativeKeys);
     }
 
     /**
@@ -156,7 +164,7 @@ public class ConfigOption<T> {
                 Stream.concat(currentAlternativeKeys, newDeprecatedKeys)
                         .toArray(FallbackKey[]::new);
         return new ConfigOption<>(
-                key, clazz, description, defaultValue, isList, mergedAlternativeKeys);
+                key, clazz, description, defaultValue, isList, scope, mergedAlternativeKeys);
     }
 
     /**
@@ -178,7 +186,8 @@ public class ConfigOption<T> {
      * @return A new config option, with given description.
      */
     public ConfigOption<T> withDescription(final Description description) {
-        return new ConfigOption<>(key, clazz, description, defaultValue, isList, fallbackKeys);
+        return new ConfigOption<>(
+                key, clazz, description, defaultValue, isList, scope, fallbackKeys);
     }
 
     // ------------------------------------------------------------------------

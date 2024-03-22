@@ -54,6 +54,7 @@ public class KubernetesConfigOptions {
     public static final ConfigOption<String> CONTEXT =
             key("kubernetes.context")
                     .stringType()
+                    .asClusterConfig()
                     .noDefaultValue()
                     .withDescription(
                             "The desired context from your Kubernetes config file used to configure the Kubernetes client "
@@ -63,6 +64,7 @@ public class KubernetesConfigOptions {
     public static final ConfigOption<ServiceExposedType> REST_SERVICE_EXPOSED_TYPE =
             key("kubernetes.rest-service.exposed.type")
                     .enumType(ServiceExposedType.class)
+                    .asClusterConfig()
                     .defaultValue(ServiceExposedType.ClusterIP)
                     .withDescription(
                             "The exposed type of the rest service. "
@@ -72,6 +74,7 @@ public class KubernetesConfigOptions {
             REST_SERVICE_EXPOSED_NODE_PORT_ADDRESS_TYPE =
                     key("kubernetes.rest-service.exposed.node-port-address-type")
                             .enumType(NodePortAddressType.class)
+                            .asClusterConfig()
                             .defaultValue(NodePortAddressType.InternalIP)
                             .withDescription(
                                     Description.builder()
@@ -90,6 +93,7 @@ public class KubernetesConfigOptions {
     public static final ConfigOption<String> JOB_MANAGER_SERVICE_ACCOUNT =
             key("kubernetes.jobmanager.service-account")
                     .stringType()
+                    .asClusterConfig()
                     .defaultValue("default")
                     .withFallbackKeys(KUBERNETES_SERVICE_ACCOUNT_KEY)
                     .withDescription(
@@ -102,6 +106,7 @@ public class KubernetesConfigOptions {
     public static final ConfigOption<String> TASK_MANAGER_SERVICE_ACCOUNT =
             key("kubernetes.taskmanager.service-account")
                     .stringType()
+                    .asClusterConfig()
                     .defaultValue("default")
                     .withFallbackKeys(KUBERNETES_SERVICE_ACCOUNT_KEY)
                     .withDescription(
@@ -114,6 +119,7 @@ public class KubernetesConfigOptions {
     public static final ConfigOption<String> KUBERNETES_SERVICE_ACCOUNT =
             key(KUBERNETES_SERVICE_ACCOUNT_KEY)
                     .stringType()
+                    .asClusterConfig()
                     .defaultValue("default")
                     .withDescription(
                             "Service account that is used by jobmanager and taskmanager within kubernetes cluster. "
@@ -126,6 +132,7 @@ public class KubernetesConfigOptions {
     public static final ConfigOption<List<Map<String, String>>> JOB_MANAGER_OWNER_REFERENCE =
             key("kubernetes.jobmanager.owner.reference")
                     .mapType()
+                    .asClusterConfig()
                     .asList()
                     .noDefaultValue()
                     .withDescription(
@@ -146,6 +153,7 @@ public class KubernetesConfigOptions {
     public static final ConfigOption<Double> JOB_MANAGER_CPU =
             key("kubernetes.jobmanager.cpu.amount")
                     .doubleType()
+                    .asClusterConfig()
                     .defaultValue(1.0)
                     .withDeprecatedKeys("kubernetes.jobmanager.cpu")
                     .withDescription("The number of cpu used by job manager");
@@ -153,6 +161,7 @@ public class KubernetesConfigOptions {
     public static final ConfigOption<Double> JOB_MANAGER_CPU_LIMIT_FACTOR =
             key("kubernetes.jobmanager.cpu.limit-factor")
                     .doubleType()
+                    .asClusterConfig()
                     .defaultValue(1.0)
                     .withDescription(
                             "The limit factor of cpu used by job manager. "
@@ -161,6 +170,7 @@ public class KubernetesConfigOptions {
     public static final ConfigOption<Double> JOB_MANAGER_MEMORY_LIMIT_FACTOR =
             key("kubernetes.jobmanager.memory.limit-factor")
                     .doubleType()
+                    .asClusterConfig()
                     .defaultValue(1.0)
                     .withDescription(
                             "The limit factor of memory used by job manager. "
@@ -169,6 +179,7 @@ public class KubernetesConfigOptions {
     public static final ConfigOption<Double> TASK_MANAGER_CPU =
             key("kubernetes.taskmanager.cpu.amount")
                     .doubleType()
+                    .asClusterConfig()
                     .defaultValue(-1.0)
                     .withDeprecatedKeys("kubernetes.taskmanager.cpu")
                     .withDescription(
@@ -178,6 +189,7 @@ public class KubernetesConfigOptions {
     public static final ConfigOption<Double> TASK_MANAGER_CPU_LIMIT_FACTOR =
             key("kubernetes.taskmanager.cpu.limit-factor")
                     .doubleType()
+                    .asClusterConfig()
                     .defaultValue(1.0)
                     .withDescription(
                             "The limit factor of cpu used by task manager. "
@@ -186,6 +198,7 @@ public class KubernetesConfigOptions {
     public static final ConfigOption<Double> TASK_MANAGER_MEMORY_LIMIT_FACTOR =
             key("kubernetes.taskmanager.memory.limit-factor")
                     .doubleType()
+                    .asClusterConfig()
                     .defaultValue(1.0)
                     .withDescription(
                             "The limit factor of memory used by task manager. "
@@ -194,6 +207,7 @@ public class KubernetesConfigOptions {
     public static final ConfigOption<ImagePullPolicy> CONTAINER_IMAGE_PULL_POLICY =
             key("kubernetes.container.image.pull-policy")
                     .enumType(ImagePullPolicy.class)
+                    .asClusterConfig()
                     .defaultValue(ImagePullPolicy.IfNotPresent)
                     .withDescription(
                             "The Kubernetes container image pull policy. "
@@ -202,6 +216,7 @@ public class KubernetesConfigOptions {
     public static final ConfigOption<List<String>> CONTAINER_IMAGE_PULL_SECRETS =
             key("kubernetes.container.image.pull-secrets")
                     .stringType()
+                    .asClusterConfig()
                     .asList()
                     .noDefaultValue()
                     .withDescription(
@@ -211,6 +226,7 @@ public class KubernetesConfigOptions {
     public static final ConfigOption<String> KUBE_CONFIG_FILE =
             key("kubernetes.config.file")
                     .stringType()
+                    .asClusterConfig()
                     .noDefaultValue()
                     .withDescription(
                             "The kubernetes config file will be used to create the client. The default "
@@ -219,6 +235,7 @@ public class KubernetesConfigOptions {
     public static final ConfigOption<String> NAMESPACE =
             key("kubernetes.namespace")
                     .stringType()
+                    .asClusterConfig()
                     .defaultValue("default")
                     .withDescription(
                             "The namespace that will be used for running the jobmanager and taskmanager pods.");
@@ -226,6 +243,7 @@ public class KubernetesConfigOptions {
     public static final ConfigOption<Map<String, String>> JOB_MANAGER_LABELS =
             key("kubernetes.jobmanager.labels")
                     .mapType()
+                    .asClusterConfig()
                     .noDefaultValue()
                     .withDescription(
                             "The labels to be set for JobManager pod. Specified as key:value pairs separated by commas. "
@@ -234,6 +252,7 @@ public class KubernetesConfigOptions {
     public static final ConfigOption<Map<String, String>> TASK_MANAGER_LABELS =
             key("kubernetes.taskmanager.labels")
                     .mapType()
+                    .asClusterConfig()
                     .noDefaultValue()
                     .withDescription(
                             "The labels to be set for TaskManager pods. Specified as key:value pairs separated by commas. "
@@ -242,6 +261,7 @@ public class KubernetesConfigOptions {
     public static final ConfigOption<Map<String, String>> JOB_MANAGER_NODE_SELECTOR =
             key("kubernetes.jobmanager.node-selector")
                     .mapType()
+                    .asClusterConfig()
                     .noDefaultValue()
                     .withDescription(
                             "The node selector to be set for JobManager pod. Specified as key:value pairs separated by "
@@ -250,6 +270,7 @@ public class KubernetesConfigOptions {
     public static final ConfigOption<Map<String, String>> TASK_MANAGER_NODE_SELECTOR =
             key("kubernetes.taskmanager.node-selector")
                     .mapType()
+                    .asClusterConfig()
                     .noDefaultValue()
                     .withDescription(
                             "The node selector to be set for TaskManager pods. Specified as key:value pairs separated by "
@@ -258,6 +279,7 @@ public class KubernetesConfigOptions {
     public static final ConfigOption<String> CLUSTER_ID =
             key("kubernetes.cluster-id")
                     .stringType()
+                    .asClusterConfig()
                     .noDefaultValue()
                     .withDescription(
                             Description.builder()
@@ -274,6 +296,7 @@ public class KubernetesConfigOptions {
     public static final ConfigOption<String> CONTAINER_IMAGE =
             key("kubernetes.container.image.ref")
                     .stringType()
+                    .asClusterConfig()
                     .defaultValue(getDefaultFlinkImage())
                     .withDeprecatedKeys("kubernetes.container.image")
                     .withDescription(
@@ -292,6 +315,7 @@ public class KubernetesConfigOptions {
     public static final ConfigOption<String> KUBERNETES_ENTRY_PATH =
             key("kubernetes.entry.path")
                     .stringType()
+                    .asClusterConfig()
                     .defaultValue("/docker-entrypoint.sh")
                     .withDescription(
                             "The entrypoint script of kubernetes in the image. It will be used as command for jobmanager "
@@ -300,6 +324,7 @@ public class KubernetesConfigOptions {
     public static final ConfigOption<String> FLINK_CONF_DIR =
             key("kubernetes.flink.conf.dir")
                     .stringType()
+                    .asClusterConfig()
                     .defaultValue("/opt/flink/conf")
                     .withDescription(
                             "The flink conf directory that will be mounted in pod. The config.yaml, log4j.properties, "
@@ -308,6 +333,7 @@ public class KubernetesConfigOptions {
     public static final ConfigOption<String> FLINK_LOG_DIR =
             key("kubernetes.flink.log.dir")
                     .stringType()
+                    .asClusterConfig()
                     .noDefaultValue()
                     .withDescription(
                             "The directory that logs of jobmanager and taskmanager be saved in the pod. "
@@ -316,6 +342,7 @@ public class KubernetesConfigOptions {
     public static final ConfigOption<String> HADOOP_CONF_CONFIG_MAP =
             key("kubernetes.hadoop.conf.config-map.name")
                     .stringType()
+                    .asClusterConfig()
                     .noDefaultValue()
                     .withDescription(
                             "Specify the name of an existing ConfigMap that contains custom Hadoop configuration "
@@ -324,6 +351,7 @@ public class KubernetesConfigOptions {
     public static final ConfigOption<Map<String, String>> JOB_MANAGER_ANNOTATIONS =
             key("kubernetes.jobmanager.annotations")
                     .mapType()
+                    .asClusterConfig()
                     .noDefaultValue()
                     .withDescription(
                             "The user-specified annotations that are set to the JobManager pod. The value could be "
@@ -332,6 +360,7 @@ public class KubernetesConfigOptions {
     public static final ConfigOption<Map<String, String>> TASK_MANAGER_ANNOTATIONS =
             key("kubernetes.taskmanager.annotations")
                     .mapType()
+                    .asClusterConfig()
                     .noDefaultValue()
                     .withDescription(
                             "The user-specified annotations that are set to the TaskManager pod. The value could be "
@@ -340,18 +369,21 @@ public class KubernetesConfigOptions {
     public static final ConfigOption<String> KUBERNETES_JOBMANAGER_ENTRYPOINT_ARGS =
             key("kubernetes.jobmanager.entrypoint.args")
                     .stringType()
+                    .asClusterConfig()
                     .defaultValue("")
                     .withDescription("Extra arguments used when starting the job manager.");
 
     public static final ConfigOption<String> KUBERNETES_TASKMANAGER_ENTRYPOINT_ARGS =
             key("kubernetes.taskmanager.entrypoint.args")
                     .stringType()
+                    .asClusterConfig()
                     .defaultValue("")
                     .withDescription("Extra arguments used when starting the task manager.");
 
     public static final ConfigOption<List<Map<String, String>>> JOB_MANAGER_TOLERATIONS =
             key("kubernetes.jobmanager.tolerations")
                     .mapType()
+                    .asClusterConfig()
                     .asList()
                     .noDefaultValue()
                     .withDescription(
@@ -362,6 +394,7 @@ public class KubernetesConfigOptions {
     public static final ConfigOption<List<Map<String, String>>> TASK_MANAGER_TOLERATIONS =
             key("kubernetes.taskmanager.tolerations")
                     .mapType()
+                    .asClusterConfig()
                     .asList()
                     .noDefaultValue()
                     .withDescription(
@@ -372,6 +405,7 @@ public class KubernetesConfigOptions {
     public static final ConfigOption<Map<String, String>> REST_SERVICE_ANNOTATIONS =
             key("kubernetes.rest-service.annotations")
                     .mapType()
+                    .asClusterConfig()
                     .noDefaultValue()
                     .withDescription(
                             "The user-specified annotations that are set to the rest Service. The value should be "
@@ -380,6 +414,7 @@ public class KubernetesConfigOptions {
     public static final ConfigOption<Map<String, String>> INTERNAL_SERVICE_ANNOTATIONS =
             key("kubernetes.internal-service.annotations")
                     .mapType()
+                    .asClusterConfig()
                     .noDefaultValue()
                     .withDescription(
                             "The user-specified annotations that are set to the internal Service. The value should be "
@@ -395,6 +430,7 @@ public class KubernetesConfigOptions {
     public static final ConfigOption<Map<String, String>> KUBERNETES_SECRETS =
             key("kubernetes.secrets")
                     .mapType()
+                    .asClusterConfig()
                     .noDefaultValue()
                     .withDescription(
                             Description.builder()
@@ -407,6 +443,7 @@ public class KubernetesConfigOptions {
     public static final ConfigOption<List<Map<String, String>>> KUBERNETES_ENV_SECRET_KEY_REF =
             key("kubernetes.env.secretKeyRef")
                     .mapType()
+                    .asClusterConfig()
                     .asList()
                     .noDefaultValue()
                     .withDescription(
@@ -430,6 +467,7 @@ public class KubernetesConfigOptions {
             key(ExternalResourceOptions.genericKeyWithSuffix(
                             EXTERNAL_RESOURCE_KUBERNETES_CONFIG_KEY_SUFFIX))
                     .stringType()
+                    .asClusterConfig()
                     .noDefaultValue()
                     .withDescription(
                             "If configured, Flink will add \"resources.limits.<config-key>\" and \"resources.requests.<config-key>\" "
@@ -440,6 +478,7 @@ public class KubernetesConfigOptions {
     public static final ConfigOption<Integer> KUBERNETES_TRANSACTIONAL_OPERATION_MAX_RETRIES =
             key("kubernetes.transactional-operation.max-retries")
                     .intType()
+                    .asClusterConfig()
                     .defaultValue(15)
                     .withDescription(
                             Description.builder()
@@ -453,6 +492,7 @@ public class KubernetesConfigOptions {
             KUBERNETES_TRANSACTIONAL_OPERATION_INITIAL_RETRY_DEALY =
                     key("kubernetes.transactional-operation.initial-retry-delay")
                             .durationType()
+                            .asClusterConfig()
                             .defaultValue(Duration.ofMillis(50))
                             .withDescription(
                                     Description.builder()
@@ -464,6 +504,7 @@ public class KubernetesConfigOptions {
     public static final ConfigOption<Duration> KUBERNETES_TRANSACTIONAL_OPERATION_MAX_RETRY_DEALY =
             key("kubernetes.transactional-operation.max-retry-delay")
                     .durationType()
+                    .asClusterConfig()
                     .defaultValue(Duration.ofMinutes(1))
                     .withDescription(
                             Description.builder()
@@ -486,6 +527,7 @@ public class KubernetesConfigOptions {
     public static final ConfigOption<Integer> KUBERNETES_CLIENT_IO_EXECUTOR_POOL_SIZE =
             ConfigOptions.key("kubernetes.client.io-pool.size")
                     .intType()
+                    .asClusterConfig()
                     .defaultValue(4)
                     .withDescription(
                             "The size of the IO executor pool used by the Kubernetes client to execute blocking IO operations "
@@ -495,6 +537,7 @@ public class KubernetesConfigOptions {
     public static final ConfigOption<Integer> KUBERNETES_JOBMANAGER_REPLICAS =
             key("kubernetes.jobmanager.replicas")
                     .intType()
+                    .asClusterConfig()
                     .defaultValue(1)
                     .withDescription(
                             "Specify how many JobManager pods will be started simultaneously. "
@@ -505,6 +548,7 @@ public class KubernetesConfigOptions {
     public static final ConfigOption<Boolean> KUBERNETES_HOSTNETWORK_ENABLED =
             key("kubernetes.hostnetwork.enabled")
                     .booleanType()
+                    .asClusterConfig()
                     .defaultValue(false)
                     .withDescription(
                             "Whether to enable HostNetwork mode. "
@@ -513,6 +557,7 @@ public class KubernetesConfigOptions {
     public static final ConfigOption<String> KUBERNETES_CLIENT_USER_AGENT =
             key("kubernetes.client.user-agent")
                     .stringType()
+                    .asClusterConfig()
                     .defaultValue("flink")
                     .withDescription(
                             "The user agent to be used for contacting with Kubernetes APIServer.");
@@ -520,6 +565,7 @@ public class KubernetesConfigOptions {
     public static final ConfigOption<Boolean> KUBERNETES_HADOOP_CONF_MOUNT_DECORATOR_ENABLED =
             key("kubernetes.decorator.hadoop-conf-mount.enabled")
                     .booleanType()
+                    .asClusterConfig()
                     .defaultValue(true)
                     .withDescription(
                             "Whether to enable Hadoop configuration mount decorator. This "
@@ -530,6 +576,7 @@ public class KubernetesConfigOptions {
     public static final ConfigOption<Boolean> KUBERNETES_KERBEROS_MOUNT_DECORATOR_ENABLED =
             key("kubernetes.decorator.kerberos-mount.enabled")
                     .booleanType()
+                    .asClusterConfig()
                     .defaultValue(true)
                     .withDescription(
                             "Whether to enable Kerberos mount decorator. This must be set "
@@ -540,6 +587,7 @@ public class KubernetesConfigOptions {
     public static final ConfigOption<Boolean> LOCAL_UPLOAD_ENABLED =
             ConfigOptions.key("kubernetes.artifacts.local-upload-enabled")
                     .booleanType()
+                    .asClusterConfig()
                     .defaultValue(false)
                     .withDescription(
                             "Enables uploading 'local://' schemed artifacts to DFS before the the application cluster deployment.");
@@ -547,6 +595,7 @@ public class KubernetesConfigOptions {
     public static final ConfigOption<Boolean> LOCAL_UPLOAD_OVERWRITE =
             ConfigOptions.key("kubernetes.artifacts.local-upload-overwrite")
                     .booleanType()
+                    .asClusterConfig()
                     .defaultValue(false)
                     .withDescription(
                             "If enabled, overwrites any existing artifact on the remote target. Disabled by default.");
@@ -554,6 +603,7 @@ public class KubernetesConfigOptions {
     public static final ConfigOption<String> LOCAL_UPLOAD_TARGET =
             ConfigOptions.key("kubernetes.artifacts.local-upload-target")
                     .stringType()
+                    .asClusterConfig()
                     .noDefaultValue()
                     .withDescription("The target remote DFS directory to upload local artifacts.");
 
@@ -565,6 +615,7 @@ public class KubernetesConfigOptions {
     public static final ConfigOption<String> KUBERNETES_NODE_NAME_LABEL =
             key("kubernetes.node-name-label")
                     .stringType()
+                    .asClusterConfig()
                     .defaultValue("kubernetes.io/hostname")
                     .withDescription(
                             "The node label whose value is the same as the node name. "
@@ -626,12 +677,14 @@ public class KubernetesConfigOptions {
         final ConfigOption<String> defaultPodTemplate =
                 key(KUBERNETES_POD_TEMPLATE_FILE_KEY + ".default")
                         .stringType()
+                        .asClusterConfig()
                         .noDefaultValue()
                         .withDeprecatedKeys(KUBERNETES_POD_TEMPLATE_FILE_KEY);
 
         JOB_MANAGER_POD_TEMPLATE =
                 key(KUBERNETES_POD_TEMPLATE_FILE_KEY + ".jobmanager")
                         .stringType()
+                        .asClusterConfig()
                         .noDefaultValue()
                         .withFallbackKeys(defaultPodTemplate.key())
                         .withFallbackKeys(getDeprecatedKeys(defaultPodTemplate))
@@ -647,6 +700,7 @@ public class KubernetesConfigOptions {
         TASK_MANAGER_POD_TEMPLATE =
                 key(KUBERNETES_POD_TEMPLATE_FILE_KEY + ".taskmanager")
                         .stringType()
+                        .asClusterConfig()
                         .noDefaultValue()
                         .withFallbackKeys(defaultPodTemplate.key())
                         .withFallbackKeys(getDeprecatedKeys(defaultPodTemplate))

@@ -33,6 +33,7 @@ public class JobEventStoreOptions {
     public static final ConfigOption<MemorySize> WRITE_BUFFER_SIZE =
             key("job-event.store.write-buffer.size")
                     .memoryType()
+                    .asClusterConfig()
                     .defaultValue(MemorySize.parse("1MB"))
                     .withDescription(
                             "The size of the write buffer of JobEventStore. "
@@ -42,6 +43,7 @@ public class JobEventStoreOptions {
     public static final ConfigOption<Duration> FLUSH_INTERVAL =
             key("job-event.store.write-buffer.flush-interval")
                     .durationType()
+                    .asClusterConfig()
                     .defaultValue(Duration.ofSeconds(1))
                     .withDescription(
                             "The flush interval of JobEventStore write buffers. Buffer contents will "

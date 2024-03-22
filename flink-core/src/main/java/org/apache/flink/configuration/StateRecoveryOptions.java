@@ -37,6 +37,7 @@ public class StateRecoveryOptions {
     public static final ConfigOption<String> SAVEPOINT_PATH =
             key("execution.state-recovery.path")
                     .stringType()
+                    .asJobConfig()
                     .noDefaultValue()
                     .withDeprecatedKeys("execution.savepoint.path")
                     .withDescription(
@@ -49,6 +50,7 @@ public class StateRecoveryOptions {
     public static final ConfigOption<Boolean> SAVEPOINT_IGNORE_UNCLAIMED_STATE =
             key("execution.state-recovery.ignore-unclaimed-state")
                     .booleanType()
+                    .asJobConfig()
                     .defaultValue(false)
                     .withDeprecatedKeys("execution.savepoint.ignore-unclaimed-state")
                     .withDescription(
@@ -60,6 +62,7 @@ public class StateRecoveryOptions {
     public static final ConfigOption<RestoreMode> RESTORE_MODE =
             key("execution.state-recovery.claim-mode")
                     .enumType(RestoreMode.class)
+                    .asJobConfig()
                     .defaultValue(RestoreMode.DEFAULT)
                     .withDeprecatedKeys("execution.savepoint-restore-mode")
                     .withDescription(
@@ -75,6 +78,7 @@ public class StateRecoveryOptions {
     public static final ConfigOption<Boolean> APPROXIMATE_LOCAL_RECOVERY =
             key("execution.state-recovery.approximate-local-recovery")
                     .booleanType()
+                    .asJobConfig()
                     .defaultValue(false)
                     .withDeprecatedKeys("execution.checkpointing.approximate-local-recovery")
                     .withDescription("Flag to enable approximate local recovery.");
@@ -82,6 +86,7 @@ public class StateRecoveryOptions {
     public static final ConfigOption<Long> CHECKPOINT_ID_OF_IGNORED_IN_FLIGHT_DATA =
             ConfigOptions.key("execution.state-recovery.without-channel-state.checkpoint-id")
                     .longType()
+                    .asJobConfig()
                     .defaultValue(-1L)
                     .withDeprecatedKeys(
                             "execution.checkpointing.recover-without-channel-state.checkpoint-id")
@@ -108,6 +113,7 @@ public class StateRecoveryOptions {
     public static final ConfigOption<Boolean> LOCAL_RECOVERY =
             ConfigOptions.key("execution.state-recovery.from-local")
                     .booleanType()
+                    .asJobConfig()
                     .defaultValue(false)
                     .withDeprecatedKeys("state.backend.local-recovery")
                     .withDescription(

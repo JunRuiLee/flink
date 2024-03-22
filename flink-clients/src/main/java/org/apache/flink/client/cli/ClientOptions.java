@@ -35,6 +35,7 @@ public class ClientOptions {
     public static final ConfigOption<Duration> CLIENT_TIMEOUT =
             ConfigOptions.key("client.timeout")
                     .durationType()
+                    .asClusterConfig()
                     .defaultValue(Duration.ofSeconds(60))
                     .withDeprecatedKeys(
                             "akka.client.timeout") // the deprecated AkkaOptions.CLIENT_TIMEOUT
@@ -43,6 +44,7 @@ public class ClientOptions {
     public static final ConfigOption<Duration> CLIENT_RETRY_PERIOD =
             ConfigOptions.key("client.retry-period")
                     .durationType()
+                    .asClusterConfig()
                     .defaultValue(Duration.ofMillis(2000))
                     .withDescription(
                             "The interval (in ms) between consecutive retries of failed attempts to execute "
@@ -52,6 +54,7 @@ public class ClientOptions {
     public static final ConfigOption<Duration> CLIENT_HEARTBEAT_TIMEOUT =
             key("client.heartbeat.timeout")
                     .durationType()
+                    .asClusterConfig()
                     .defaultValue(Duration.ofMillis(180000L))
                     .withDescription(
                             Description.builder()
@@ -67,6 +70,7 @@ public class ClientOptions {
     public static final ConfigOption<Duration> CLIENT_HEARTBEAT_INTERVAL =
             key("client.heartbeat.interval")
                     .durationType()
+                    .asClusterConfig()
                     .defaultValue(Duration.ofMillis(30000L))
                     .withDescription(
                             Description.builder()

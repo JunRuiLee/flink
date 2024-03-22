@@ -82,6 +82,7 @@ public class ExternalResourceOptions {
     public static final ConfigOption<List<String>> EXTERNAL_RESOURCE_LIST =
             key("external-resources")
                     .stringType()
+                    .asClusterConfig()
                     .asList()
                     .defaultValues()
                     .withDescription(
@@ -104,6 +105,7 @@ public class ExternalResourceOptions {
     public static final ConfigOption<String> EXTERNAL_RESOURCE_DRIVER_FACTORY_CLASS =
             key(genericKeyWithSuffix(EXTERNAL_RESOURCE_DRIVER_FACTORY_SUFFIX))
                     .stringType()
+                    .asClusterConfig()
                     .noDefaultValue()
                     .withDescription(
                             "Defines the factory class name for the external resource identified by <resource_name>. The "
@@ -119,6 +121,7 @@ public class ExternalResourceOptions {
     public static final ConfigOption<Long> EXTERNAL_RESOURCE_AMOUNT =
             key(genericKeyWithSuffix(EXTERNAL_RESOURCE_AMOUNT_SUFFIX))
                     .longType()
+                    .asClusterConfig()
                     .noDefaultValue()
                     .withDescription(
                             "The amount for the external resource specified by <resource_name> per TaskExecutor.");
@@ -134,6 +137,7 @@ public class ExternalResourceOptions {
     public static final ConfigOption<String> EXTERNAL_RESOURCE_DRIVER_PARAM =
             key(genericKeyWithSuffix(EXTERNAL_RESOURCE_DRIVER_PARAM_PATTERN_SUFFIX))
                     .stringType()
+                    .asClusterConfig()
                     .noDefaultValue()
                     .withDescription(
                             "The naming pattern of custom config options for the external resource specified by <resource_name>. "

@@ -41,6 +41,7 @@ public class ExecutionOptions {
     public static final ConfigOption<RuntimeExecutionMode> RUNTIME_MODE =
             ConfigOptions.key("execution.runtime-mode")
                     .enumType(RuntimeExecutionMode.class)
+                    .asJobConfig()
                     .defaultValue(RuntimeExecutionMode.STREAMING)
                     .withDescription(
                             "Runtime execution mode of DataStream programs. Among other things, "
@@ -49,6 +50,7 @@ public class ExecutionOptions {
     public static final ConfigOption<BatchShuffleMode> BATCH_SHUFFLE_MODE =
             ConfigOptions.key("execution.batch-shuffle-mode")
                     .enumType(BatchShuffleMode.class)
+                    .asJobConfig()
                     .defaultValue(BatchShuffleMode.ALL_EXCHANGES_BLOCKING)
                     .withDescription(
                             Description.builder()
@@ -89,6 +91,7 @@ public class ExecutionOptions {
     public static final ConfigOption<Boolean> SNAPSHOT_COMPRESSION =
             ConfigOptions.key("execution.checkpointing.snapshot-compression")
                     .booleanType()
+                    .asJobConfig()
                     .defaultValue(false)
                     .withDescription(
                             "Tells if we should use compression for the state snapshot data or not");
@@ -96,6 +99,7 @@ public class ExecutionOptions {
     public static final ConfigOption<Boolean> BUFFER_TIMEOUT_ENABLED =
             ConfigOptions.key("execution.buffer-timeout.enabled")
                     .booleanType()
+                    .asJobConfig()
                     .defaultValue(true)
                     .withDescription(
                             Description.builder()
@@ -107,6 +111,7 @@ public class ExecutionOptions {
     public static final ConfigOption<Duration> BUFFER_TIMEOUT =
             ConfigOptions.key("execution.buffer-timeout.interval")
                     .durationType()
+                    .asJobConfig()
                     .defaultValue(Duration.ofMillis(100))
                     .withDeprecatedKeys("execution.buffer-timeout")
                     .withDescription(
@@ -132,6 +137,7 @@ public class ExecutionOptions {
     public static final ConfigOption<MemorySize> SORT_PARTITION_MEMORY =
             ConfigOptions.key("execution.sort-partition.memory")
                     .memoryType()
+                    .asJobConfig()
                     .defaultValue(MemorySize.ofMebiBytes(128))
                     .withDescription(
                             "Sets the managed memory size for sort partition operator in NonKeyedPartitionWindowedStream."
@@ -141,6 +147,7 @@ public class ExecutionOptions {
     public static final ConfigOption<MemorySize> SORT_KEYED_PARTITION_MEMORY =
             ConfigOptions.key("execution.sort-keyed-partition.memory")
                     .memoryType()
+                    .asJobConfig()
                     .defaultValue(MemorySize.ofMebiBytes(128))
                     .withDescription(
                             "Sets the managed memory size for sort partition operator on KeyedPartitionWindowedStream."
@@ -152,6 +159,7 @@ public class ExecutionOptions {
     public static final ConfigOption<Boolean> SORT_INPUTS =
             ConfigOptions.key("execution.sorted-inputs.enabled")
                     .booleanType()
+                    .asJobConfig()
                     .defaultValue(true)
                     .withDescription(
                             "A flag to enable or disable sorting inputs of keyed operators. "
@@ -162,6 +170,7 @@ public class ExecutionOptions {
     public static final ConfigOption<MemorySize> SORTED_INPUTS_MEMORY =
             ConfigOptions.key("execution.sorted-inputs.memory")
                     .memoryType()
+                    .asJobConfig()
                     // in sync with other weights from Table API and DataStream API
                     .defaultValue(MemorySize.ofMebiBytes(128))
                     .withDescription(
@@ -176,6 +185,7 @@ public class ExecutionOptions {
     public static final ConfigOption<Boolean> USE_BATCH_STATE_BACKEND =
             ConfigOptions.key("execution.batch-state-backend.enabled")
                     .booleanType()
+                    .asJobConfig()
                     .defaultValue(true)
                     .withDescription(
                             "A flag to enable or disable batch runtime specific state backend and timer service for keyed"

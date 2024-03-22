@@ -101,6 +101,7 @@ public class CheckpointingOptions {
     public static final ConfigOption<String> CHECKPOINT_STORAGE =
             ConfigOptions.key("execution.checkpointing.storage")
                     .stringType()
+                    .asJobConfig()
                     .noDefaultValue()
                     .withDeprecatedKeys("state.checkpoint-storage")
                     .withDescription(
@@ -136,6 +137,7 @@ public class CheckpointingOptions {
     public static final ConfigOption<Integer> MAX_RETAINED_CHECKPOINTS =
             ConfigOptions.key("execution.checkpointing.num-retained")
                     .intType()
+                    .asClusterConfig()
                     .defaultValue(1)
                     .withDeprecatedKeys("state.checkpoints.num-retained")
                     .withDescription("The maximum number of completed checkpoints to retain.");
@@ -148,6 +150,7 @@ public class CheckpointingOptions {
     public static final ConfigOption<Boolean> CLEANER_PARALLEL_MODE =
             ConfigOptions.key("execution.checkpointing.cleaner.parallel-mode")
                     .booleanType()
+                    .asClusterConfig()
                     .defaultValue(true)
                     .withDeprecatedKeys("state.checkpoint.cleaner.parallel-mode")
                     .withDescription(
@@ -176,6 +179,7 @@ public class CheckpointingOptions {
     public static final ConfigOption<Boolean> INCREMENTAL_CHECKPOINTS =
             ConfigOptions.key("execution.checkpointing.incremental")
                     .booleanType()
+                    .asJobConfig()
                     .defaultValue(false)
                     .withDeprecatedKeys("state.backend.incremental")
                     .withDescription(
@@ -218,6 +222,7 @@ public class CheckpointingOptions {
     public static final ConfigOption<String> LOCAL_RECOVERY_TASK_MANAGER_STATE_ROOT_DIRS =
             ConfigOptions.key("execution.checkpointing.local-backup.dirs")
                     .stringType()
+                    .asClusterConfig()
                     .noDefaultValue()
                     .withDeprecatedKeys("taskmanager.state.local.root-dirs")
                     .withDescription(
@@ -245,6 +250,7 @@ public class CheckpointingOptions {
     public static final ConfigOption<String> SAVEPOINT_DIRECTORY =
             ConfigOptions.key("execution.checkpointing.savepoint-dir")
                     .stringType()
+                    .asJobConfig()
                     .noDefaultValue()
                     .withDeprecatedKeys("state.savepoints.dir", "savepoints.state.backend.fs.dir")
                     .withDescription(
@@ -261,6 +267,7 @@ public class CheckpointingOptions {
     public static final ConfigOption<String> CHECKPOINTS_DIRECTORY =
             ConfigOptions.key("execution.checkpointing.dir")
                     .stringType()
+                    .asJobConfig()
                     .noDefaultValue()
                     .withDeprecatedKeys("state.checkpoints.dir", "state.backend.fs.checkpointdir")
                     .withDescription(
@@ -280,6 +287,7 @@ public class CheckpointingOptions {
     public static final ConfigOption<Boolean> CREATE_CHECKPOINT_SUB_DIR =
             ConfigOptions.key("execution.checkpointing.create-subdir")
                     .booleanType()
+                    .asJobConfig()
                     .defaultValue(true)
                     .withDeprecatedKeys("state.checkpoints.create-subdir")
                     .withDescription(
@@ -305,6 +313,7 @@ public class CheckpointingOptions {
     public static final ConfigOption<MemorySize> FS_SMALL_FILE_THRESHOLD =
             ConfigOptions.key("execution.checkpointing.data-inline-threshold")
                     .memoryType()
+                    .asJobConfig()
                     .defaultValue(MemorySize.parse("20kb"))
                     .withDescription(
                             "The minimum size of state data files. All state chunks smaller than that are stored"
@@ -320,6 +329,7 @@ public class CheckpointingOptions {
     public static final ConfigOption<Integer> FS_WRITE_BUFFER_SIZE =
             ConfigOptions.key("execution.checkpointing.write-buffer-size")
                     .intType()
+                    .asJobConfig()
                     .defaultValue(4 * 1024)
                     .withDescription(
                             String.format(
@@ -341,6 +351,7 @@ public class CheckpointingOptions {
     public static final ConfigOption<Boolean> LOCAL_BACKUP_ENABLED =
             ConfigOptions.key("execution.checkpointing.local-backup.enabled")
                     .booleanType()
+                    .asClusterConfig()
                     .defaultValue(StateRecoveryOptions.LOCAL_RECOVERY.defaultValue())
                     .withFallbackKeys(StateRecoveryOptions.LOCAL_RECOVERY.key())
                     .withDeprecatedKeys(LOCAL_RECOVERY.key())
@@ -368,6 +379,7 @@ public class CheckpointingOptions {
     public static final ConfigOption<Boolean> FILE_MERGING_ENABLED =
             ConfigOptions.key("execution.checkpointing.file-merging.enabled")
                     .booleanType()
+                    .asJobConfig()
                     .defaultValue(false)
                     .withDescription(
                             "Whether to enable merging multiple checkpoint files into one, which will greatly reduce"
@@ -384,6 +396,7 @@ public class CheckpointingOptions {
     public static final ConfigOption<Boolean> FILE_MERGING_ACROSS_BOUNDARY =
             ConfigOptions.key("execution.checkpointing.file-merging.across-checkpoint-boundary")
                     .booleanType()
+                    .asJobConfig()
                     .defaultValue(false)
                     .withDescription(
                             Description.builder()
@@ -405,6 +418,7 @@ public class CheckpointingOptions {
     public static final ConfigOption<MemorySize> FILE_MERGING_MAX_FILE_SIZE =
             ConfigOptions.key("execution.checkpointing.file-merging.max-file-size")
                     .memoryType()
+                    .asJobConfig()
                     .defaultValue(MemorySize.parse("32MB"))
                     .withDescription("Max size of a physical file for merged checkpoints.");
 
@@ -419,6 +433,7 @@ public class CheckpointingOptions {
     public static final ConfigOption<Boolean> FILE_MERGING_POOL_BLOCKING =
             ConfigOptions.key("execution.checkpointing.file-merging.pool-blocking")
                     .booleanType()
+                    .asJobConfig()
                     .defaultValue(false)
                     .withDescription(
                             "Whether to use Blocking or Non-Blocking pool for merging physical files. "
@@ -435,6 +450,7 @@ public class CheckpointingOptions {
     public static final ConfigOption<Integer> FILE_MERGING_MAX_SUBTASKS_PER_FILE =
             ConfigOptions.key("execution.checkpointing.file-merging.max-subtasks-per-file")
                     .intType()
+                    .asJobConfig()
                     .defaultValue(4)
                     .withDescription(
                             "The upper limit of the file pool size based on the number of subtasks within each TM"
@@ -451,6 +467,7 @@ public class CheckpointingOptions {
     public static final ConfigOption<Float> FILE_MERGING_MAX_SPACE_AMPLIFICATION =
             ConfigOptions.key("execution.checkpointing.file-merging.max-space-amplification")
                     .floatType()
+                    .asJobConfig()
                     .defaultValue(2f)
                     .withDescription(
                             "Space amplification stands for the magnification of the occupied space compared to the amount of valid data. "
@@ -461,12 +478,14 @@ public class CheckpointingOptions {
     public static final ConfigOption<CheckpointingMode> CHECKPOINTING_CONSISTENCY_MODE =
             ConfigOptions.key("execution.checkpointing.mode")
                     .enumType(CheckpointingMode.class)
+                    .asJobConfig()
                     .defaultValue(CheckpointingMode.EXACTLY_ONCE)
                     .withDescription("The checkpointing mode (exactly-once vs. at-least-once).");
 
     public static final ConfigOption<Duration> CHECKPOINTING_TIMEOUT =
             ConfigOptions.key("execution.checkpointing.timeout")
                     .durationType()
+                    .asJobConfig()
                     .defaultValue(Duration.ofMinutes(10))
                     .withDescription(
                             "The maximum time that a checkpoint may take before being discarded.");
@@ -474,6 +493,7 @@ public class CheckpointingOptions {
     public static final ConfigOption<Integer> MAX_CONCURRENT_CHECKPOINTS =
             ConfigOptions.key("execution.checkpointing.max-concurrent-checkpoints")
                     .intType()
+                    .asJobConfig()
                     .defaultValue(1)
                     .withDescription(
                             "The maximum number of checkpoint attempts that may be in progress at the same time. If "
@@ -484,6 +504,7 @@ public class CheckpointingOptions {
     public static final ConfigOption<Duration> MIN_PAUSE_BETWEEN_CHECKPOINTS =
             ConfigOptions.key("execution.checkpointing.min-pause")
                     .durationType()
+                    .asJobConfig()
                     .defaultValue(Duration.ZERO)
                     .withDescription(
                             Description.builder()
@@ -499,10 +520,52 @@ public class CheckpointingOptions {
                                             "If the maximum number of concurrent checkpoints is set to one, this setting makes effectively "
                                                     + "sure that a minimum amount of time passes where no checkpoint is in progress at all.")
                                     .build());
-
+    public static final ConfigOption<Duration> CHECKPOINTING_INTERVAL_DURING_BACKLOG =
+            ConfigOptions.key("execution.checkpointing.interval-during-backlog")
+                    .durationType()
+                    .asJobConfig()
+                    .noDefaultValue()
+                    .withDescription(
+                            Description.builder()
+                                    .text(
+                                            "If it is not null and any source reports isProcessingBacklog=true, "
+                                                    + "it is the interval in which checkpoints are periodically scheduled.")
+                                    .linebreak()
+                                    .linebreak()
+                                    .text(
+                                            "Checkpoint triggering may be delayed by the settings %s and %s.",
+                                            TextElement.code(MAX_CONCURRENT_CHECKPOINTS.key()),
+                                            TextElement.code(MIN_PAUSE_BETWEEN_CHECKPOINTS.key()))
+                                    .linebreak()
+                                    .linebreak()
+                                    .text(
+                                            "Note: if it is not null, the value must either be 0, "
+                                                    + "which means the checkpoint is disabled during backlog, "
+                                                    + "or be larger than or equal to execution.checkpointing.interval.")
+                                    .build());
+    public static final ConfigOption<Duration> CHECKPOINTING_INTERVAL =
+            ConfigOptions.key("execution.checkpointing.interval")
+                    .durationType()
+                    .asJobConfig()
+                    .noDefaultValue()
+                    .withDescription(
+                            Description.builder()
+                                    .text(
+                                            "Gets the interval in which checkpoints are periodically scheduled.")
+                                    .linebreak()
+                                    .linebreak()
+                                    .text(
+                                            "This setting defines the base interval. Checkpoint triggering may be delayed by the settings "
+                                                    + "%s, %s and %s",
+                                            TextElement.code(MAX_CONCURRENT_CHECKPOINTS.key()),
+                                            TextElement.code(MIN_PAUSE_BETWEEN_CHECKPOINTS.key()),
+                                            TextElement.code(
+                                                    CHECKPOINTING_INTERVAL_DURING_BACKLOG.key()))
+                                    .build());
     public static final ConfigOption<Integer> TOLERABLE_FAILURE_NUMBER =
             ConfigOptions.key("execution.checkpointing.tolerable-failed-checkpoints")
                     .intType()
+                    .asJobConfig()
                     .defaultValue(0)
                     .withDescription(
                             "The tolerable checkpoint consecutive failure number. If set to 0, that means "
@@ -510,11 +573,11 @@ public class CheckpointingOptions {
                                     + "Job Manager, failures in the async phase on the Task Managers and checkpoint expiration due to a timeout. Failures "
                                     + "originating from the sync phase on the Task Managers are always forcing failover of an affected task. Other types of "
                                     + "checkpoint failures (such as checkpoint being subsumed) are being ignored.");
-
     public static final ConfigOption<ExternalizedCheckpointRetention>
             EXTERNALIZED_CHECKPOINT_RETENTION =
                     ConfigOptions.key("execution.checkpointing.externalized-checkpoint-retention")
                             .enumType(ExternalizedCheckpointRetention.class)
+                            .asJobConfig()
                             .defaultValue(
                                     ExternalizedCheckpointRetention.NO_EXTERNALIZED_CHECKPOINTS)
                             .withDescription(
@@ -542,52 +605,10 @@ public class CheckpointingOptions {
                                                                     .CHECKPOINTS_DIRECTORY
                                                                     .key()))
                                             .build());
-
-    public static final ConfigOption<Duration> CHECKPOINTING_INTERVAL_DURING_BACKLOG =
-            ConfigOptions.key("execution.checkpointing.interval-during-backlog")
-                    .durationType()
-                    .noDefaultValue()
-                    .withDescription(
-                            Description.builder()
-                                    .text(
-                                            "If it is not null and any source reports isProcessingBacklog=true, "
-                                                    + "it is the interval in which checkpoints are periodically scheduled.")
-                                    .linebreak()
-                                    .linebreak()
-                                    .text(
-                                            "Checkpoint triggering may be delayed by the settings %s and %s.",
-                                            TextElement.code(MAX_CONCURRENT_CHECKPOINTS.key()),
-                                            TextElement.code(MIN_PAUSE_BETWEEN_CHECKPOINTS.key()))
-                                    .linebreak()
-                                    .linebreak()
-                                    .text(
-                                            "Note: if it is not null, the value must either be 0, "
-                                                    + "which means the checkpoint is disabled during backlog, "
-                                                    + "or be larger than or equal to execution.checkpointing.interval.")
-                                    .build());
-
-    public static final ConfigOption<Duration> CHECKPOINTING_INTERVAL =
-            ConfigOptions.key("execution.checkpointing.interval")
-                    .durationType()
-                    .noDefaultValue()
-                    .withDescription(
-                            Description.builder()
-                                    .text(
-                                            "Gets the interval in which checkpoints are periodically scheduled.")
-                                    .linebreak()
-                                    .linebreak()
-                                    .text(
-                                            "This setting defines the base interval. Checkpoint triggering may be delayed by the settings "
-                                                    + "%s, %s and %s",
-                                            TextElement.code(MAX_CONCURRENT_CHECKPOINTS.key()),
-                                            TextElement.code(MIN_PAUSE_BETWEEN_CHECKPOINTS.key()),
-                                            TextElement.code(
-                                                    CHECKPOINTING_INTERVAL_DURING_BACKLOG.key()))
-                                    .build());
-
     public static final ConfigOption<Boolean> ENABLE_UNALIGNED =
             ConfigOptions.key("execution.checkpointing.unaligned.enabled")
                     .booleanType()
+                    .asJobConfig()
                     .defaultValue(false)
                     .withDeprecatedKeys("execution.checkpointing.unaligned")
                     .withDescription(
@@ -614,6 +635,7 @@ public class CheckpointingOptions {
     public static final ConfigOption<Duration> ALIGNED_CHECKPOINT_TIMEOUT =
             ConfigOptions.key("execution.checkpointing.aligned-checkpoint-timeout")
                     .durationType()
+                    .asJobConfig()
                     .defaultValue(Duration.ofSeconds(0L))
                     .withDeprecatedKeys("execution.checkpointing.alignment-timeout")
                     .withDescription(
@@ -636,6 +658,7 @@ public class CheckpointingOptions {
     public static final ConfigOption<Boolean> FORCE_UNALIGNED =
             ConfigOptions.key("execution.checkpointing.unaligned.forced")
                     .booleanType()
+                    .asJobConfig()
                     .defaultValue(false)
                     .withDescription(
                             Description.builder()
@@ -647,6 +670,7 @@ public class CheckpointingOptions {
     public static final ConfigOption<Boolean> ENABLE_UNALIGNED_INTERRUPTIBLE_TIMERS =
             ConfigOptions.key("execution.checkpointing.unaligned.interruptible-timers.enabled")
                     .booleanType()
+                    .asJobConfig()
                     .defaultValue(false)
                     .withDescription(
                             "Allows unaligned checkpoints to skip timers that are currently being fired."
@@ -656,6 +680,7 @@ public class CheckpointingOptions {
     public static final ConfigOption<Boolean> ENABLE_CHECKPOINTS_AFTER_TASKS_FINISH =
             ConfigOptions.key("execution.checkpointing.checkpoints-after-tasks-finish")
                     .booleanType()
+                    .asJobConfig()
                     .defaultValue(true)
                     .withDeprecatedKeys(
                             "execution.checkpointing.checkpoints-after-tasks-finish.enabled")
@@ -682,6 +707,7 @@ public class CheckpointingOptions {
     public static final ConfigOption<Integer> UNALIGNED_MAX_SUBTASKS_PER_CHANNEL_STATE_FILE =
             key("execution.checkpointing.unaligned.max-subtasks-per-channel-state-file")
                     .intType()
+                    .asJobConfig()
                     .defaultValue(5)
                     .withDescription(
                             "Defines the maximum number of subtasks that share the same channel state file. "

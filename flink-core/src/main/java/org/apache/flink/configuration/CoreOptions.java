@@ -67,6 +67,7 @@ public class CoreOptions {
     public static final ConfigOption<String> CLASSLOADER_RESOLVE_ORDER =
             ConfigOptions.key("classloader.resolve-order")
                     .stringType()
+                    .asClusterConfig()
                     .defaultValue("child-first")
                     .withDescription(
                             "Defines the class resolution strategy when loading classes from user code, meaning whether to"
@@ -107,6 +108,7 @@ public class CoreOptions {
     public static final ConfigOption<List<String>> ALWAYS_PARENT_FIRST_LOADER_PATTERNS =
             ConfigOptions.key("classloader.parent-first-patterns.default")
                     .stringType()
+                    .asClusterConfig()
                     .asList()
                     .defaultValues(
                             ArrayUtils.concat(
@@ -135,6 +137,7 @@ public class CoreOptions {
     public static final ConfigOption<List<String>> ALWAYS_PARENT_FIRST_LOADER_PATTERNS_ADDITIONAL =
             ConfigOptions.key("classloader.parent-first-patterns.additional")
                     .stringType()
+                    .asClusterConfig()
                     .asList()
                     .defaultValues()
                     .withDescription(
@@ -148,6 +151,7 @@ public class CoreOptions {
     public static final ConfigOption<Boolean> FAIL_ON_USER_CLASS_LOADING_METASPACE_OOM =
             ConfigOptions.key("classloader.fail-on-metaspace-oom-error")
                     .booleanType()
+                    .asClusterConfig()
                     .defaultValue(true)
                     .withDescription(
                             "Fail Flink JVM processes if 'OutOfMemoryError: Metaspace' is "
@@ -163,6 +167,7 @@ public class CoreOptions {
     public static final ConfigOption<Boolean> CHECK_LEAKED_CLASSLOADER =
             ConfigOptions.key("classloader.check-leaked-classloader")
                     .booleanType()
+                    .asClusterConfig()
                     .defaultValue(true)
                     .withDescription(
                             "Fails attempts at loading classes if the user classloader of a job is used after it has "
@@ -181,6 +186,7 @@ public class CoreOptions {
     public static final ConfigOption<List<String>> PLUGIN_ALWAYS_PARENT_FIRST_LOADER_PATTERNS =
             ConfigOptions.key("plugin.classloader.parent-first-patterns.default")
                     .stringType()
+                    .asClusterConfig()
                     .asList()
                     .defaultValues(
                             ArrayUtils.concat(
@@ -201,6 +207,7 @@ public class CoreOptions {
             PLUGIN_ALWAYS_PARENT_FIRST_LOADER_PATTERNS_ADDITIONAL =
                     ConfigOptions.key("plugin.classloader.parent-first-patterns.additional")
                             .stringType()
+                            .asClusterConfig()
                             .asList()
                             .defaultValues()
                             .withDescription(
@@ -228,6 +235,7 @@ public class CoreOptions {
     public static final ConfigOption<String> FLINK_JVM_OPTIONS =
             ConfigOptions.key("env.java.opts.all")
                     .stringType()
+                    .asClusterConfig()
                     .defaultValue("")
                     .withDeprecatedKeys("env.java.opts")
                     .withDescription(
@@ -239,6 +247,7 @@ public class CoreOptions {
     public static final ConfigOption<String> FLINK_JM_JVM_OPTIONS =
             ConfigOptions.key("env.java.opts.jobmanager")
                     .stringType()
+                    .asClusterConfig()
                     .defaultValue("")
                     .withDescription(
                             Description.builder()
@@ -248,6 +257,7 @@ public class CoreOptions {
     public static final ConfigOption<String> FLINK_TM_JVM_OPTIONS =
             ConfigOptions.key("env.java.opts.taskmanager")
                     .stringType()
+                    .asClusterConfig()
                     .defaultValue("")
                     .withDescription(
                             Description.builder()
@@ -257,6 +267,7 @@ public class CoreOptions {
     public static final ConfigOption<String> FLINK_HS_JVM_OPTIONS =
             ConfigOptions.key("env.java.opts.historyserver")
                     .stringType()
+                    .asClusterConfig()
                     .defaultValue("")
                     .withDescription(
                             Description.builder()
@@ -267,6 +278,7 @@ public class CoreOptions {
     public static final ConfigOption<String> FLINK_CLI_JVM_OPTIONS =
             ConfigOptions.key("env.java.opts.client")
                     .stringType()
+                    .asJobConfig()
                     .defaultValue("")
                     .withDescription(
                             Description.builder()
@@ -276,6 +288,7 @@ public class CoreOptions {
     public static final ConfigOption<String> FLINK_SQL_GATEWAY_JVM_OPTIONS =
             ConfigOptions.key("env.java.opts.sql-gateway")
                     .stringType()
+                    .asClusterConfig()
                     .defaultValue("")
                     .withDescription(
                             Description.builder()
@@ -286,6 +299,7 @@ public class CoreOptions {
     public static final ConfigOption<String> FLINK_DEFAULT_JVM_OPTIONS =
             ConfigOptions.key("env.java.default-opts.all")
                     .stringType()
+                    .asClusterConfig()
                     .defaultValue("")
                     .withDescription(
                             Description.builder()
@@ -298,6 +312,7 @@ public class CoreOptions {
     public static final ConfigOption<String> FLINK_DEFAULT_JM_JVM_OPTIONS =
             ConfigOptions.key("env.java.default-opts.jobmanager")
                     .stringType()
+                    .asClusterConfig()
                     .defaultValue("")
                     .withDescription(
                             Description.builder()
@@ -310,6 +325,7 @@ public class CoreOptions {
     public static final ConfigOption<String> FLINK_DEFAULT_TM_JVM_OPTIONS =
             ConfigOptions.key("env.java.default-opts.taskmanager")
                     .stringType()
+                    .asClusterConfig()
                     .defaultValue("")
                     .withDescription(
                             Description.builder()
@@ -327,6 +343,7 @@ public class CoreOptions {
     public static final ConfigOption<String> FLINK_LOG_DIR =
             ConfigOptions.key("env.log.dir")
                     .stringType()
+                    .asClusterConfig()
                     .noDefaultValue()
                     .withDescription(
                             "Defines the directory where the Flink logs are saved. It has to be an absolute path."
@@ -339,6 +356,7 @@ public class CoreOptions {
     public static final ConfigOption<String> FLINK_PID_DIR =
             ConfigOptions.key("env.pid.dir")
                     .stringType()
+                    .asClusterConfig()
                     .defaultValue("/tmp")
                     .withDescription(
                             "Defines the directory where the flink-<host>-<process>.pid files are saved.");
@@ -351,6 +369,7 @@ public class CoreOptions {
     public static final ConfigOption<Integer> FLINK_LOG_MAX =
             ConfigOptions.key("env.log.max")
                     .intType()
+                    .asClusterConfig()
                     .defaultValue(10)
                     .withDescription("The maximum number of old log files to keep.");
 
@@ -362,6 +381,7 @@ public class CoreOptions {
     public static final ConfigOption<String> FLINK_LOG_LEVEL =
             ConfigOptions.key("env.log.level")
                     .stringType()
+                    .asClusterConfig()
                     .defaultValue("INFO")
                     .withDescription("Defines the level of the root logger.");
 
@@ -373,6 +393,7 @@ public class CoreOptions {
     public static final ConfigOption<Boolean> FLINK_STD_REDIRECT_TO_FILE =
             ConfigOptions.key("env.stdout-err.redirect-to-file")
                     .booleanType()
+                    .asClusterConfig()
                     .defaultValue(false)
                     .withDescription(
                             "Whether redirect stdout and stderr to files when running foreground. "
@@ -387,6 +408,7 @@ public class CoreOptions {
     public static final ConfigOption<String> FLINK_SSH_OPTIONS =
             ConfigOptions.key("env.ssh.opts")
                     .stringType()
+                    .asClusterConfig()
                     .noDefaultValue()
                     .withDescription(
                             "Additional command line options passed to SSH clients when starting or stopping JobManager,"
@@ -401,6 +423,7 @@ public class CoreOptions {
     public static final ConfigOption<String> FLINK_HADOOP_CONF_DIR =
             ConfigOptions.key("env.hadoop.conf.dir")
                     .stringType()
+                    .asClusterConfig()
                     .noDefaultValue()
                     .withDescription(
                             "Path to hadoop configuration directory. It is required to read HDFS and/or YARN"
@@ -414,6 +437,7 @@ public class CoreOptions {
     public static final ConfigOption<String> FLINK_YARN_CONF_DIR =
             ConfigOptions.key("env.yarn.conf.dir")
                     .stringType()
+                    .asClusterConfig()
                     .noDefaultValue()
                     .withDescription(
                             "Path to yarn configuration directory. It is required to run flink on YARN. You can also"
@@ -427,6 +451,7 @@ public class CoreOptions {
     public static final ConfigOption<String> FLINK_HBASE_CONF_DIR =
             ConfigOptions.key("env.hbase.conf.dir")
                     .stringType()
+                    .asClusterConfig()
                     .noDefaultValue()
                     .withDescription(
                             "Path to hbase configuration directory. It is required to read HBASE configuration."
@@ -446,6 +471,7 @@ public class CoreOptions {
     public static final ConfigOption<String> TMP_DIRS =
             key("io.tmp.dirs")
                     .stringType()
+                    .asClusterConfig()
                     .defaultValue(System.getProperty("java.io.tmpdir"))
                     .withDeprecatedKeys("taskmanager.tmp.dirs")
                     .withDescription(
@@ -458,6 +484,7 @@ public class CoreOptions {
     public static final ConfigOption<Integer> DEFAULT_PARALLELISM =
             ConfigOptions.key("parallelism.default")
                     .intType()
+                    .asJobConfig()
                     .defaultValue(1)
                     .withDescription("Default parallelism for jobs.");
 
@@ -470,6 +497,7 @@ public class CoreOptions {
     public static final ConfigOption<String> DEFAULT_FILESYSTEM_SCHEME =
             ConfigOptions.key("fs.default-scheme")
                     .stringType()
+                    .asClusterConfig()
                     .noDefaultValue()
                     .withDescription(
                             "The default filesystem scheme, used for paths that do not declare a scheme explicitly."
@@ -479,6 +507,7 @@ public class CoreOptions {
     public static final ConfigOption<String> ALLOWED_FALLBACK_FILESYSTEMS =
             ConfigOptions.key("fs.allowed-fallback-filesystems")
                     .stringType()
+                    .asClusterConfig()
                     .defaultValue("")
                     .withDescription(
                             "A (semicolon-separated) list of file schemes, for which Hadoop can be used instead "

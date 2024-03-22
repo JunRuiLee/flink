@@ -40,6 +40,7 @@ public class ClusterOptions {
     public static final ConfigOption<Duration> INITIAL_REGISTRATION_TIMEOUT =
             ConfigOptions.key("cluster.registration.initial-timeout")
                     .durationType()
+                    .asClusterConfig()
                     .defaultValue(Duration.ofMillis(100))
                     .withDescription("Initial registration timeout between cluster components.");
 
@@ -47,6 +48,7 @@ public class ClusterOptions {
     public static final ConfigOption<Duration> MAX_REGISTRATION_TIMEOUT =
             key("cluster.registration.max-timeout")
                     .durationType()
+                    .asClusterConfig()
                     .defaultValue(Duration.ofMillis(30000))
                     .withDescription("Maximum registration timeout between cluster components.");
 
@@ -54,6 +56,7 @@ public class ClusterOptions {
     public static final ConfigOption<Duration> ERROR_REGISTRATION_DELAY =
             ConfigOptions.key("cluster.registration.error-delay")
                     .durationType()
+                    .asClusterConfig()
                     .defaultValue(Duration.ofMillis(10000L))
                     .withDescription(
                             "The pause made after an registration attempt caused an exception (other than timeout).");
@@ -62,6 +65,7 @@ public class ClusterOptions {
     public static final ConfigOption<Duration> REFUSED_REGISTRATION_DELAY =
             ConfigOptions.key("cluster.registration.refused-registration-delay")
                     .durationType()
+                    .asClusterConfig()
                     .defaultValue(Duration.ofMillis(30000L))
                     .withDescription("The pause made after the registration attempt was refused.");
 
@@ -69,6 +73,7 @@ public class ClusterOptions {
     public static final ConfigOption<Duration> CLUSTER_SERVICES_SHUTDOWN_TIMEOUT =
             ConfigOptions.key("cluster.services.shutdown-timeout")
                     .durationType()
+                    .asClusterConfig()
                     .defaultValue(Duration.ofMillis(30000L))
                     .withDescription("The shutdown timeout for cluster services like executors.");
 
@@ -76,6 +81,7 @@ public class ClusterOptions {
     public static final ConfigOption<Integer> CLUSTER_IO_EXECUTOR_POOL_SIZE =
             ConfigOptions.key("cluster.io-pool.size")
                     .intType()
+                    .asClusterConfig()
                     .noDefaultValue()
                     .withDescription(
                             "The size of the IO executor pool used by the cluster to execute blocking IO operations (Master as well as TaskManager processes). "
@@ -106,6 +112,7 @@ public class ClusterOptions {
     public static final ConfigOption<Boolean> HALT_ON_FATAL_ERROR =
             key("cluster.processes.halt-on-fatal-error")
                     .booleanType()
+                    .asClusterConfig()
                     .defaultValue(false)
                     .withDescription(
                             Description.builder()
@@ -122,6 +129,7 @@ public class ClusterOptions {
     public static final ConfigOption<UserSystemExitMode> INTERCEPT_USER_SYSTEM_EXIT =
             key("cluster.intercept-user-system-exit")
                     .enumType(UserSystemExitMode.class)
+                    .asClusterConfig()
                     .defaultValue(UserSystemExitMode.DISABLED)
                     .withDescription(
                             Description.builder()
@@ -137,6 +145,7 @@ public class ClusterOptions {
     public static final ConfigOption<Integer> THREAD_DUMP_STACKTRACE_MAX_DEPTH =
             key("cluster.thread-dump.stacktrace-max-depth")
                     .intType()
+                    .asClusterConfig()
                     .defaultValue(50)
                     .withDescription(
                             "The maximum stacktrace depth of TaskManager and JobManager's thread dump web-frontend displayed.");
@@ -148,6 +157,7 @@ public class ClusterOptions {
     public static final ConfigOption<Boolean> FINE_GRAINED_SHUFFLE_MODE_ALL_BLOCKING =
             ConfigOptions.key("fine-grained.shuffle-mode.all-blocking")
                     .booleanType()
+                    .asClusterConfig()
                     .defaultValue(false)
                     .withDescription(
                             "Whether to convert all PIPELINE edges to BLOCKING when apply fine-grained resource management in batch jobs.");
@@ -156,6 +166,7 @@ public class ClusterOptions {
     public static final ConfigOption<UncaughtExceptionHandleMode> UNCAUGHT_EXCEPTION_HANDLING =
             ConfigOptions.key("cluster.uncaught-exception-handling")
                     .enumType(UncaughtExceptionHandleMode.class)
+                    .asClusterConfig()
                     .defaultValue(UncaughtExceptionHandleMode.LOG)
                     .withDescription(
                             String.format(
@@ -169,6 +180,7 @@ public class ClusterOptions {
     public static final ConfigOption<String> PROCESS_WORKING_DIR_BASE =
             ConfigOptions.key("process.working-dir")
                     .stringType()
+                    .asClusterConfig()
                     .noDefaultValue()
                     .withDescription(
                             Description.builder()
@@ -183,6 +195,7 @@ public class ClusterOptions {
     public static final ConfigOption<String> JOB_MANAGER_PROCESS_WORKING_DIR_BASE =
             ConfigOptions.key("process.jobmanager.working-dir")
                     .stringType()
+                    .asClusterConfig()
                     .noDefaultValue()
                     .withFallbackKeys(PROCESS_WORKING_DIR_BASE.key())
                     .withDescription(
@@ -196,6 +209,7 @@ public class ClusterOptions {
     public static final ConfigOption<String> TASK_MANAGER_PROCESS_WORKING_DIR_BASE =
             ConfigOptions.key("process.taskmanager.working-dir")
                     .stringType()
+                    .asClusterConfig()
                     .noDefaultValue()
                     .withFallbackKeys(PROCESS_WORKING_DIR_BASE.key())
                     .withDescription(

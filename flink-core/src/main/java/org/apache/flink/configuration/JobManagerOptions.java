@@ -57,6 +57,7 @@ public class JobManagerOptions {
     public static final ConfigOption<String> ADDRESS =
             key("jobmanager.rpc.address")
                     .stringType()
+                    .asClusterConfig()
                     .noDefaultValue()
                     .withDescription(
                             "The config parameter defining the network address to connect to"
@@ -75,6 +76,7 @@ public class JobManagerOptions {
     public static final ConfigOption<String> BIND_HOST =
             key("jobmanager.bind-host")
                     .stringType()
+                    .asClusterConfig()
                     .noDefaultValue()
                     .withDescription(
                             "The local address of the network interface that the job manager binds to. If not"
@@ -97,6 +99,7 @@ public class JobManagerOptions {
     public static final ConfigOption<Integer> PORT =
             key("jobmanager.rpc.port")
                     .intType()
+                    .asClusterConfig()
                     .defaultValue(6123)
                     .withDescription(
                             "The config parameter defining the network port to connect to"
@@ -118,6 +121,7 @@ public class JobManagerOptions {
     public static final ConfigOption<Integer> RPC_BIND_PORT =
             key("jobmanager.rpc.bind-port")
                     .intType()
+                    .asClusterConfig()
                     .noDefaultValue()
                     .withDescription(
                             "The local RPC port that the JobManager binds to. If not configured, the external port"
@@ -157,6 +161,7 @@ public class JobManagerOptions {
     public static final ConfigOption<MemorySize> TOTAL_PROCESS_MEMORY =
             key("jobmanager.memory.process.size")
                     .memoryType()
+                    .asClusterConfig()
                     .noDefaultValue()
                     .withDescription(
                             "Total Process Memory size for the JobManager. This includes all the memory that a "
@@ -169,6 +174,7 @@ public class JobManagerOptions {
     public static final ConfigOption<MemorySize> TOTAL_FLINK_MEMORY =
             key("jobmanager.memory.flink.size")
                     .memoryType()
+                    .asClusterConfig()
                     .noDefaultValue()
                     .withDescription(
                             String.format(
@@ -182,6 +188,7 @@ public class JobManagerOptions {
     public static final ConfigOption<MemorySize> JVM_HEAP_MEMORY =
             key("jobmanager.memory.heap.size")
                     .memoryType()
+                    .asClusterConfig()
                     .noDefaultValue()
                     .withDescription(
                             "JVM Heap Memory size for JobManager. The minimum recommended JVM Heap size is "
@@ -193,6 +200,7 @@ public class JobManagerOptions {
     public static final ConfigOption<MemorySize> OFF_HEAP_MEMORY =
             key("jobmanager.memory.off-heap.size")
                     .memoryType()
+                    .asClusterConfig()
                     .defaultValue(MemorySize.ofMebiBytes(128))
                     .withDescription(
                             Description.builder()
@@ -208,6 +216,7 @@ public class JobManagerOptions {
     public static final ConfigOption<Boolean> JVM_DIRECT_MEMORY_LIMIT_ENABLED =
             key("jobmanager.memory.enable-jvm-direct-memory-limit")
                     .booleanType()
+                    .asClusterConfig()
                     .defaultValue(false)
                     .withDescription(
                             Description.builder()
@@ -222,6 +231,7 @@ public class JobManagerOptions {
     public static final ConfigOption<MemorySize> JVM_METASPACE =
             key("jobmanager.memory.jvm-metaspace.size")
                     .memoryType()
+                    .asClusterConfig()
                     .defaultValue(MemorySize.ofMebiBytes(256))
                     .withDescription("JVM Metaspace Size for the JobManager.");
 
@@ -238,6 +248,7 @@ public class JobManagerOptions {
     public static final ConfigOption<MemorySize> JVM_OVERHEAD_MIN =
             key("jobmanager.memory.jvm-overhead.min")
                     .memoryType()
+                    .asClusterConfig()
                     .defaultValue(MemorySize.ofMebiBytes(192))
                     .withDescription(
                             "Min JVM Overhead size for the JobManager. "
@@ -248,6 +259,7 @@ public class JobManagerOptions {
     public static final ConfigOption<MemorySize> JVM_OVERHEAD_MAX =
             key("jobmanager.memory.jvm-overhead.max")
                     .memoryType()
+                    .asClusterConfig()
                     .defaultValue(MemorySize.parse("1g"))
                     .withDescription(
                             "Max JVM Overhead size for the JobManager. "
@@ -258,6 +270,7 @@ public class JobManagerOptions {
     public static final ConfigOption<Float> JVM_OVERHEAD_FRACTION =
             key("jobmanager.memory.jvm-overhead.fraction")
                     .floatType()
+                    .asClusterConfig()
                     .defaultValue(0.1f)
                     .withDescription(
                             "Fraction of Total Process Memory to be reserved for JVM Overhead. "
@@ -268,6 +281,7 @@ public class JobManagerOptions {
     public static final ConfigOption<Integer> MAX_ATTEMPTS_HISTORY_SIZE =
             key("jobmanager.execution.attempts-history-size")
                     .intType()
+                    .asClusterConfig()
                     .defaultValue(16)
                     .withDeprecatedKeys("job-manager.max-attempts-history-size")
                     .withDescription(
@@ -290,6 +304,7 @@ public class JobManagerOptions {
     public static final ConfigOption<String> FAILURE_ENRICHERS_LIST =
             key("jobmanager.failure-enrichers")
                     .stringType()
+                    .asClusterConfig()
                     .noDefaultValue()
                     .withDescription(
                             "An optional list of failure enricher names."
@@ -308,6 +323,7 @@ public class JobManagerOptions {
     public static final ConfigOption<String> EXECUTION_FAILOVER_STRATEGY =
             key("jobmanager.execution.failover-strategy")
                     .stringType()
+                    .asClusterConfig()
                     .defaultValue("region")
                     .withDescription(
                             Description.builder()
@@ -329,6 +345,7 @@ public class JobManagerOptions {
     public static final ConfigOption<String> ARCHIVE_DIR =
             key("jobmanager.archive.fs.dir")
                     .stringType()
+                    .asClusterConfig()
                     .noDefaultValue()
                     .withDescription(
                             "Directory for JobManager to store the archives of completed jobs.");
@@ -338,6 +355,7 @@ public class JobManagerOptions {
     public static final ConfigOption<Long> JOB_STORE_CACHE_SIZE =
             key("jobstore.cache-size")
                     .longType()
+                    .asClusterConfig()
                     .defaultValue(50L * 1024L * 1024L)
                     .withDescription(
                             "The job store cache size in bytes which is used to keep completed jobs in memory.");
@@ -347,6 +365,7 @@ public class JobManagerOptions {
     public static final ConfigOption<Long> JOB_STORE_EXPIRATION_TIME =
             key("jobstore.expiration-time")
                     .longType()
+                    .asClusterConfig()
                     .defaultValue(60L * 60L)
                     .withDescription(
                             "The time in seconds after which a completed job expires and is purged from the job store.");
@@ -357,6 +376,7 @@ public class JobManagerOptions {
     public static final ConfigOption<Integer> JOB_STORE_MAX_CAPACITY =
             key("jobstore.max-capacity")
                     .intType()
+                    .asClusterConfig()
                     .defaultValue(Integer.MAX_VALUE)
                     .withDescription(
                             "The max number of completed jobs that can be kept in the job store. "
@@ -367,6 +387,7 @@ public class JobManagerOptions {
     public static final ConfigOption<JobStoreType> JOB_STORE_TYPE =
             key("jobstore.type")
                     .enumType(JobStoreType.class)
+                    .asClusterConfig()
                     .defaultValue(JobStoreType.File)
                     .withDescription(
                             Description.builder()
@@ -395,6 +416,7 @@ public class JobManagerOptions {
     public static final ConfigOption<Boolean> RETRIEVE_TASK_MANAGER_HOSTNAME =
             key("jobmanager.retrieve-taskmanager-hostname")
                     .booleanType()
+                    .asClusterConfig()
                     .defaultValue(true)
                     .withDescription(
                             "Flag indicating whether JobManager would retrieve canonical "
@@ -410,6 +432,7 @@ public class JobManagerOptions {
     public static final ConfigOption<Integer> JOB_MANAGER_FUTURE_POOL_SIZE =
             key("jobmanager.future-pool.size")
                     .intType()
+                    .asClusterConfig()
                     .noDefaultValue()
                     .withDescription(
                             "The size of the future thread pool to execute future callbacks for all spawned JobMasters. "
@@ -422,6 +445,7 @@ public class JobManagerOptions {
     public static final ConfigOption<Integer> JOB_MANAGER_IO_POOL_SIZE =
             key("jobmanager.io-pool.size")
                     .intType()
+                    .asClusterConfig()
                     .noDefaultValue()
                     .withDescription(
                             "The size of the IO thread pool to run blocking operations for all spawned JobMasters. "
@@ -434,6 +458,7 @@ public class JobManagerOptions {
     public static final ConfigOption<Duration> SLOT_REQUEST_TIMEOUT =
             key("slot.request.timeout")
                     .durationType()
+                    .asClusterConfig()
                     .defaultValue(Duration.ofMillis(5L * 60L * 1000L))
                     .withDescription("The timeout for requesting a slot from Slot Pool.");
 
@@ -444,6 +469,7 @@ public class JobManagerOptions {
                     .durationType()
                     // default matches heartbeat.timeout so that sticky allocation is not lost on
                     // timeouts for local recovery
+                    .asClusterConfig()
                     .defaultValue(HeartbeatManagerOptions.HEARTBEAT_TIMEOUT.defaultValue())
                     .withDescription("The timeout for a idle slot in Slot Pool.");
 
@@ -451,6 +477,7 @@ public class JobManagerOptions {
     public static final ConfigOption<Duration> SLOT_REQUEST_MAX_INTERVAL =
             key("slot.request.max-interval")
                     .durationType()
+                    .asClusterConfig()
                     .defaultValue(Duration.ofMillis(20L))
                     .withDescription("The max interval duration for slots request.");
 
@@ -462,6 +489,7 @@ public class JobManagerOptions {
     public static final ConfigOption<SchedulerType> SCHEDULER =
             key("jobmanager.scheduler")
                     .enumType(SchedulerType.class)
+                    .asClusterConfig()
                     .defaultValue(SchedulerType.Default)
                     .withDescription(
                             Description.builder()
@@ -508,6 +536,7 @@ public class JobManagerOptions {
     public static final ConfigOption<SchedulerExecutionMode> SCHEDULER_MODE =
             key("scheduler-mode")
                     .enumType(SchedulerExecutionMode.class)
+                    .asClusterConfig()
                     .defaultValue(null)
                     .withDescription(
                             Description.builder()
@@ -524,6 +553,7 @@ public class JobManagerOptions {
     public static final ConfigOption<Integer> MIN_PARALLELISM_INCREASE =
             key("jobmanager.adaptive-scheduler.min-parallelism-increase")
                     .intType()
+                    .asClusterConfig()
                     .defaultValue(1)
                     .withDescription(
                             "Configure the minimum increase in parallelism for a job to scale up.");
@@ -535,6 +565,7 @@ public class JobManagerOptions {
     public static final ConfigOption<Duration> SCHEDULER_SCALING_INTERVAL_MIN =
             key("jobmanager.adaptive-scheduler.scaling-interval.min")
                     .durationType()
+                    .asClusterConfig()
                     .defaultValue(Duration.ofSeconds(30))
                     // rescaling and let the user increase the value for high workloads
                     .withDescription("Determines the minimum time between scaling operations.");
@@ -546,6 +577,7 @@ public class JobManagerOptions {
     public static final ConfigOption<Duration> SCHEDULER_SCALING_INTERVAL_MAX =
             key("jobmanager.adaptive-scheduler.scaling-interval.max")
                     .durationType()
+                    .asClusterConfig()
                     .noDefaultValue()
                     .withDescription(
                             Description.builder()
@@ -561,6 +593,7 @@ public class JobManagerOptions {
     public static final ConfigOption<Duration> RESOURCE_WAIT_TIMEOUT =
             key("jobmanager.adaptive-scheduler.resource-wait-timeout")
                     .durationType()
+                    .asClusterConfig()
                     .defaultValue(Duration.ofMinutes(5))
                     .withDescription(
                             Description.builder()
@@ -587,6 +620,7 @@ public class JobManagerOptions {
     public static final ConfigOption<Integer> SCHEDULER_SCALE_ON_FAILED_CHECKPOINTS_COUNT =
             key("jobmanager.adaptive-scheduler.scale-on-failed-checkpoints-count")
                     .intType()
+                    .asClusterConfig()
                     .defaultValue(2)
                     .withDescription(
                             Description.builder()
@@ -601,6 +635,7 @@ public class JobManagerOptions {
     public static final ConfigOption<Duration> MAXIMUM_DELAY_FOR_SCALE_TRIGGER =
             key("jobmanager.adaptive-scheduler.max-delay-for-scale-trigger")
                     .durationType()
+                    .asClusterConfig()
                     .noDefaultValue()
                     .withDescription(
                             Description.builder()
@@ -617,6 +652,7 @@ public class JobManagerOptions {
     public static final ConfigOption<Duration> RESOURCE_STABILIZATION_TIMEOUT =
             key("jobmanager.adaptive-scheduler.resource-stabilization-timeout")
                     .durationType()
+                    .asClusterConfig()
                     .defaultValue(Duration.ofSeconds(10L))
                     .withDescription(
                             Description.builder()
@@ -641,6 +677,7 @@ public class JobManagerOptions {
     public static final ConfigOption<Boolean> PARTITION_RELEASE_DURING_JOB_EXECUTION =
             key("jobmanager.partition.release-during-job-execution")
                     .booleanType()
+                    .asClusterConfig()
                     .defaultValue(true)
                     .withDescription(
                             "Controls whether partitions should already be released during the job execution.");
@@ -752,6 +789,7 @@ public class JobManagerOptions {
     public static final ConfigOption<String> JOB_MANAGER_RESOURCE_ID =
             key("jobmanager.resource-id")
                     .stringType()
+                    .asClusterConfig()
                     .noDefaultValue()
                     .withDescription(
                             "The JobManager's ResourceID. If not configured, the ResourceID will be generated randomly.");
@@ -781,6 +819,7 @@ public class JobManagerOptions {
             HYBRID_PARTITION_DATA_CONSUME_CONSTRAINT =
                     key("jobmanager.partition.hybrid.partition-data-consume-constraint")
                             .enumType(HybridPartitionDataConsumeConstraint.class)
+                            .asClusterConfig()
                             .noDefaultValue()
                             .withDescription(
                                     Description.builder()

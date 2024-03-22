@@ -32,6 +32,7 @@ public class BlobServerOptions {
     public static final ConfigOption<String> STORAGE_DIRECTORY =
             key("blob.storage.directory")
                     .stringType()
+                    .asClusterConfig()
                     .noDefaultValue()
                     .withDescription(
                             "The config parameter defining the local storage directory to be used by the blob server. "
@@ -41,6 +42,7 @@ public class BlobServerOptions {
     public static final ConfigOption<Integer> FETCH_RETRIES =
             key("blob.fetch.retries")
                     .intType()
+                    .asClusterConfig()
                     .defaultValue(5)
                     .withDescription(
                             "The config parameter defining number of retires for failed BLOB fetches.");
@@ -52,6 +54,7 @@ public class BlobServerOptions {
     public static final ConfigOption<Integer> FETCH_CONCURRENT =
             key("blob.fetch.num-concurrent")
                     .intType()
+                    .asClusterConfig()
                     .defaultValue(50)
                     .withDescription(
                             "The config parameter defining the maximum number of concurrent BLOB fetches that the JobManager serves.");
@@ -60,6 +63,7 @@ public class BlobServerOptions {
     public static final ConfigOption<Integer> FETCH_BACKLOG =
             key("blob.fetch.backlog")
                     .intType()
+                    .asClusterConfig()
                     .defaultValue(1000)
                     .withDescription(
                             Description.builder()
@@ -79,6 +83,7 @@ public class BlobServerOptions {
     public static final ConfigOption<String> PORT =
             key("blob.server.port")
                     .stringType()
+                    .asClusterConfig()
                     .defaultValue("0")
                     .withDescription(
                             "The config parameter defining the server port of the blob service.");
@@ -87,6 +92,7 @@ public class BlobServerOptions {
     public static final ConfigOption<Boolean> SSL_ENABLED =
             key("blob.service.ssl.enabled")
                     .booleanType()
+                    .asClusterConfig()
                     .defaultValue(true)
                     .withDescription(
                             "Flag to override ssl support for the blob service transport.");
@@ -103,6 +109,7 @@ public class BlobServerOptions {
     public static final ConfigOption<Long> CLEANUP_INTERVAL =
             key("blob.service.cleanup.interval")
                     .longType()
+                    .asClusterConfig()
                     .defaultValue(3_600L) // once per hour
                     .withDeprecatedKeys("library-cache-manager.cleanup.interval")
                     .withDescription(
@@ -112,6 +119,7 @@ public class BlobServerOptions {
     public static final ConfigOption<Integer> OFFLOAD_MINSIZE =
             key("blob.offload.minsize")
                     .intType()
+                    .asClusterConfig()
                     .defaultValue(1_024 * 1_024) // 1MiB by default
                     .withDescription(
                             "The minimum size for messages to be offloaded to the BlobServer.");
@@ -120,6 +128,7 @@ public class BlobServerOptions {
     public static final ConfigOption<Integer> SO_TIMEOUT =
             key("blob.client.socket.timeout")
                     .intType()
+                    .asClusterConfig()
                     .defaultValue(300_000)
                     .withDescription("The socket timeout in milliseconds for the blob client.");
 
@@ -127,6 +136,7 @@ public class BlobServerOptions {
     public static final ConfigOption<Integer> CONNECT_TIMEOUT =
             key("blob.client.connect.timeout")
                     .intType()
+                    .asClusterConfig()
                     .defaultValue(0)
                     .withDescription("The connection timeout in milliseconds for the blob client.");
 }

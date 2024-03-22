@@ -37,6 +37,7 @@ public class BatchExecutionOptions {
     public static final ConfigOption<Boolean> ADAPTIVE_AUTO_PARALLELISM_ENABLED =
             key("execution.batch.adaptive.auto-parallelism.enabled")
                     .booleanType()
+                    .asJobConfig()
                     .defaultValue(true)
                     .withDescription(
                             "If true, Flink will automatically decide the parallelism of operators in batch jobs.");
@@ -45,6 +46,7 @@ public class BatchExecutionOptions {
     public static final ConfigOption<Integer> ADAPTIVE_AUTO_PARALLELISM_MIN_PARALLELISM =
             key("execution.batch.adaptive.auto-parallelism.min-parallelism")
                     .intType()
+                    .asClusterConfig()
                     .defaultValue(1)
                     .withDeprecatedKeys("jobmanager.adaptive-batch-scheduler.min-parallelism")
                     .withDescription(
@@ -61,6 +63,7 @@ public class BatchExecutionOptions {
     public static final ConfigOption<Integer> ADAPTIVE_AUTO_PARALLELISM_MAX_PARALLELISM =
             key("execution.batch.adaptive.auto-parallelism.max-parallelism")
                     .intType()
+                    .asClusterConfig()
                     .defaultValue(128)
                     .withDeprecatedKeys("jobmanager.adaptive-batch-scheduler.max-parallelism")
                     .withDescription(
@@ -78,6 +81,7 @@ public class BatchExecutionOptions {
             ADAPTIVE_AUTO_PARALLELISM_AVG_DATA_VOLUME_PER_TASK =
                     key("execution.batch.adaptive.auto-parallelism.avg-data-volume-per-task")
                             .memoryType()
+                            .asClusterConfig()
                             .defaultValue(MemorySize.ofMebiBytes(16))
                             .withDeprecatedKeys(
                                     "jobmanager.adaptive-batch-scheduler.avg-data-volume-per-task")
@@ -100,6 +104,7 @@ public class BatchExecutionOptions {
     public static final ConfigOption<Integer> ADAPTIVE_AUTO_PARALLELISM_DEFAULT_SOURCE_PARALLELISM =
             key("execution.batch.adaptive.auto-parallelism.default-source-parallelism")
                     .intType()
+                    .asClusterConfig()
                     .noDefaultValue()
                     .withDeprecatedKeys(
                             "jobmanager.adaptive-batch-scheduler.default-source-parallelism")
@@ -122,6 +127,7 @@ public class BatchExecutionOptions {
     public static final ConfigOption<Boolean> SPECULATIVE_ENABLED =
             key("execution.batch.speculative.enabled")
                     .booleanType()
+                    .asClusterConfig()
                     .defaultValue(false)
                     .withDeprecatedKeys("jobmanager.adaptive-batch-scheduler.speculative.enabled")
                     .withDescription("Controls whether to enable speculative execution.");
@@ -130,6 +136,7 @@ public class BatchExecutionOptions {
     public static final ConfigOption<Integer> SPECULATIVE_MAX_CONCURRENT_EXECUTIONS =
             key("execution.batch.speculative.max-concurrent-executions")
                     .intType()
+                    .asClusterConfig()
                     .defaultValue(2)
                     .withDeprecatedKeys(
                             "jobmanager.adaptive-batch-scheduler.speculative.max-concurrent-executions")
@@ -142,6 +149,7 @@ public class BatchExecutionOptions {
     public static final ConfigOption<Duration> BLOCK_SLOW_NODE_DURATION =
             key("execution.batch.speculative.block-slow-node-duration")
                     .durationType()
+                    .asClusterConfig()
                     .defaultValue(Duration.ofMinutes(1))
                     .withDeprecatedKeys(
                             "jobmanager.adaptive-batch-scheduler.speculative.block-slow-node-duration")
@@ -152,6 +160,7 @@ public class BatchExecutionOptions {
     public static final ConfigOption<Boolean> JOB_RECOVERY_ENABLED =
             key("execution.batch.job-recovery.enabled")
                     .booleanType()
+                    .asClusterConfig()
                     .defaultValue(false)
                     .withDescription(
                             "A flag to enable or disable the job recovery. If enabled, batch jobs "
@@ -162,6 +171,7 @@ public class BatchExecutionOptions {
     public static final ConfigOption<Duration> JOB_RECOVERY_PREVIOUS_WORKER_RECOVERY_TIMEOUT =
             key("execution.batch.job-recovery.previous-worker.recovery.timeout")
                     .durationType()
+                    .asClusterConfig()
                     .defaultValue(Duration.ofSeconds(30))
                     .withDescription(
                             "The timeout for a new job master to wait for the previous worker to reconnect."
@@ -172,6 +182,7 @@ public class BatchExecutionOptions {
     public static final ConfigOption<Duration> JOB_RECOVERY_SNAPSHOT_MIN_PAUSE =
             key("execution.batch.job-recovery.snapshot.min-pause")
                     .durationType()
+                    .asClusterConfig()
                     .defaultValue(Duration.ofMinutes(3))
                     .withDescription(
                             "The minimal pause between snapshots taken by operator coordinator or other components. "

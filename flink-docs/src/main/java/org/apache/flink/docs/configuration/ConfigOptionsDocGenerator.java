@@ -323,7 +323,8 @@ public class ConfigOptionsDocGenerator {
         htmlTable.append("        <tr>\n");
         htmlTable.append("            <th class=\"text-left\" style=\"width: 20%\">Key</th>\n");
         htmlTable.append("            <th class=\"text-left\" style=\"width: 15%\">Default</th>\n");
-        htmlTable.append("            <th class=\"text-left\" style=\"width: 10%\">Type</th>\n");
+        htmlTable.append("            <th class=\"text-left\" style=\"width: 5%\">Type</th>\n");
+        htmlTable.append("            <th class=\"text-left\" style=\"width: 5%\">Scope</th>\n");
         htmlTable.append(
                 "            <th class=\"text-left\" style=\"width: 55%\">Description</th>\n");
         htmlTable.append("        </tr>\n");
@@ -382,6 +383,9 @@ public class ConfigOptionsDocGenerator {
                 + "</td>\n"
                 + "            <td>"
                 + type
+                + "</td>\n"
+                + "            <td>"
+                + optionWithMetaInfo.option.getScope().name()
                 + "</td>\n"
                 + "            <td>"
                 + getDescription(optionWithMetaInfo)
@@ -575,7 +579,8 @@ public class ConfigOptionsDocGenerator {
     private static String addWordBreakOpportunities(String value) {
         return value
                 // allow breaking of semicolon separated lists
-                .replace(";", ";<wbr>");
+                .replace(";", ";<wbr>")
+                .replace(",", ",<wbr>");
     }
 
     private static void sortOptions(List<OptionWithMetaInfo> configOptions) {

@@ -32,6 +32,7 @@ public class FsStateChangelogOptions {
     public static final ConfigOption<String> BASE_PATH =
             ConfigOptions.key("state.changelog.dstl.dfs.base-path")
                     .stringType()
+                    .asJobConfig()
                     .noDefaultValue()
                     .withDeprecatedKeys("dstl.dfs.base-path")
                     .withDescription("Base path to store changelog files.");
@@ -39,6 +40,7 @@ public class FsStateChangelogOptions {
     public static final ConfigOption<Boolean> COMPRESSION_ENABLED =
             ConfigOptions.key("state.changelog.dstl.dfs.compression.enabled")
                     .booleanType()
+                    .asJobConfig()
                     .defaultValue(false)
                     .withDeprecatedKeys("dstl.dfs.compression.enabled")
                     .withDescription("Whether to enable compression when serializing changelog.");
@@ -46,6 +48,7 @@ public class FsStateChangelogOptions {
     public static final ConfigOption<MemorySize> PREEMPTIVE_PERSIST_THRESHOLD =
             ConfigOptions.key("state.changelog.dstl.dfs.preemptive-persist-threshold")
                     .memoryType()
+                    .asJobConfig()
                     .defaultValue(MemorySize.parse("5MB"))
                     .withDeprecatedKeys("dstl.dfs.preemptive-persist-threshold")
                     .withDescription(
@@ -57,6 +60,7 @@ public class FsStateChangelogOptions {
     public static final ConfigOption<Duration> PERSIST_DELAY =
             ConfigOptions.key("state.changelog.dstl.dfs.batch.persist-delay")
                     .durationType()
+                    .asJobConfig()
                     .defaultValue(Duration.ofMillis(10))
                     .withDeprecatedKeys("dstl.dfs.batch.persist-delay")
                     .withDescription(
@@ -68,6 +72,7 @@ public class FsStateChangelogOptions {
     public static final ConfigOption<MemorySize> PERSIST_SIZE_THRESHOLD =
             ConfigOptions.key("state.changelog.dstl.dfs.batch.persist-size-threshold")
                     .memoryType()
+                    .asJobConfig()
                     .defaultValue(MemorySize.parse("10MB"))
                     .withDeprecatedKeys("dstl.dfs.batch.persist-size-threshold")
                     .withDescription(
@@ -83,6 +88,7 @@ public class FsStateChangelogOptions {
     public static final ConfigOption<MemorySize> UPLOAD_BUFFER_SIZE =
             ConfigOptions.key("state.changelog.dstl.dfs.upload.buffer-size")
                     .memoryType()
+                    .asJobConfig()
                     .defaultValue(MemorySize.parse("1MB"))
                     .withDeprecatedKeys("dstl.dfs.upload.buffer-size")
                     .withDescription("Buffer size used when uploading change sets");
@@ -90,6 +96,7 @@ public class FsStateChangelogOptions {
     public static final ConfigOption<Integer> NUM_UPLOAD_THREADS =
             ConfigOptions.key("state.changelog.dstl.dfs.upload.num-threads")
                     .intType()
+                    .asJobConfig()
                     .defaultValue(5)
                     .withDeprecatedKeys("dstl.dfs.upload.num-threads")
                     .withDescription("Number of threads to use for upload.");
@@ -97,6 +104,7 @@ public class FsStateChangelogOptions {
     public static final ConfigOption<Integer> NUM_DISCARD_THREADS =
             ConfigOptions.key("state.changelog.dstl.dfs.discard.num-threads")
                     .intType()
+                    .asJobConfig()
                     .defaultValue(1)
                     .withDeprecatedKeys("dstl.dfs.discard.num-threads")
                     .withDescription(
@@ -105,6 +113,7 @@ public class FsStateChangelogOptions {
     public static final ConfigOption<MemorySize> IN_FLIGHT_DATA_LIMIT =
             ConfigOptions.key("state.changelog.dstl.dfs.upload.max-in-flight")
                     .memoryType()
+                    .asJobConfig()
                     .defaultValue(MemorySize.parse("100MB"))
                     .withDeprecatedKeys("dstl.dfs.upload.max-in-flight")
                     .withDescription(
@@ -121,6 +130,7 @@ public class FsStateChangelogOptions {
     public static final ConfigOption<String> RETRY_POLICY =
             ConfigOptions.key("state.changelog.dstl.dfs.upload.retry-policy")
                     .stringType()
+                    .asJobConfig()
                     .defaultValue("fixed")
                     .withDeprecatedKeys("dstl.dfs.upload.retry-policy")
                     .withDescription(
@@ -128,6 +138,7 @@ public class FsStateChangelogOptions {
     public static final ConfigOption<Duration> UPLOAD_TIMEOUT =
             ConfigOptions.key("state.changelog.dstl.dfs.upload.timeout")
                     .durationType()
+                    .asJobConfig()
                     .defaultValue(Duration.ofSeconds(1))
                     .withDeprecatedKeys("dstl.dfs.upload.timeout")
                     .withDescription(
@@ -142,6 +153,7 @@ public class FsStateChangelogOptions {
     public static final ConfigOption<Integer> RETRY_MAX_ATTEMPTS =
             ConfigOptions.key("state.changelog.dstl.dfs.upload.max-attempts")
                     .intType()
+                    .asJobConfig()
                     .defaultValue(3)
                     .withDeprecatedKeys("dstl.dfs.upload.max-attempts")
                     .withDescription(
@@ -152,6 +164,7 @@ public class FsStateChangelogOptions {
     public static final ConfigOption<Duration> RETRY_DELAY_AFTER_FAILURE =
             ConfigOptions.key("state.changelog.dstl.dfs.upload.next-attempt-delay")
                     .durationType()
+                    .asJobConfig()
                     .defaultValue(Duration.ofMillis(500))
                     .withDeprecatedKeys("dstl.dfs.upload.next-attempt-delay")
                     .withDescription(
@@ -160,6 +173,7 @@ public class FsStateChangelogOptions {
     public static final ConfigOption<Duration> CACHE_IDLE_TIMEOUT =
             ConfigOptions.key("state.changelog.dstl.dfs.download.local-cache.idle-timeout-ms")
                     .durationType()
+                    .asJobConfig()
                     .defaultValue(Duration.ofMinutes(10))
                     .withDeprecatedKeys("dstl.dfs.download.local-cache.idle-timeout-ms")
                     .withDescription(

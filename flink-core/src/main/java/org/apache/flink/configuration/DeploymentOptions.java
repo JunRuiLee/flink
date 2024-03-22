@@ -35,6 +35,7 @@ public class DeploymentOptions {
     public static final ConfigOption<String> TARGET =
             key("execution.target")
                     .stringType()
+                    .asJobConfig()
                     .noDefaultValue()
                     .withDescription(
                             Description.builder()
@@ -59,6 +60,7 @@ public class DeploymentOptions {
     public static final ConfigOption<Boolean> ATTACHED =
             key("execution.attached")
                     .booleanType()
+                    .asJobConfig()
                     .defaultValue(false)
                     .withDescription(
                             "Specifies if the pipeline is submitted in attached or detached mode.");
@@ -66,6 +68,7 @@ public class DeploymentOptions {
     public static final ConfigOption<Boolean> SHUTDOWN_IF_ATTACHED =
             key("execution.shutdown-on-attached-exit")
                     .booleanType()
+                    .asJobConfig()
                     .defaultValue(false)
                     .withDescription(
                             "If the job is submitted in attached mode, perform a best-effort cluster shutdown "
@@ -74,6 +77,7 @@ public class DeploymentOptions {
     public static final ConfigOption<List<String>> JOB_LISTENERS =
             key("execution.job-listeners")
                     .stringType()
+                    .asJobConfig()
                     .asList()
                     .noDefaultValue()
                     .withDescription(
@@ -83,6 +87,7 @@ public class DeploymentOptions {
     public static final ConfigOption<List<String>> JOB_STATUS_CHANGED_LISTENERS =
             key("execution.job-status-changed-listeners")
                     .stringType()
+                    .asJobConfig()
                     .asList()
                     .noDefaultValue()
                     .withDescription(
@@ -91,6 +96,7 @@ public class DeploymentOptions {
     public static final ConfigOption<Boolean> SHUTDOWN_ON_APPLICATION_FINISH =
             ConfigOptions.key("execution.shutdown-on-application-finish")
                     .booleanType()
+                    .asClusterConfig()
                     .defaultValue(true)
                     .withDescription(
                             "Whether a Flink Application cluster should shut down automatically after its application finishes"
@@ -100,6 +106,7 @@ public class DeploymentOptions {
     public static final ConfigOption<Boolean> SUBMIT_FAILED_JOB_ON_APPLICATION_ERROR =
             ConfigOptions.key("execution.submit-failed-job-on-application-error")
                     .booleanType()
+                    .asClusterConfig()
                     .defaultValue(false)
                     .withDescription(
                             Description.builder()
@@ -119,6 +126,7 @@ public class DeploymentOptions {
     public static final ConfigOption<List<String>> PROGRAM_CONFIG_WILDCARDS =
             ConfigOptions.key("execution.program-config.wildcards")
                     .stringType()
+                    .asClusterConfig()
                     .asList()
                     .defaultValues()
                     .withDescription(
@@ -136,6 +144,7 @@ public class DeploymentOptions {
     public static final ConfigOption<Boolean> PROGRAM_CONFIG_ENABLED =
             ConfigOptions.key("execution.program-config.enabled")
                     .booleanType()
+                    .asClusterConfig()
                     .defaultValue(true)
                     .withDeprecatedKeys("execution.allow-client-job-configurations")
                     .withDescription(

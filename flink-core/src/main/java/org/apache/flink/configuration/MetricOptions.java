@@ -62,6 +62,7 @@ public class MetricOptions {
     public static final ConfigOption<String> REPORTERS_LIST =
             key("metrics.reporters")
                     .stringType()
+                    .asClusterConfig()
                     .noDefaultValue()
                     .withDescription(
                             "An optional list of reporter names. If configured, only reporters whose name matches"
@@ -94,6 +95,7 @@ public class MetricOptions {
     public static final ConfigOption<String> REPORTER_CLASS =
             key("class")
                     .stringType()
+                    .asClusterConfig()
                     .noDefaultValue()
                     .withDescription("The reporter class to use for the reporter named <name>.");
 
@@ -102,6 +104,7 @@ public class MetricOptions {
     public static final ConfigOption<String> REPORTER_FACTORY_CLASS =
             key("factory.class")
                     .stringType()
+                    .asClusterConfig()
                     .noDefaultValue()
                     .withDescription(
                             "The reporter factory class to use for the reporter named <name>.");
@@ -111,6 +114,7 @@ public class MetricOptions {
     public static final ConfigOption<Duration> REPORTER_INTERVAL =
             key("interval")
                     .durationType()
+                    .asClusterConfig()
                     .defaultValue(Duration.ofSeconds(10))
                     .withDescription(
                             "The reporter interval to use for the reporter named <name>. Only applicable to push-based reporters.");
@@ -120,6 +124,7 @@ public class MetricOptions {
     public static final ConfigOption<String> REPORTER_SCOPE_DELIMITER =
             key("scope.delimiter")
                     .stringType()
+                    .asClusterConfig()
                     .defaultValue(".")
                     .withDescription(
                             "The delimiter used to assemble the metric identifier for the reporter named <name>.");
@@ -129,6 +134,7 @@ public class MetricOptions {
     public static final ConfigOption<Map<String, String>> REPORTER_ADDITIONAL_VARIABLES =
             key("scope.variables.additional")
                     .mapType()
+                    .asClusterConfig()
                     .defaultValue(Collections.emptyMap())
                     .withDescription(
                             "The map of additional variables that should be included for the reporter named <name>. Only applicable to tag-based reporters.");
@@ -138,6 +144,7 @@ public class MetricOptions {
     public static final ConfigOption<String> REPORTER_EXCLUDED_VARIABLES =
             key("scope.variables.excludes")
                     .stringType()
+                    .asClusterConfig()
                     .defaultValue(".")
                     .withDescription(
                             "The set of variables that should be excluded for the reporter named <name>. Only applicable to tag-based reporters.");
@@ -147,6 +154,7 @@ public class MetricOptions {
     public static final ConfigOption<List<String>> REPORTER_INCLUDES =
             key("filter.includes")
                     .stringType()
+                    .asClusterConfig()
                     .asList()
                     .defaultValues("*:*:*")
                     .withDescription(
@@ -221,6 +229,7 @@ public class MetricOptions {
     public static final ConfigOption<List<String>> REPORTER_EXCLUDES =
             key("filter.excludes")
                     .stringType()
+                    .asClusterConfig()
                     .asList()
                     .defaultValues()
                     .withDescription(
@@ -236,6 +245,7 @@ public class MetricOptions {
     public static final ConfigOption<String> REPORTER_CONFIG_PARAMETER =
             key("<parameter>")
                     .stringType()
+                    .asClusterConfig()
                     .noDefaultValue()
                     .withDescription(
                             "Configures the parameter <parameter> for the reporter named <name>.");
@@ -244,6 +254,7 @@ public class MetricOptions {
     public static final ConfigOption<String> SCOPE_DELIMITER =
             key("metrics.scope.delimiter")
                     .stringType()
+                    .asClusterConfig()
                     .defaultValue(".")
                     .withDescription("Delimiter used to assemble the metric identifier.");
 
@@ -251,6 +262,7 @@ public class MetricOptions {
     public static final ConfigOption<String> SCOPE_NAMING_JM =
             key("metrics.scope.jm")
                     .stringType()
+                    .asClusterConfig()
                     .defaultValue("<host>.jobmanager")
                     .withDescription(
                             "Defines the scope format string that is applied to all metrics scoped to a JobManager. Only effective when a identifier-based reporter is configured.");
@@ -259,6 +271,7 @@ public class MetricOptions {
     public static final ConfigOption<String> SCOPE_NAMING_TM =
             key("metrics.scope.tm")
                     .stringType()
+                    .asClusterConfig()
                     .defaultValue("<host>.taskmanager.<tm_id>")
                     .withDescription(
                             "Defines the scope format string that is applied to all metrics scoped to a TaskManager. Only effective when a identifier-based reporter is configured");
@@ -267,6 +280,7 @@ public class MetricOptions {
     public static final ConfigOption<String> SCOPE_NAMING_JM_JOB =
             key("metrics.scope.jm-job")
                     .stringType()
+                    .asClusterConfig()
                     .defaultValue("<host>.jobmanager.<job_name>")
                     .withDeprecatedKeys("metrics.scope.jm.job")
                     .withDescription(
@@ -279,6 +293,7 @@ public class MetricOptions {
     public static final ConfigOption<String> SCOPE_NAMING_JM_OPERATOR =
             key("metrics.scope.jm-operator")
                     .stringType()
+                    .asClusterConfig()
                     .defaultValue("<host>.jobmanager.<job_name>.<operator_name>")
                     .withDescription(
                             "Defines the scope format string that is applied to all metrics scoped to the components running on a JobManager of an Operator, like OperatorCoordinator for Source Enumerator metrics.");
@@ -287,6 +302,7 @@ public class MetricOptions {
     public static final ConfigOption<String> SCOPE_NAMING_TM_JOB =
             key("metrics.scope.tm-job")
                     .stringType()
+                    .asClusterConfig()
                     .defaultValue("<host>.taskmanager.<tm_id>.<job_name>")
                     .withDeprecatedKeys("metrics.scope.tm.job")
                     .withDescription(
@@ -296,6 +312,7 @@ public class MetricOptions {
     public static final ConfigOption<String> SCOPE_NAMING_TASK =
             key("metrics.scope.task")
                     .stringType()
+                    .asClusterConfig()
                     .defaultValue(
                             "<host>.taskmanager.<tm_id>.<job_name>.<task_name>.<subtask_index>")
                     .withDescription(
@@ -305,6 +322,7 @@ public class MetricOptions {
     public static final ConfigOption<String> SCOPE_NAMING_OPERATOR =
             key("metrics.scope.operator")
                     .stringType()
+                    .asClusterConfig()
                     .defaultValue(
                             "<host>.taskmanager.<tm_id>.<job_name>.<operator_name>.<subtask_index>")
                     .withDescription(
@@ -313,6 +331,7 @@ public class MetricOptions {
     public static final ConfigOption<Duration> LATENCY_INTERVAL =
             key("metrics.latency.interval")
                     .durationType()
+                    .asClusterConfig()
                     .defaultValue(Duration.ofMillis(0L))
                     .withDescription(
                             "Defines the interval at which latency tracking marks are emitted from the sources."
@@ -322,6 +341,7 @@ public class MetricOptions {
     public static final ConfigOption<String> LATENCY_SOURCE_GRANULARITY =
             key("metrics.latency.granularity")
                     .stringType()
+                    .asClusterConfig()
                     .defaultValue("operator")
                     .withDescription(
                             Description.builder()
@@ -340,6 +360,7 @@ public class MetricOptions {
     public static final ConfigOption<Integer> LATENCY_HISTORY_SIZE =
             key("metrics.latency.history-size")
                     .intType()
+                    .asClusterConfig()
                     .defaultValue(128)
                     .withDescription(
                             "Defines the number of measured latencies to maintain at each operator.");
@@ -351,6 +372,7 @@ public class MetricOptions {
     public static final ConfigOption<Boolean> SYSTEM_RESOURCE_METRICS =
             key("metrics.system-resource")
                     .booleanType()
+                    .asClusterConfig()
                     .defaultValue(false)
                     .withDescription(
                             "Flag indicating whether Flink should report system resource metrics such as machine's CPU,"
@@ -362,6 +384,7 @@ public class MetricOptions {
     public static final ConfigOption<Duration> SYSTEM_RESOURCE_METRICS_PROBING_INTERVAL =
             key("metrics.system-resource-probing-interval")
                     .durationType()
+                    .asClusterConfig()
                     .defaultValue(Duration.ofMillis(5000L))
                     .withDescription(
                             "Interval between probing of system resource metrics specified. Has an effect"
@@ -377,6 +400,7 @@ public class MetricOptions {
     public static final ConfigOption<String> QUERY_SERVICE_PORT =
             key("metrics.internal.query-service.port")
                     .stringType()
+                    .asClusterConfig()
                     .defaultValue("0")
                     .withDescription(
                             "The port range used for Flink's internal metric query service. Accepts a list of ports "
@@ -391,6 +415,7 @@ public class MetricOptions {
     public static final ConfigOption<Integer> QUERY_SERVICE_THREAD_PRIORITY =
             key("metrics.internal.query-service.thread-priority")
                     .intType()
+                    .asClusterConfig()
                     .defaultValue(1)
                     .withDescription(
                             "The thread priority used for Flink's internal metric query service. The thread is created"
@@ -404,6 +429,7 @@ public class MetricOptions {
     public static final ConfigOption<Duration> METRIC_FETCHER_UPDATE_INTERVAL =
             key("metrics.fetcher.update-interval")
                     .durationType()
+                    .asClusterConfig()
                     .defaultValue(Duration.ofMillis(10000L))
                     .withDescription(
                             "Update interval for the metric fetcher used by the web UI. Decrease this value for "
@@ -414,6 +440,7 @@ public class MetricOptions {
     public static final ConfigOption<List<JobStatusMetrics>> JOB_STATUS_METRICS =
             key("metrics.job.status.enable")
                     .enumType(JobStatusMetrics.class)
+                    .asClusterConfig()
                     .asList()
                     .defaultValues(JobStatusMetrics.CURRENT_TIME)
                     .withDescription(

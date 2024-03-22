@@ -31,6 +31,7 @@ public class StateChangelogOptions {
     public static final ConfigOption<Boolean> PERIODIC_MATERIALIZATION_ENABLED =
             ConfigOptions.key("state.changelog.periodic-materialize.enabled")
                     .booleanType()
+                    .asJobConfig()
                     .defaultValue(true)
                     .withDeprecatedKeys("state.backend.changelog.periodic-materialize.enabled")
                     .withDescription(
@@ -41,6 +42,7 @@ public class StateChangelogOptions {
     public static final ConfigOption<Duration> PERIODIC_MATERIALIZATION_INTERVAL =
             ConfigOptions.key("state.changelog.periodic-materialize.interval")
                     .durationType()
+                    .asJobConfig()
                     .defaultValue(Duration.ofMinutes(10))
                     .withDeprecatedKeys("state.backend.changelog.periodic-materialize.interval")
                     .withDescription(
@@ -54,6 +56,7 @@ public class StateChangelogOptions {
     public static final ConfigOption<Integer> MATERIALIZATION_MAX_FAILURES_ALLOWED =
             ConfigOptions.key("state.changelog.max-failures-allowed")
                     .intType()
+                    .asJobConfig()
                     .defaultValue(3)
                     .withDeprecatedKeys("state.backend.changelog.max-failures-allowed")
                     .withDescription("Max number of consecutive materialization failures allowed.");
@@ -63,6 +66,7 @@ public class StateChangelogOptions {
     public static final ConfigOption<Boolean> ENABLE_STATE_CHANGE_LOG =
             ConfigOptions.key("state.changelog.enabled")
                     .booleanType()
+                    .asJobConfig()
                     .defaultValue(false)
                     .withDeprecatedKeys("state.backend.changelog.enabled")
                     .withDescription(
@@ -83,6 +87,7 @@ public class StateChangelogOptions {
     public static final ConfigOption<String> STATE_CHANGE_LOG_STORAGE =
             ConfigOptions.key("state.changelog.storage")
                     .stringType()
+                    .asJobConfig()
                     .defaultValue("memory")
                     .withDeprecatedKeys("state.backend.changelog.storage")
                     .withDescription(

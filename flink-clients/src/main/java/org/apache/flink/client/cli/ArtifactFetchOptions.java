@@ -34,12 +34,14 @@ public class ArtifactFetchOptions {
     public static final ConfigOption<String> BASE_DIR =
             ConfigOptions.key("user.artifacts.base-dir")
                     .stringType()
+                    .asClusterConfig()
                     .defaultValue("/opt/flink/artifacts")
                     .withDescription("The base dir to put the application job artifacts.");
 
     public static final ConfigOption<List<String>> ARTIFACT_LIST =
             key("user.artifacts.artifact-list")
                     .stringType()
+                    .asClusterConfig()
                     .asList()
                     .noDefaultValue()
                     .withDescription(
@@ -49,12 +51,14 @@ public class ArtifactFetchOptions {
     public static final ConfigOption<Boolean> RAW_HTTP_ENABLED =
             ConfigOptions.key("user.artifacts.raw-http-enabled")
                     .booleanType()
+                    .asClusterConfig()
                     .defaultValue(false)
                     .withDescription("Enables artifact fetching from raw HTTP endpoints.");
 
     public static final ConfigOption<Map<String, String>> HTTP_HEADERS =
             ConfigOptions.key("user.artifacts.http-headers")
                     .mapType()
+                    .asClusterConfig()
                     .noDefaultValue()
                     .withDescription(
                             "Custom HTTP header(s) for the HTTP artifact fetcher. The header(s) will be applied when getting the application job artifacts."

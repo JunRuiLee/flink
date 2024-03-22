@@ -47,6 +47,7 @@ public class HighAvailabilityOptions {
     public static final ConfigOption<String> HA_MODE =
             key("high-availability.type")
                     .stringType()
+                    .asClusterConfig()
                     .defaultValue("NONE")
                     .withDeprecatedKeys("recovery.mode", "high-availability")
                     .withDescription(
@@ -61,6 +62,7 @@ public class HighAvailabilityOptions {
     public static final ConfigOption<String> HA_CLUSTER_ID =
             key("high-availability.cluster-id")
                     .stringType()
+                    .asClusterConfig()
                     .defaultValue("/default")
                     .withDeprecatedKeys(
                             "high-availability.zookeeper.path.namespace",
@@ -74,6 +76,7 @@ public class HighAvailabilityOptions {
     public static final ConfigOption<String> HA_STORAGE_PATH =
             key("high-availability.storageDir")
                     .stringType()
+                    .asClusterConfig()
                     .noDefaultValue()
                     .withDeprecatedKeys(
                             "high-availability.zookeeper.storageDir",
@@ -90,6 +93,7 @@ public class HighAvailabilityOptions {
     public static final ConfigOption<String> HA_JOB_MANAGER_PORT_RANGE =
             key("high-availability.jobmanager.port")
                     .stringType()
+                    .asClusterConfig()
                     .defaultValue("0")
                     .withDeprecatedKeys("recovery.jobmanager.port")
                     .withDescription(
@@ -112,6 +116,7 @@ public class HighAvailabilityOptions {
     public static final ConfigOption<String> HA_ZOOKEEPER_QUORUM =
             key("high-availability.zookeeper.quorum")
                     .stringType()
+                    .asClusterConfig()
                     .noDefaultValue()
                     .withDeprecatedKeys("recovery.zookeeper.quorum")
                     .withDescription(
@@ -122,6 +127,7 @@ public class HighAvailabilityOptions {
     public static final ConfigOption<String> HA_ZOOKEEPER_ROOT =
             key("high-availability.zookeeper.path.root")
                     .stringType()
+                    .asClusterConfig()
                     .defaultValue("/flink")
                     .withDeprecatedKeys("recovery.zookeeper.path.root")
                     .withDescription(
@@ -132,6 +138,7 @@ public class HighAvailabilityOptions {
     public static final ConfigOption<String> HA_ZOOKEEPER_JOBGRAPHS_PATH =
             key("high-availability.zookeeper.path.jobgraphs")
                     .stringType()
+                    .asClusterConfig()
                     .defaultValue("/jobgraphs")
                     .withDeprecatedKeys("recovery.zookeeper.path.jobgraphs")
                     .withDescription("ZooKeeper root path (ZNode) for job graphs");
@@ -144,6 +151,7 @@ public class HighAvailabilityOptions {
     public static final ConfigOption<Duration> ZOOKEEPER_SESSION_TIMEOUT =
             key("high-availability.zookeeper.client.session-timeout")
                     .durationType()
+                    .asClusterConfig()
                     .defaultValue(Duration.ofMillis(60000))
                     .withDeprecatedKeys("recovery.zookeeper.client.session-timeout")
                     .withDescription("Defines the session timeout for the ZooKeeper session.");
@@ -152,6 +160,7 @@ public class HighAvailabilityOptions {
     public static final ConfigOption<Duration> ZOOKEEPER_CONNECTION_TIMEOUT =
             key("high-availability.zookeeper.client.connection-timeout")
                     .durationType()
+                    .asClusterConfig()
                     .defaultValue(Duration.ofMillis(15000))
                     .withDeprecatedKeys("recovery.zookeeper.client.connection-timeout")
                     .withDescription("Defines the connection timeout for ZooKeeper.");
@@ -160,6 +169,7 @@ public class HighAvailabilityOptions {
     public static final ConfigOption<Duration> ZOOKEEPER_RETRY_WAIT =
             key("high-availability.zookeeper.client.retry-wait")
                     .durationType()
+                    .asClusterConfig()
                     .defaultValue(Duration.ofMillis(5000))
                     .withDeprecatedKeys("recovery.zookeeper.client.retry-wait")
                     .withDescription("Defines the pause between consecutive retries.");
@@ -168,6 +178,7 @@ public class HighAvailabilityOptions {
     public static final ConfigOption<Integer> ZOOKEEPER_MAX_RETRY_ATTEMPTS =
             key("high-availability.zookeeper.client.max-retry-attempts")
                     .intType()
+                    .asClusterConfig()
                     .defaultValue(3)
                     .withDeprecatedKeys("recovery.zookeeper.client.max-retry-attempts")
                     .withDescription(
@@ -179,6 +190,7 @@ public class HighAvailabilityOptions {
     public static final ConfigOption<String> ZOOKEEPER_RUNNING_JOB_REGISTRY_PATH =
             key("high-availability.zookeeper.path.running-registry")
                     .stringType()
+                    .asClusterConfig()
                     .defaultValue("/running_job_registry/")
                     .withDescription(
                             "Don't use this option anymore. It has no effect on Flink. The RunningJobRegistry has been "
@@ -188,6 +200,7 @@ public class HighAvailabilityOptions {
     public static final ConfigOption<String> ZOOKEEPER_CLIENT_ACL =
             key("high-availability.zookeeper.client.acl")
                     .stringType()
+                    .asClusterConfig()
                     .defaultValue("open")
                     .withDescription(
                             "Defines the ACL (open|creator) to be configured on ZK node. The configuration value can be"
@@ -198,6 +211,7 @@ public class HighAvailabilityOptions {
     public static final ConfigOption<Boolean> ZOOKEEPER_TOLERATE_SUSPENDED_CONNECTIONS =
             key("high-availability.zookeeper.client.tolerate-suspended-connections")
                     .booleanType()
+                    .asClusterConfig()
                     .defaultValue(false)
                     .withDescription(
                             Description.builder()
@@ -214,6 +228,7 @@ public class HighAvailabilityOptions {
     public static final ConfigOption<Boolean> ZOOKEEPER_ENSEMBLE_TRACKING =
             key("high-availability.zookeeper.client.ensemble-tracker")
                     .booleanType()
+                    .asClusterConfig()
                     .defaultValue(true)
                     .withDescription(
                             Description.builder()
