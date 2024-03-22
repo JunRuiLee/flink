@@ -31,6 +31,7 @@ public class StateLatencyTrackOptions {
     public static final ConfigOption<Boolean> LATENCY_TRACK_ENABLED =
             ConfigOptions.key("state.latency-track.keyed-state-enabled")
                     .booleanType()
+                    .asJobConfig()
                     .defaultValue(false)
                     .withDeprecatedKeys(StateBackendOptions.LATENCY_TRACK_ENABLED.key())
                     .withDescription(
@@ -40,6 +41,7 @@ public class StateLatencyTrackOptions {
     public static final ConfigOption<Integer> LATENCY_TRACK_SAMPLE_INTERVAL =
             ConfigOptions.key("state.latency-track.sample-interval")
                     .intType()
+                    .asJobConfig()
                     .defaultValue(100)
                     .withDeprecatedKeys(StateBackendOptions.LATENCY_TRACK_SAMPLE_INTERVAL.key())
                     .withDescription(
@@ -52,6 +54,7 @@ public class StateLatencyTrackOptions {
     public static final ConfigOption<Integer> LATENCY_TRACK_HISTORY_SIZE =
             ConfigOptions.key("state.latency-track.history-size")
                     .intType()
+                    .asJobConfig()
                     .defaultValue(128)
                     .withDeprecatedKeys(StateBackendOptions.LATENCY_TRACK_HISTORY_SIZE.key())
                     .withDescription(
@@ -61,6 +64,7 @@ public class StateLatencyTrackOptions {
     public static final ConfigOption<Boolean> LATENCY_TRACK_STATE_NAME_AS_VARIABLE =
             ConfigOptions.key("state.latency-track.state-name-as-variable")
                     .booleanType()
+                    .asJobConfig()
                     .defaultValue(true)
                     .withDeprecatedKeys(
                             StateBackendOptions.LATENCY_TRACK_STATE_NAME_AS_VARIABLE.key())

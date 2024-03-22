@@ -33,6 +33,7 @@ public class JMXServerOptions {
     public static final ConfigOption<String> JMX_SERVER_PORT =
             key("jmx.server.port")
                     .stringType()
+                    .asClusterConfig()
                     .noDefaultValue()
                     .withDescription(
                             new Description.DescriptionBuilder()

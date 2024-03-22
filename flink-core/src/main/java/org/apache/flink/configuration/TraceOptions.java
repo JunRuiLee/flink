@@ -50,6 +50,7 @@ public class TraceOptions {
     public static final ConfigOption<String> TRACE_REPORTERS_LIST =
             key("traces.reporters")
                     .stringType()
+                    .asClusterConfig()
                     .noDefaultValue()
                     .withDescription(
                             "An optional list of trace reporter names. If configured, only reporters whose name matches"
@@ -96,6 +97,7 @@ public class TraceOptions {
     public static final ConfigOption<String> REPORTER_FACTORY_CLASS =
             key("factory.class")
                     .stringType()
+                    .asClusterConfig()
                     .noDefaultValue()
                     .withDescription(
                             "The reporter factory class to use for the reporter named <name>.");
@@ -105,6 +107,7 @@ public class TraceOptions {
     public static final ConfigOption<String> REPORTER_CONFIG_PARAMETER =
             key("<parameter>")
                     .stringType()
+                    .asClusterConfig()
                     .noDefaultValue()
                     .withDescription(
                             "Configures the parameter <parameter> for the reporter named <name>.");
@@ -114,6 +117,7 @@ public class TraceOptions {
     public static final ConfigOption<Map<String, String>> REPORTER_ADDITIONAL_VARIABLES =
             key("scope.variables.additional")
                     .mapType()
+                    .asClusterConfig()
                     .defaultValue(Collections.emptyMap())
                     .withDescription(
                             "The map of additional variables that should be included for the reporter named <name>.");

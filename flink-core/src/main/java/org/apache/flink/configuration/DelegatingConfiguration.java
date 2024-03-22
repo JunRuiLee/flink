@@ -432,6 +432,7 @@ public final class DelegatingConfiguration extends Configuration {
                 option.description(),
                 option.defaultValue(),
                 option.isList(),
+                option.getScope(),
                 deprecated);
     }
 }

@@ -289,6 +289,7 @@ public class ConfigOptionsDocGenerator {
         htmlTable.append("            <th class=\"text-left\" style=\"width: 20%\">Key</th>\n");
         htmlTable.append("            <th class=\"text-left\" style=\"width: 15%\">Default</th>\n");
         htmlTable.append("            <th class=\"text-left\" style=\"width: 10%\">Type</th>\n");
+        htmlTable.append("            <th class=\"text-left\" style=\"width: 10%\">Scope</th>\n");
         htmlTable.append(
                 "            <th class=\"text-left\" style=\"width: 55%\">Description</th>\n");
         htmlTable.append("        </tr>\n");
@@ -347,6 +348,9 @@ public class ConfigOptionsDocGenerator {
                 + "</td>\n"
                 + "            <td>"
                 + type
+                + "</td>\n"
+                + "            <td>"
+                + optionWithMetaInfo.option.getScope().name()
                 + "</td>\n"
                 + "            <td>"
                 + getDescription(optionWithMetaInfo)

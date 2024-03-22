@@ -31,6 +31,7 @@ public class SlowTaskDetectorOptions {
     public static final ConfigOption<Duration> CHECK_INTERVAL =
             key("slow-task-detector.check-interval")
                     .durationType()
+                    .asClusterConfig()
                     .defaultValue(Duration.ofSeconds(1))
                     .withDescription("The interval to check slow tasks.");
 
@@ -38,6 +39,7 @@ public class SlowTaskDetectorOptions {
     public static final ConfigOption<Duration> EXECUTION_TIME_BASELINE_LOWER_BOUND =
             key("slow-task-detector.execution-time.baseline-lower-bound")
                     .durationType()
+                    .asClusterConfig()
                     .defaultValue(Duration.ofMinutes(1))
                     .withDescription("The lower bound of slow task detection baseline.");
 
@@ -45,6 +47,7 @@ public class SlowTaskDetectorOptions {
     public static final ConfigOption<Double> EXECUTION_TIME_BASELINE_RATIO =
             key("slow-task-detector.execution-time.baseline-ratio")
                     .doubleType()
+                    .asClusterConfig()
                     .defaultValue(0.75)
                     .withDescription(
                             "The finished execution ratio threshold to calculate the slow tasks "
@@ -59,6 +62,7 @@ public class SlowTaskDetectorOptions {
     public static final ConfigOption<Double> EXECUTION_TIME_BASELINE_MULTIPLIER =
             key("slow-task-detector.execution-time.baseline-multiplier")
                     .doubleType()
+                    .asClusterConfig()
                     .defaultValue(1.5)
                     .withDescription(
                             "The multiplier to calculate the slow tasks detection baseline. Given "

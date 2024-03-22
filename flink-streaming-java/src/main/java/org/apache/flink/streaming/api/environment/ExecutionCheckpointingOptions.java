@@ -44,12 +44,14 @@ public class ExecutionCheckpointingOptions {
     public static final ConfigOption<CheckpointingMode> CHECKPOINTING_MODE =
             ConfigOptions.key("execution.checkpointing.mode")
                     .enumType(CheckpointingMode.class)
+                    .asJobConfig()
                     .defaultValue(CheckpointingMode.EXACTLY_ONCE)
                     .withDescription("The checkpointing mode (exactly-once vs. at-least-once).");
 
     public static final ConfigOption<Duration> CHECKPOINTING_TIMEOUT =
             ConfigOptions.key("execution.checkpointing.timeout")
                     .durationType()
+                    .asJobConfig()
                     .defaultValue(Duration.ofMinutes(10))
                     .withDescription(
                             "The maximum time that a checkpoint may take before being discarded.");
@@ -57,6 +59,7 @@ public class ExecutionCheckpointingOptions {
     public static final ConfigOption<Integer> MAX_CONCURRENT_CHECKPOINTS =
             ConfigOptions.key("execution.checkpointing.max-concurrent-checkpoints")
                     .intType()
+                    .asJobConfig()
                     .defaultValue(1)
                     .withDescription(
                             "The maximum number of checkpoint attempts that may be in progress at the same time. If "
@@ -67,6 +70,7 @@ public class ExecutionCheckpointingOptions {
     public static final ConfigOption<Duration> MIN_PAUSE_BETWEEN_CHECKPOINTS =
             ConfigOptions.key("execution.checkpointing.min-pause")
                     .durationType()
+                    .asJobConfig()
                     .defaultValue(Duration.ZERO)
                     .withDescription(
                             Description.builder()
@@ -86,6 +90,7 @@ public class ExecutionCheckpointingOptions {
     public static final ConfigOption<Integer> TOLERABLE_FAILURE_NUMBER =
             ConfigOptions.key("execution.checkpointing.tolerable-failed-checkpoints")
                     .intType()
+                    .asJobConfig()
                     .defaultValue(0)
                     .withDescription(
                             "The tolerable checkpoint consecutive failure number. If set to 0, that means "
@@ -98,6 +103,7 @@ public class ExecutionCheckpointingOptions {
             EXTERNALIZED_CHECKPOINT =
                     ConfigOptions.key("execution.checkpointing.externalized-checkpoint-retention")
                             .enumType(CheckpointConfig.ExternalizedCheckpointCleanup.class)
+                            .asJobConfig()
                             .defaultValue(
                                     CheckpointConfig.ExternalizedCheckpointCleanup
                                             .NO_EXTERNALIZED_CHECKPOINTS)
@@ -130,6 +136,7 @@ public class ExecutionCheckpointingOptions {
     public static final ConfigOption<Duration> CHECKPOINTING_INTERVAL_DURING_BACKLOG =
             ConfigOptions.key("execution.checkpointing.interval-during-backlog")
                     .durationType()
+                    .asJobConfig()
                     .noDefaultValue()
                     .withDescription(
                             Description.builder()
@@ -153,6 +160,7 @@ public class ExecutionCheckpointingOptions {
     public static final ConfigOption<Duration> CHECKPOINTING_INTERVAL =
             ConfigOptions.key("execution.checkpointing.interval")
                     .durationType()
+                    .asJobConfig()
                     .noDefaultValue()
                     .withDescription(
                             Description.builder()
@@ -172,6 +180,7 @@ public class ExecutionCheckpointingOptions {
     public static final ConfigOption<Boolean> ENABLE_UNALIGNED =
             ConfigOptions.key("execution.checkpointing.unaligned.enabled")
                     .booleanType()
+                    .asJobConfig()
                     .defaultValue(false)
                     .withDeprecatedKeys("execution.checkpointing.unaligned")
                     .withDescription(
@@ -198,6 +207,7 @@ public class ExecutionCheckpointingOptions {
     public static final ConfigOption<Duration> ALIGNED_CHECKPOINT_TIMEOUT =
             ConfigOptions.key("execution.checkpointing.aligned-checkpoint-timeout")
                     .durationType()
+                    .asJobConfig()
                     .defaultValue(Duration.ofSeconds(0L))
                     .withDeprecatedKeys("execution.checkpointing.alignment-timeout")
                     .withDescription(
@@ -244,6 +254,7 @@ public class ExecutionCheckpointingOptions {
     public static final ConfigOption<Boolean> FORCE_UNALIGNED =
             ConfigOptions.key("execution.checkpointing.unaligned.forced")
                     .booleanType()
+                    .asJobConfig()
                     .defaultValue(false)
                     .withDescription(
                             Description.builder()
@@ -275,6 +286,7 @@ public class ExecutionCheckpointingOptions {
     public static final ConfigOption<Boolean> ENABLE_CHECKPOINTS_AFTER_TASKS_FINISH =
             ConfigOptions.key("execution.checkpointing.checkpoints-after-tasks-finish.enabled")
                     .booleanType()
+                    .asJobConfig()
                     .defaultValue(true)
                     .withDescription(
                             Description.builder()
@@ -316,6 +328,7 @@ public class ExecutionCheckpointingOptions {
     public static final ConfigOption<Integer> UNALIGNED_MAX_SUBTASKS_PER_CHANNEL_STATE_FILE =
             key("execution.checkpointing.unaligned.max-subtasks-per-channel-state-file")
                     .intType()
+                    .asJobConfig()
                     .defaultValue(5)
                     .withDescription(
                             "Defines the maximum number of subtasks that share the same channel state file. "

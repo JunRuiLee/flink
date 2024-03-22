@@ -65,6 +65,7 @@ public class TaskManagerOptions {
     public static final ConfigOption<MemorySize> TASK_MANAGER_HEAP_MEMORY =
             key("taskmanager.heap.size")
                     .memoryType()
+                    .asClusterConfig()
                     .noDefaultValue()
                     .withDescription(
                             "JVM heap size for the TaskManagers, which are the parallel workers of"
@@ -81,6 +82,7 @@ public class TaskManagerOptions {
     public static final ConfigOption<Integer> TASK_MANAGER_HEAP_MEMORY_MB =
             key("taskmanager.heap.mb")
                     .intType()
+                    .asClusterConfig()
                     .noDefaultValue()
                     .withDescription(
                             "JVM heap size (in megabytes) for the TaskManagers, which are the parallel workers of"
@@ -92,6 +94,7 @@ public class TaskManagerOptions {
     public static final ConfigOption<Boolean> KILL_ON_OUT_OF_MEMORY =
             key("taskmanager.jvm-exit-on-oom")
                     .booleanType()
+                    .asClusterConfig()
                     .defaultValue(false)
                     .withDescription(
                             "Whether to kill the TaskManager when the task thread throws an OutOfMemoryError.");
@@ -105,6 +108,7 @@ public class TaskManagerOptions {
     public static final ConfigOption<Boolean> EXIT_ON_FATAL_AKKA_ERROR =
             key("taskmanager.exit-on-fatal-akka-error")
                     .booleanType()
+                    .asClusterConfig()
                     .defaultValue(false)
                     .withDescription(
                             "Whether the quarantine monitor for task managers shall be started. The quarantine monitor"
@@ -122,6 +126,7 @@ public class TaskManagerOptions {
     public static final ConfigOption<String> HOST =
             key("taskmanager.host")
                     .stringType()
+                    .asClusterConfig()
                     .noDefaultValue()
                     .withDescription(
                             "The external address of the network interface where the TaskManager is exposed."
@@ -136,6 +141,7 @@ public class TaskManagerOptions {
     public static final ConfigOption<String> BIND_HOST =
             key("taskmanager.bind-host")
                     .stringType()
+                    .asClusterConfig()
                     .noDefaultValue()
                     .withDescription(
                             "The local address of the network interface that the task manager binds to. If not"
@@ -152,6 +158,7 @@ public class TaskManagerOptions {
     public static final ConfigOption<String> RPC_PORT =
             key("taskmanager.rpc.port")
                     .stringType()
+                    .asClusterConfig()
                     .defaultValue("0")
                     .withDescription(
                             "The external RPC port where the TaskManager is exposed. Accepts a list of ports"
@@ -166,6 +173,7 @@ public class TaskManagerOptions {
     public static final ConfigOption<Integer> RPC_BIND_PORT =
             key("taskmanager.rpc.bind-port")
                     .intType()
+                    .asClusterConfig()
                     .noDefaultValue()
                     .withDescription(
                             "The local RPC port that the TaskManager binds to. If not configured, the external port"
@@ -181,6 +189,7 @@ public class TaskManagerOptions {
     public static final ConfigOption<Integer> COLLECT_PORT =
             key("taskmanager.collect-sink.port")
                     .intType()
+                    .asClusterConfig()
                     .defaultValue(0)
                     .withDescription(
                             "The port used for the client to retrieve query results from the TaskManager. "
@@ -197,6 +206,7 @@ public class TaskManagerOptions {
     public static final ConfigOption<Duration> INITIAL_REGISTRATION_BACKOFF =
             key("taskmanager.registration.initial-backoff")
                     .durationType()
+                    .asClusterConfig()
                     .defaultValue(TimeUtils.parseDuration("500 ms"))
                     .withDeprecatedKeys("taskmanager.initial-registration-pause")
                     .withDescription(
@@ -212,6 +222,7 @@ public class TaskManagerOptions {
     public static final ConfigOption<Duration> REGISTRATION_MAX_BACKOFF =
             key("taskmanager.registration.max-backoff")
                     .durationType()
+                    .asClusterConfig()
                     .defaultValue(TimeUtils.parseDuration("30 s"))
                     .withDeprecatedKeys("taskmanager.max-registration-pause")
                     .withDescription(
@@ -228,6 +239,7 @@ public class TaskManagerOptions {
     public static final ConfigOption<Duration> REFUSED_REGISTRATION_BACKOFF =
             key("taskmanager.registration.refused-backoff")
                     .durationType()
+                    .asClusterConfig()
                     .defaultValue(TimeUtils.parseDuration("10 s"))
                     .withDeprecatedKeys("taskmanager.refused-registration-pause")
                     .withDescription(
@@ -241,6 +253,7 @@ public class TaskManagerOptions {
     public static final ConfigOption<Duration> REGISTRATION_TIMEOUT =
             key("taskmanager.registration.timeout")
                     .durationType()
+                    .asClusterConfig()
                     .defaultValue(TimeUtils.parseDuration("5 min"))
                     .withDeprecatedKeys("taskmanager.maxRegistrationDuration")
                     .withDescription(
@@ -252,6 +265,7 @@ public class TaskManagerOptions {
     public static final ConfigOption<Integer> NUM_TASK_SLOTS =
             key("taskmanager.numberOfTaskSlots")
                     .intType()
+                    .asClusterConfig()
                     .defaultValue(1)
                     .withDescription(
                             "The number of parallel operator or user function instances that a single TaskManager can"
@@ -266,6 +280,7 @@ public class TaskManagerOptions {
     public static final ConfigOption<Duration> SLOT_TIMEOUT =
             key("taskmanager.slot.timeout")
                     .durationType()
+                    .asClusterConfig()
                     .defaultValue(RpcOptions.ASK_TIMEOUT_DURATION.defaultValue())
                     .withFallbackKeys(RpcOptions.ASK_TIMEOUT_DURATION.key())
                     .withDescription(
@@ -281,6 +296,7 @@ public class TaskManagerOptions {
     public static final ConfigOption<Boolean> DEBUG_MEMORY_LOG =
             key("taskmanager.debug.memory.log")
                     .booleanType()
+                    .asClusterConfig()
                     .defaultValue(false)
                     .withDeprecatedKeys("taskmanager.debug.memory.startLogThread")
                     .withDescription(
@@ -290,6 +306,7 @@ public class TaskManagerOptions {
     public static final ConfigOption<Long> DEBUG_MEMORY_USAGE_LOG_INTERVAL_MS =
             key("taskmanager.debug.memory.log-interval")
                     .longType()
+                    .asClusterConfig()
                     .defaultValue(5000L)
                     .withDeprecatedKeys("taskmanager.debug.memory.logIntervalMs")
                     .withDescription(
@@ -304,6 +321,7 @@ public class TaskManagerOptions {
     public static final ConfigOption<MemorySize> MEMORY_SEGMENT_SIZE =
             key("taskmanager.memory.segment-size")
                     .memoryType()
+                    .asClusterConfig()
                     .defaultValue(MemorySize.parse("32kb"))
                     .withDescription(
                             "Size of memory buffers used by the network stack and the memory manager.");
@@ -313,6 +331,7 @@ public class TaskManagerOptions {
     public static final ConfigOption<MemorySize> MIN_MEMORY_SEGMENT_SIZE =
             key("taskmanager.memory.min-segment-size")
                     .memoryType()
+                    .asClusterConfig()
                     .defaultValue(MemorySize.parse("256"))
                     .withDescription(
                             "Minimum possible size of memory buffers used by the network stack and the memory manager. "
@@ -326,6 +345,7 @@ public class TaskManagerOptions {
     public static final ConfigOption<String> HOST_BIND_POLICY =
             key("taskmanager.network.bind-policy")
                     .stringType()
+                    .asClusterConfig()
                     .defaultValue("ip")
                     .withDescription(
                             Description.builder()
@@ -349,6 +369,7 @@ public class TaskManagerOptions {
     public static final ConfigOption<String> TASK_MANAGER_RESOURCE_ID =
             key("taskmanager.resource-id")
                     .stringType()
+                    .asClusterConfig()
                     .noDefaultValue()
                     .withDescription(
                             "The TaskManager's ResourceID. If not configured, the ResourceID will be generated with the "
@@ -374,6 +395,7 @@ public class TaskManagerOptions {
     public static final ConfigOption<Double> CPU_CORES =
             key("taskmanager.cpu.cores")
                     .doubleType()
+                    .asClusterConfig()
                     .noDefaultValue()
                     .withDescription(
                             "CPU cores for the TaskExecutors. In case of Yarn setups, this value will be rounded to "
@@ -389,6 +411,7 @@ public class TaskManagerOptions {
     public static final ConfigOption<MemorySize> TOTAL_PROCESS_MEMORY =
             key("taskmanager.memory.process.size")
                     .memoryType()
+                    .asClusterConfig()
                     .noDefaultValue()
                     .withDescription(
                             "Total Process Memory size for the TaskExecutors. This includes all the memory that a "
@@ -401,6 +424,7 @@ public class TaskManagerOptions {
     public static final ConfigOption<MemorySize> TOTAL_FLINK_MEMORY =
             key("taskmanager.memory.flink.size")
                     .memoryType()
+                    .asClusterConfig()
                     .noDefaultValue()
                     .withDescription(
                             String.format(
@@ -415,6 +439,7 @@ public class TaskManagerOptions {
     public static final ConfigOption<MemorySize> FRAMEWORK_HEAP_MEMORY =
             key("taskmanager.memory.framework.heap.size")
                     .memoryType()
+                    .asClusterConfig()
                     .defaultValue(MemorySize.parse("128m"))
                     .withDescription(
                             "Framework Heap Memory size for TaskExecutors. This is the size of JVM heap memory reserved"
@@ -425,6 +450,7 @@ public class TaskManagerOptions {
     public static final ConfigOption<MemorySize> FRAMEWORK_OFF_HEAP_MEMORY =
             key("taskmanager.memory.framework.off-heap.size")
                     .memoryType()
+                    .asClusterConfig()
                     .defaultValue(MemorySize.parse("128m"))
                     .withDescription(
                             "Framework Off-Heap Memory size for TaskExecutors. This is the size of off-heap memory"
@@ -437,6 +463,7 @@ public class TaskManagerOptions {
     public static final ConfigOption<MemorySize> TASK_HEAP_MEMORY =
             key("taskmanager.memory.task.heap.size")
                     .memoryType()
+                    .asClusterConfig()
                     .noDefaultValue()
                     .withDescription(
                             "Task Heap Memory size for TaskExecutors. This is the size of JVM heap memory reserved for"
@@ -448,6 +475,7 @@ public class TaskManagerOptions {
     public static final ConfigOption<MemorySize> TASK_OFF_HEAP_MEMORY =
             key("taskmanager.memory.task.off-heap.size")
                     .memoryType()
+                    .asClusterConfig()
                     .defaultValue(MemorySize.ZERO)
                     .withDescription(
                             "Task Off-Heap Memory size for TaskExecutors. This is the size of off heap memory (JVM"
@@ -459,6 +487,7 @@ public class TaskManagerOptions {
     public static final ConfigOption<MemorySize> MANAGED_MEMORY_SIZE =
             key("taskmanager.memory.managed.size")
                     .memoryType()
+                    .asClusterConfig()
                     .noDefaultValue()
                     .withDeprecatedKeys("taskmanager.memory.size")
                     .withDescription(
@@ -477,6 +506,7 @@ public class TaskManagerOptions {
     public static final ConfigOption<Float> MANAGED_MEMORY_FRACTION =
             key("taskmanager.memory.managed.fraction")
                     .floatType()
+                    .asClusterConfig()
                     .defaultValue(0.4f)
                     .withDescription(
                             "Fraction of Total Flink Memory to be used as Managed Memory, if Managed Memory size is not"
@@ -487,6 +517,7 @@ public class TaskManagerOptions {
     public static final ConfigOption<Map<String, String>> MANAGED_MEMORY_CONSUMER_WEIGHTS =
             key("taskmanager.memory.managed.consumer-weights")
                     .mapType()
+                    .asClusterConfig()
                     .defaultValue(
                             new HashMap<String, String>() {
                                 {
@@ -513,6 +544,7 @@ public class TaskManagerOptions {
     public static final ConfigOption<MemorySize> NETWORK_MEMORY_MIN =
             key("taskmanager.memory.network.min")
                     .memoryType()
+                    .asClusterConfig()
                     .defaultValue(MemorySize.parse("64m"))
                     .withDeprecatedKeys(
                             NettyShuffleEnvironmentOptions.NETWORK_BUFFERS_MEMORY_MIN.key())
@@ -529,6 +561,7 @@ public class TaskManagerOptions {
     public static final ConfigOption<MemorySize> NETWORK_MEMORY_MAX =
             key("taskmanager.memory.network.max")
                     .memoryType()
+                    .asClusterConfig()
                     .defaultValue(MemorySize.MAX_VALUE)
                     .withDeprecatedKeys(
                             NettyShuffleEnvironmentOptions.NETWORK_BUFFERS_MEMORY_MAX.key())
@@ -544,6 +577,7 @@ public class TaskManagerOptions {
     public static final ConfigOption<Float> NETWORK_MEMORY_FRACTION =
             key("taskmanager.memory.network.fraction")
                     .floatType()
+                    .asClusterConfig()
                     .defaultValue(0.1f)
                     .withDeprecatedKeys(
                             NettyShuffleEnvironmentOptions.NETWORK_BUFFERS_MEMORY_FRACTION.key())
@@ -559,6 +593,7 @@ public class TaskManagerOptions {
     public static final ConfigOption<Duration> BUFFER_DEBLOAT_PERIOD =
             ConfigOptions.key("taskmanager.network.memory.buffer-debloat.period")
                     .durationType()
+                    .asClusterConfig()
                     .defaultValue(Duration.ofMillis(200))
                     .withDescription(
                             "The minimum period of time after which the buffer size will be debloated if required. "
@@ -569,6 +604,7 @@ public class TaskManagerOptions {
     public static final ConfigOption<Integer> BUFFER_DEBLOAT_SAMPLES =
             ConfigOptions.key("taskmanager.network.memory.buffer-debloat.samples")
                     .intType()
+                    .asClusterConfig()
                     .defaultValue(20)
                     .withDescription(
                             "The number of the last buffer size values that will be taken for the correct calculation of the new one.");
@@ -578,6 +614,7 @@ public class TaskManagerOptions {
     public static final ConfigOption<Duration> BUFFER_DEBLOAT_TARGET =
             ConfigOptions.key("taskmanager.network.memory.buffer-debloat.target")
                     .durationType()
+                    .asClusterConfig()
                     .defaultValue(Duration.ofSeconds(1))
                     .withDescription(
                             "The target total time after which buffered in-flight data should be fully consumed. "
@@ -587,6 +624,7 @@ public class TaskManagerOptions {
     public static final ConfigOption<Boolean> BUFFER_DEBLOAT_ENABLED =
             ConfigOptions.key("taskmanager.network.memory.buffer-debloat.enabled")
                     .booleanType()
+                    .asClusterConfig()
                     .defaultValue(false)
                     .withDescription(
                             "The switch of the automatic buffered debloating feature. "
@@ -599,6 +637,7 @@ public class TaskManagerOptions {
     public static final ConfigOption<Integer> BUFFER_DEBLOAT_THRESHOLD_PERCENTAGES =
             ConfigOptions.key("taskmanager.network.memory.buffer-debloat.threshold-percentages")
                     .intType()
+                    .asClusterConfig()
                     .defaultValue(25)
                     .withDescription(
                             "The minimum difference in percentage between the newly calculated buffer size and the old one to announce the new value. "
@@ -612,6 +651,7 @@ public class TaskManagerOptions {
     public static final ConfigOption<MemorySize> NETWORK_BATCH_SHUFFLE_READ_MEMORY =
             key("taskmanager.memory.framework.off-heap.batch-shuffle.size")
                     .memoryType()
+                    .asClusterConfig()
                     .defaultValue(MemorySize.parse("64m"))
                     .withDescription(
                             String.format(
@@ -631,6 +671,7 @@ public class TaskManagerOptions {
     public static final ConfigOption<MemorySize> JVM_METASPACE =
             key("taskmanager.memory.jvm-metaspace.size")
                     .memoryType()
+                    .asClusterConfig()
                     .defaultValue(MemorySize.parse("256m"))
                     .withDescription("JVM Metaspace Size for the TaskExecutors.");
 
@@ -639,6 +680,7 @@ public class TaskManagerOptions {
     public static final ConfigOption<MemorySize> JVM_OVERHEAD_MIN =
             key("taskmanager.memory.jvm-overhead.min")
                     .memoryType()
+                    .asClusterConfig()
                     .defaultValue(MemorySize.parse("192m"))
                     .withDescription(
                             "Min JVM Overhead size for the TaskExecutors. This is off-heap memory reserved for JVM"
@@ -653,6 +695,7 @@ public class TaskManagerOptions {
     public static final ConfigOption<MemorySize> JVM_OVERHEAD_MAX =
             key("taskmanager.memory.jvm-overhead.max")
                     .memoryType()
+                    .asClusterConfig()
                     .defaultValue(MemorySize.parse("1g"))
                     .withDescription(
                             "Max JVM Overhead size for the TaskExecutors. This is off-heap memory reserved for JVM"
@@ -667,6 +710,7 @@ public class TaskManagerOptions {
     public static final ConfigOption<Float> JVM_OVERHEAD_FRACTION =
             key("taskmanager.memory.jvm-overhead.fraction")
                     .floatType()
+                    .asClusterConfig()
                     .defaultValue(0.1f)
                     .withDescription(
                             "Fraction of Total Process Memory to be reserved for JVM Overhead. This is off-heap memory"
@@ -686,6 +730,7 @@ public class TaskManagerOptions {
     public static final ConfigOption<Long> TASK_CANCELLATION_INTERVAL =
             key("task.cancellation.interval")
                     .longType()
+                    .asClusterConfig()
                     .defaultValue(30000L)
                     .withDeprecatedKeys("task.cancellation-interval")
                     .withDescription(
@@ -702,6 +747,7 @@ public class TaskManagerOptions {
     public static final ConfigOption<Long> TASK_CANCELLATION_TIMEOUT =
             key("task.cancellation.timeout")
                     .longType()
+                    .asClusterConfig()
                     .defaultValue(180000L)
                     .withDescription(
                             "Timeout in milliseconds after which a task cancellation times out and"
@@ -718,6 +764,7 @@ public class TaskManagerOptions {
     public static final ConfigOption<Long> TASK_CANCELLATION_TIMEOUT_TIMERS =
             ConfigOptions.key("task.cancellation.timers.timeout")
                     .longType()
+                    .asClusterConfig()
                     .defaultValue(7500L)
                     .withDeprecatedKeys("timerservice.exceptional.shutdown.timeout")
                     .withDescription(
@@ -729,6 +776,7 @@ public class TaskManagerOptions {
     public static final ConfigOption<SystemOutMode> TASK_MANAGER_SYSTEM_OUT_MODE =
             ConfigOptions.key("taskmanager.system-out.mode")
                     .enumType(SystemOutMode.class)
+                    .asJobConfig()
                     .defaultValue(SystemOutMode.DEFAULT)
                     .withDescription(
                             Description.builder()
@@ -762,6 +810,7 @@ public class TaskManagerOptions {
     public static final ConfigOption<Boolean> TASK_MANAGER_SYSTEM_OUT_LOG_THREAD_NAME =
             ConfigOptions.key("taskmanager.system-out.log.thread-name.enabled")
                     .booleanType()
+                    .asClusterConfig()
                     .defaultValue(false)
                     .withDescription(
                             Description.builder()
@@ -774,6 +823,7 @@ public class TaskManagerOptions {
     public static final ConfigOption<MemorySize> TASK_MANAGER_SYSTEM_OUT_LOG_CACHE_SIZE =
             ConfigOptions.key("taskmanager.system-out.log.cache-upper-size")
                     .memoryType()
+                    .asClusterConfig()
                     .defaultValue(MemorySize.parse("100 kb"))
                     .withDescription(
                             Description.builder()
@@ -792,6 +842,7 @@ public class TaskManagerOptions {
     public static final ConfigOption<TaskManagerLoadBalanceMode> TASK_MANAGER_LOAD_BALANCE_MODE =
             ConfigOptions.key("taskmanager.load-balance.mode")
                     .enumType(TaskManagerLoadBalanceMode.class)
+                    .asClusterConfig()
                     .defaultValue(TaskManagerLoadBalanceMode.NONE)
                     .withDescription(
                             Description.builder()
@@ -813,6 +864,7 @@ public class TaskManagerOptions {
     public static final ConfigOption<String> TASK_MANAGER_LOG_PATH =
             ConfigOptions.key("taskmanager.log.path")
                     .stringType()
+                    .asClusterConfig()
                     .defaultValue(System.getProperty("log.file"))
                     .withDescription("The path to the log file of the task manager.");
 
@@ -820,6 +872,7 @@ public class TaskManagerOptions {
     public static final ConfigOption<Duration> FS_STREAM_OPENING_TIME_OUT =
             ConfigOptions.key("taskmanager.runtime.fs-timeout")
                     .durationType()
+                    .asClusterConfig()
                     .defaultValue(Duration.ZERO)
                     .withDeprecatedKeys("taskmanager.runtime.fs_timeout")
                     .withDescription(
@@ -829,6 +882,7 @@ public class TaskManagerOptions {
     public static final ConfigOption<Integer> MINI_CLUSTER_NUM_TASK_MANAGERS =
             ConfigOptions.key("minicluster.number-of-taskmanagers")
                     .intType()
+                    .asClusterConfig()
                     .defaultValue(1)
                     .withDeprecatedKeys("local.number-taskmanager")
                     .withDescription("The number of task managers of MiniCluster.");

@@ -64,6 +64,7 @@ public class RocksDBConfigurableOptions implements Serializable {
     public static final ConfigOption<Integer> MAX_BACKGROUND_THREADS =
             key("state.backend.rocksdb.thread.num")
                     .intType()
+                    .asJobConfig()
                     .defaultValue(2)
                     .withDescription(
                             "The maximum number of concurrent background flush and compaction jobs (per stateful operator). "
@@ -72,6 +73,7 @@ public class RocksDBConfigurableOptions implements Serializable {
     public static final ConfigOption<Integer> MAX_OPEN_FILES =
             key("state.backend.rocksdb.files.open")
                     .intType()
+                    .asJobConfig()
                     .defaultValue(-1)
                     .withDescription(
                             "The maximum number of open files (per stateful operator) that can be used by the DB, '-1' means no limit. "
@@ -80,6 +82,7 @@ public class RocksDBConfigurableOptions implements Serializable {
     public static final ConfigOption<MemorySize> LOG_MAX_FILE_SIZE =
             key("state.backend.rocksdb.log.max-file-size")
                     .memoryType()
+                    .asJobConfig()
                     .defaultValue(MemorySize.parse("25mb"))
                     .withDescription(
                             "The maximum size of RocksDB's file used for information logging. "
@@ -90,6 +93,7 @@ public class RocksDBConfigurableOptions implements Serializable {
     public static final ConfigOption<Integer> LOG_FILE_NUM =
             key("state.backend.rocksdb.log.file-num")
                     .intType()
+                    .asJobConfig()
                     .defaultValue(4)
                     .withDescription(
                             "The maximum number of files RocksDB should keep for information logging (Default setting: 4).");
@@ -97,6 +101,7 @@ public class RocksDBConfigurableOptions implements Serializable {
     public static final ConfigOption<String> LOG_DIR =
             key("state.backend.rocksdb.log.dir")
                     .stringType()
+                    .asJobConfig()
                     .noDefaultValue()
                     .withDescription(
                             "The directory for RocksDB's information logging files. "
@@ -107,6 +112,7 @@ public class RocksDBConfigurableOptions implements Serializable {
     public static final ConfigOption<InfoLogLevel> LOG_LEVEL =
             key("state.backend.rocksdb.log.level")
                     .enumType(InfoLogLevel.class)
+                    .asJobConfig()
                     .defaultValue(INFO_LEVEL)
                     .withDescription(
                             Description.builder()
@@ -135,6 +141,7 @@ public class RocksDBConfigurableOptions implements Serializable {
     public static final ConfigOption<CompactionStyle> COMPACTION_STYLE =
             key("state.backend.rocksdb.compaction.style")
                     .enumType(CompactionStyle.class)
+                    .asJobConfig()
                     .defaultValue(LEVEL)
                     .withDescription(
                             String.format(
@@ -149,6 +156,7 @@ public class RocksDBConfigurableOptions implements Serializable {
     public static final ConfigOption<Boolean> USE_DYNAMIC_LEVEL_SIZE =
             key("state.backend.rocksdb.compaction.level.use-dynamic-size")
                     .booleanType()
+                    .asJobConfig()
                     .defaultValue(false)
                     .withDescription(
                             Description.builder()
@@ -169,6 +177,7 @@ public class RocksDBConfigurableOptions implements Serializable {
     public static final ConfigOption<List<CompressionType>> COMPRESSION_PER_LEVEL =
             key("state.backend.rocksdb.compression.per.level")
                     .enumType(CompressionType.class)
+                    .asJobConfig()
                     .asList()
                     .defaultValues(SNAPPY_COMPRESSION)
                     .withDescription(
@@ -207,6 +216,7 @@ public class RocksDBConfigurableOptions implements Serializable {
     public static final ConfigOption<MemorySize> TARGET_FILE_SIZE_BASE =
             key("state.backend.rocksdb.compaction.level.target-file-size-base")
                     .memoryType()
+                    .asJobConfig()
                     .defaultValue(MemorySize.parse("64mb"))
                     .withDescription(
                             "The target file size for compaction, which determines a level-1 file size. "
@@ -215,6 +225,7 @@ public class RocksDBConfigurableOptions implements Serializable {
     public static final ConfigOption<MemorySize> MAX_SIZE_LEVEL_BASE =
             key("state.backend.rocksdb.compaction.level.max-size-level-base")
                     .memoryType()
+                    .asJobConfig()
                     .defaultValue(MemorySize.parse("256mb"))
                     .withDescription(
                             "The upper-bound of the total size of level base files in bytes. "
@@ -223,6 +234,7 @@ public class RocksDBConfigurableOptions implements Serializable {
     public static final ConfigOption<MemorySize> WRITE_BUFFER_SIZE =
             key("state.backend.rocksdb.writebuffer.size")
                     .memoryType()
+                    .asJobConfig()
                     .defaultValue(MemorySize.parse("64mb"))
                     .withDescription(
                             "The amount of data built up in memory (backed by an unsorted log on disk) "
@@ -231,6 +243,7 @@ public class RocksDBConfigurableOptions implements Serializable {
     public static final ConfigOption<Integer> MAX_WRITE_BUFFER_NUMBER =
             key("state.backend.rocksdb.writebuffer.count")
                     .intType()
+                    .asJobConfig()
                     .defaultValue(2)
                     .withDescription(
                             "The maximum number of write buffers that are built up in memory. "
@@ -239,6 +252,7 @@ public class RocksDBConfigurableOptions implements Serializable {
     public static final ConfigOption<Integer> MIN_WRITE_BUFFER_NUMBER_TO_MERGE =
             key("state.backend.rocksdb.writebuffer.number-to-merge")
                     .intType()
+                    .asJobConfig()
                     .defaultValue(1)
                     .withDescription(
                             "The minimum number of write buffers that will be merged together before writing to storage. "
@@ -247,6 +261,7 @@ public class RocksDBConfigurableOptions implements Serializable {
     public static final ConfigOption<MemorySize> BLOCK_SIZE =
             key("state.backend.rocksdb.block.blocksize")
                     .memoryType()
+                    .asJobConfig()
                     .defaultValue(MemorySize.parse("4kb"))
                     .withDescription(
                             "The approximate size (in bytes) of user data packed per block. "
@@ -255,6 +270,7 @@ public class RocksDBConfigurableOptions implements Serializable {
     public static final ConfigOption<MemorySize> METADATA_BLOCK_SIZE =
             key("state.backend.rocksdb.block.metadata-blocksize")
                     .memoryType()
+                    .asJobConfig()
                     .defaultValue(MemorySize.parse("4kb"))
                     .withDescription(
                             "Approximate size of partitioned metadata packed per block. "
@@ -264,6 +280,7 @@ public class RocksDBConfigurableOptions implements Serializable {
     public static final ConfigOption<MemorySize> BLOCK_CACHE_SIZE =
             key("state.backend.rocksdb.block.cache-size")
                     .memoryType()
+                    .asJobConfig()
                     .defaultValue(MemorySize.parse("8mb"))
                     .withDescription(
                             "The amount of the cache for data blocks in RocksDB. "
@@ -272,6 +289,7 @@ public class RocksDBConfigurableOptions implements Serializable {
     public static final ConfigOption<MemorySize> WRITE_BATCH_SIZE =
             key("state.backend.rocksdb.write-batch-size")
                     .memoryType()
+                    .asJobConfig()
                     .defaultValue(MemorySize.parse("2mb"))
                     .withDescription(
                             "The max size of the consumed memory for RocksDB batch write, "
@@ -280,6 +298,7 @@ public class RocksDBConfigurableOptions implements Serializable {
     public static final ConfigOption<Boolean> USE_BLOOM_FILTER =
             key("state.backend.rocksdb.use-bloom-filter")
                     .booleanType()
+                    .asJobConfig()
                     .defaultValue(false)
                     .withDescription(
                             "If true, every newly created SST file will contain a Bloom filter. "
@@ -288,6 +307,7 @@ public class RocksDBConfigurableOptions implements Serializable {
     public static final ConfigOption<Double> BLOOM_FILTER_BITS_PER_KEY =
             key("state.backend.rocksdb.bloom-filter.bits-per-key")
                     .doubleType()
+                    .asJobConfig()
                     .defaultValue(10.0)
                     .withDescription(
                             "Bits per key that bloom filter will use, this only take effect when bloom filter is used. "
@@ -296,6 +316,7 @@ public class RocksDBConfigurableOptions implements Serializable {
     public static final ConfigOption<Boolean> BLOOM_FILTER_BLOCK_BASED_MODE =
             key("state.backend.rocksdb.bloom-filter.block-based-mode")
                     .booleanType()
+                    .asJobConfig()
                     .defaultValue(false)
                     .withDescription(
                             "If true, RocksDB will use block-based filter instead of full filter, this only take effect when bloom filter is used. "
@@ -304,6 +325,7 @@ public class RocksDBConfigurableOptions implements Serializable {
     public static final ConfigOption<Double> RESTORE_OVERLAP_FRACTION_THRESHOLD =
             key("state.backend.rocksdb.restore-overlap-fraction-threshold")
                     .doubleType()
+                    .asJobConfig()
                     .defaultValue(0.0)
                     .withDescription(
                             "The threshold of overlap fraction between the handle's key-group range and target key-group range. "
@@ -314,6 +336,7 @@ public class RocksDBConfigurableOptions implements Serializable {
     public static final ConfigOption<Boolean> USE_INGEST_DB_RESTORE_MODE =
             key("state.backend.rocksdb.use-ingest-db-restore-mode")
                     .booleanType()
+                    .asJobConfig()
                     .defaultValue(Boolean.FALSE)
                     .withDescription(
                             "A recovery mode that directly clips and ingests multiple DBs during state recovery if the keys"
@@ -322,6 +345,7 @@ public class RocksDBConfigurableOptions implements Serializable {
     public static final ConfigOption<Boolean> INCREMENTAL_RESTORE_ASYNC_COMPACT_AFTER_RESCALE =
             key("state.backend.rocksdb.incremental-restore-async-compact-after-rescale")
                     .booleanType()
+                    .asJobConfig()
                     .defaultValue(Boolean.FALSE)
                     .withDescription(
                             "If true, an async compaction of RocksDB is started after every restore after which we detect keys (including tombstones) in the database that are outside the key-groups range of the backend.");
@@ -329,6 +353,7 @@ public class RocksDBConfigurableOptions implements Serializable {
     public static final ConfigOption<Boolean> USE_DELETE_FILES_IN_RANGE_DURING_RESCALING =
             key("state.backend.rocksdb.rescaling.use-delete-files-in-range")
                     .booleanType()
+                    .asJobConfig()
                     .defaultValue(Boolean.FALSE)
                     .withDescription(
                             "If true, during rescaling, the deleteFilesInRange API will be invoked to clean up the useless files so that local disk space can be reclaimed more promptly.");

@@ -44,6 +44,7 @@ public class YarnConfigOptions {
     public static final ConfigOption<Integer> APP_MASTER_VCORES =
             key("yarn.appmaster.vcores")
                     .intType()
+                    .asClusterConfig()
                     .defaultValue(1)
                     .withDescription(
                             "The number of virtual cores (vcores) used by YARN application master.");
@@ -57,6 +58,7 @@ public class YarnConfigOptions {
     public static final ConfigOption<UserJarInclusion> CLASSPATH_INCLUDE_USER_JAR =
             key("yarn.classpath.include-user-jar")
                     .enumType(UserJarInclusion.class)
+                    .asClusterConfig()
                     .defaultValue(ORDER)
                     .withDeprecatedKeys("yarn.per-job-cluster.include-user-jar")
                     .withDescription(
@@ -67,6 +69,7 @@ public class YarnConfigOptions {
     public static final ConfigOption<Integer> VCORES =
             key("yarn.containers.vcores")
                     .intType()
+                    .asClusterConfig()
                     .defaultValue(-1)
                     .withDescription(
                             Description.builder()
@@ -90,6 +93,7 @@ public class YarnConfigOptions {
     public static final ConfigOption<String> APPLICATION_ATTEMPTS =
             key("yarn.application-attempts")
                     .stringType()
+                    .asClusterConfig()
                     .noDefaultValue()
                     .withDescription(
                             Description.builder()
@@ -107,6 +111,7 @@ public class YarnConfigOptions {
     public static final ConfigOption<Long> APPLICATION_ATTEMPT_FAILURE_VALIDITY_INTERVAL =
             key("yarn.application-attempt-failures-validity-interval")
                     .longType()
+                    .asClusterConfig()
                     .defaultValue(10000L)
                     .withDescription(
                             Description.builder()
@@ -124,6 +129,7 @@ public class YarnConfigOptions {
     public static final ConfigOption<Integer> HEARTBEAT_DELAY_SECONDS =
             key("yarn.heartbeat.interval")
                     .intType()
+                    .asClusterConfig()
                     .defaultValue(5)
                     .withDeprecatedKeys("yarn.heartbeat-delay")
                     .withDescription(
@@ -136,6 +142,7 @@ public class YarnConfigOptions {
     public static final ConfigOption<Integer> CONTAINER_REQUEST_HEARTBEAT_INTERVAL_MILLISECONDS =
             key("yarn.heartbeat.container-request-interval")
                     .intType()
+                    .asClusterConfig()
                     .defaultValue(500)
                     .withDescription(
                             new Description.DescriptionBuilder()
@@ -162,6 +169,7 @@ public class YarnConfigOptions {
     public static final ConfigOption<String> PROPERTIES_FILE_LOCATION =
             key("yarn.properties-file.location")
                     .stringType()
+                    .asClusterConfig()
                     .noDefaultValue()
                     .withDescription(
                             "When a Flink job is submitted to YARN, the JobManager’s host and the number of available"
@@ -178,6 +186,7 @@ public class YarnConfigOptions {
     public static final ConfigOption<String> APPLICATION_MASTER_PORT =
             key("yarn.application-master.port")
                     .stringType()
+                    .asClusterConfig()
                     .defaultValue("0")
                     .withDescription(
                             "With this configuration option, users can specify a port, a range of ports or a list of ports"
@@ -200,6 +209,7 @@ public class YarnConfigOptions {
     public static final ConfigOption<Integer> APPLICATION_PRIORITY =
             key("yarn.application.priority")
                     .intType()
+                    .asClusterConfig()
                     .defaultValue(-1)
                     .withDescription(
                             "A non-negative integer indicating the priority for submitting a Flink YARN application. It"
@@ -218,6 +228,7 @@ public class YarnConfigOptions {
     public static final ConfigOption<Integer> FILE_REPLICATION =
             key("yarn.file-replication")
                     .intType()
+                    .asClusterConfig()
                     .defaultValue(-1)
                     .withDescription(
                             "Number of file replication of each local resource file. If it is not configured, Flink will"
@@ -227,6 +238,7 @@ public class YarnConfigOptions {
     public static final ConfigOption<String> APPLICATION_TAGS =
             key("yarn.tags")
                     .stringType()
+                    .asClusterConfig()
                     .defaultValue("")
                     .withDescription(
                             "A comma-separated list of tags to apply to the Flink YARN application.");
@@ -238,6 +250,7 @@ public class YarnConfigOptions {
     public static final ConfigOption<String> APPLICATION_VIEW_ACLS =
             key("yarn.view.acls")
                     .stringType()
+                    .asClusterConfig()
                     .noDefaultValue()
                     .withDescription(
                             "Users and groups to give VIEW access. The ACLs are of for"
@@ -249,6 +262,7 @@ public class YarnConfigOptions {
     public static final ConfigOption<String> APPLICATION_MODIFY_ACLS =
             key("yarn.modify.acls")
                     .stringType()
+                    .asClusterConfig()
                     .noDefaultValue()
                     .withDescription(
                             "Users and groups to give MODIFY access. The ACLs are of for"
@@ -261,6 +275,7 @@ public class YarnConfigOptions {
     public static final ConfigOption<String> STAGING_DIRECTORY =
             key("yarn.staging-directory")
                     .stringType()
+                    .asClusterConfig()
                     .noDefaultValue()
                     .withDescription(
                             "Staging directory used to store YARN files while submitting applications. Per default, it uses the home directory of the configured file system.");
@@ -268,6 +283,7 @@ public class YarnConfigOptions {
     public static final ConfigOption<List<String>> SHIP_FILES =
             key("yarn.ship-files")
                     .stringType()
+                    .asClusterConfig()
                     .asList()
                     .noDefaultValue()
                     .withDeprecatedKeys("yarn.ship-directories")
@@ -282,6 +298,7 @@ public class YarnConfigOptions {
     public static final ConfigOption<List<String>> SHIP_ARCHIVES =
             key("yarn.ship-archives")
                     .stringType()
+                    .asClusterConfig()
                     .asList()
                     .noDefaultValue()
                     .withDescription(
@@ -295,12 +312,14 @@ public class YarnConfigOptions {
     public static final ConfigOption<String> FLINK_DIST_JAR =
             key("yarn.flink-dist-jar")
                     .stringType()
+                    .asClusterConfig()
                     .noDefaultValue()
                     .withDescription("The location of the Flink dist jar.");
 
     public static final ConfigOption<String> APPLICATION_ID =
             key("yarn.application.id")
                     .stringType()
+                    .asClusterConfig()
                     .noDefaultValue()
                     .withDescription(
                             "The YARN application id of the running yarn cluster."
@@ -309,30 +328,35 @@ public class YarnConfigOptions {
     public static final ConfigOption<String> APPLICATION_QUEUE =
             key("yarn.application.queue")
                     .stringType()
+                    .asClusterConfig()
                     .noDefaultValue()
                     .withDescription("The YARN queue on which to put the current pipeline.");
 
     public static final ConfigOption<String> APPLICATION_NAME =
             key("yarn.application.name")
                     .stringType()
+                    .asClusterConfig()
                     .noDefaultValue()
                     .withDescription("A custom name for your YARN application.");
 
     public static final ConfigOption<String> APPLICATION_TYPE =
             key("yarn.application.type")
                     .stringType()
+                    .asClusterConfig()
                     .noDefaultValue()
                     .withDescription("A custom type for your YARN application..");
 
     public static final ConfigOption<String> NODE_LABEL =
             key("yarn.application.node-label")
                     .stringType()
+                    .asClusterConfig()
                     .noDefaultValue()
                     .withDescription("Specify YARN node label for the YARN application.");
 
     public static final ConfigOption<String> TASK_MANAGER_NODE_LABEL =
             key("yarn.taskmanager.node-label")
                     .stringType()
+                    .asClusterConfig()
                     .noDefaultValue()
                     .withDescription(
                             "Specify YARN node label for the Flink TaskManagers, it will "
@@ -341,6 +365,7 @@ public class YarnConfigOptions {
     public static final ConfigOption<Boolean> SHIP_LOCAL_KEYTAB =
             key("yarn.security.kerberos.ship-local-keytab")
                     .booleanType()
+                    .asClusterConfig()
                     .defaultValue(true)
                     .withDescription(
                             "When this is true Flink will ship the keytab file configured via "
@@ -350,6 +375,7 @@ public class YarnConfigOptions {
     public static final ConfigOption<String> LOCALIZED_KEYTAB_PATH =
             key("yarn.security.kerberos.localized-keytab-path")
                     .stringType()
+                    .asClusterConfig()
                     .defaultValue("krb5.keytab")
                     .withDescription(
                             "Local (on NodeManager) path where kerberos keytab file will be"
@@ -364,6 +390,7 @@ public class YarnConfigOptions {
     public static final ConfigOption<List<String>> PROVIDED_LIB_DIRS =
             key("yarn.provided.lib.dirs")
                     .stringType()
+                    .asClusterConfig()
                     .asList()
                     .noDefaultValue()
                     .withDescription(
@@ -381,6 +408,7 @@ public class YarnConfigOptions {
     public static final ConfigOption<String> PROVIDED_USRLIB_DIR =
             key("yarn.provided.usrlib.dir")
                     .stringType()
+                    .asClusterConfig()
                     .noDefaultValue()
                     .withDescription(
                             "The provided usrlib directory in remote. It should be pre-uploaded and "
@@ -392,6 +420,7 @@ public class YarnConfigOptions {
     public static final ConfigOption<String> HADOOP_CONFIG_KEY =
             key("flink.hadoop.<key>")
                     .stringType()
+                    .asClusterConfig()
                     .noDefaultValue()
                     .withDescription(
                             Description.builder()
@@ -410,6 +439,7 @@ public class YarnConfigOptions {
     public static final ConfigOption<String> YARN_CONFIG_KEY =
             key("flink.yarn.<key>")
                     .stringType()
+                    .asClusterConfig()
                     .noDefaultValue()
                     .withDescription(
                             Description.builder()
@@ -424,6 +454,7 @@ public class YarnConfigOptions {
     public static final ConfigOption<String> YARN_CONTAINER_START_COMMAND_TEMPLATE =
             key("yarn.container-start-command-template")
                     .stringType()
+                    .asClusterConfig()
                     .defaultValue("%java% %jvmmem% %jvmopts% %logging% %class% %args% %redirects%")
                     .withDescription(
                             Description.builder()
@@ -457,6 +488,7 @@ public class YarnConfigOptions {
             key(ExternalResourceOptions.genericKeyWithSuffix(
                             EXTERNAL_RESOURCE_YARN_CONFIG_KEY_SUFFIX))
                     .stringType()
+                    .asClusterConfig()
                     .noDefaultValue()
                     .withDescription(
                             "If configured, Flink will add this key to the resource profile of container request to Yarn. "

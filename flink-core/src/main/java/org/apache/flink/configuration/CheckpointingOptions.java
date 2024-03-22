@@ -92,6 +92,7 @@ public class CheckpointingOptions {
     public static final ConfigOption<String> CHECKPOINT_STORAGE =
             ConfigOptions.key("state.checkpoint-storage")
                     .stringType()
+                    .asJobConfig()
                     .noDefaultValue()
                     .withDescription(
                             Description.builder()
@@ -126,6 +127,7 @@ public class CheckpointingOptions {
     public static final ConfigOption<Integer> MAX_RETAINED_CHECKPOINTS =
             ConfigOptions.key("state.checkpoints.num-retained")
                     .intType()
+                    .asClusterConfig()
                     .defaultValue(1)
                     .withDescription("The maximum number of completed checkpoints to retain.");
 
@@ -137,6 +139,7 @@ public class CheckpointingOptions {
     public static final ConfigOption<Boolean> CLEANER_PARALLEL_MODE =
             ConfigOptions.key("state.checkpoint.cleaner.parallel-mode")
                     .booleanType()
+                    .asClusterConfig()
                     .defaultValue(true)
                     .withDescription(
                             "Option whether to discard a checkpoint's states in parallel using"
@@ -164,6 +167,7 @@ public class CheckpointingOptions {
     public static final ConfigOption<Boolean> INCREMENTAL_CHECKPOINTS =
             ConfigOptions.key("state.backend.incremental")
                     .booleanType()
+                    .asJobConfig()
                     .defaultValue(false)
                     .withDescription(
                             "Option whether the state backend should create incremental checkpoints, if possible. For"
@@ -205,6 +209,7 @@ public class CheckpointingOptions {
     public static final ConfigOption<String> LOCAL_RECOVERY_TASK_MANAGER_STATE_ROOT_DIRS =
             ConfigOptions.key("taskmanager.state.local.root-dirs")
                     .stringType()
+                    .asClusterConfig()
                     .noDefaultValue()
                     .withDescription(
                             Description.builder()
@@ -231,6 +236,7 @@ public class CheckpointingOptions {
     public static final ConfigOption<String> SAVEPOINT_DIRECTORY =
             ConfigOptions.key("state.savepoints.dir")
                     .stringType()
+                    .asJobConfig()
                     .noDefaultValue()
                     .withDeprecatedKeys("savepoints.state.backend.fs.dir")
                     .withDescription(
@@ -247,6 +253,7 @@ public class CheckpointingOptions {
     public static final ConfigOption<String> CHECKPOINTS_DIRECTORY =
             ConfigOptions.key("state.checkpoints.dir")
                     .stringType()
+                    .asJobConfig()
                     .noDefaultValue()
                     .withDeprecatedKeys("state.backend.fs.checkpointdir")
                     .withDescription(
@@ -266,6 +273,7 @@ public class CheckpointingOptions {
     public static final ConfigOption<Boolean> CREATE_CHECKPOINT_SUB_DIR =
             ConfigOptions.key("state.checkpoints.create-subdir")
                     .booleanType()
+                    .asJobConfig()
                     .defaultValue(true)
                     .withDescription(
                             Description.builder()
@@ -290,6 +298,7 @@ public class CheckpointingOptions {
     public static final ConfigOption<MemorySize> FS_SMALL_FILE_THRESHOLD =
             ConfigOptions.key("state.storage.fs.memory-threshold")
                     .memoryType()
+                    .asJobConfig()
                     .defaultValue(MemorySize.parse("20kb"))
                     .withDescription(
                             "The minimum size of state data files. All state chunks smaller than that are stored"
@@ -303,6 +312,7 @@ public class CheckpointingOptions {
     public static final ConfigOption<Integer> FS_WRITE_BUFFER_SIZE =
             ConfigOptions.key("state.storage.fs.write-buffer-size")
                     .intType()
+                    .asJobConfig()
                     .defaultValue(4 * 1024)
                     .withDescription(
                             String.format(
@@ -321,6 +331,7 @@ public class CheckpointingOptions {
     public static final ConfigOption<Boolean> LOCAL_BACKUP_ENABLED =
             ConfigOptions.key("execution.checkpointing.local-backup.enabled")
                     .booleanType()
+                    .asClusterConfig()
                     .defaultValue(StateRecoveryOptions.LOCAL_RECOVERY.defaultValue())
                     .withFallbackKeys(StateRecoveryOptions.LOCAL_RECOVERY.key())
                     .withDeprecatedKeys(LOCAL_RECOVERY.key())

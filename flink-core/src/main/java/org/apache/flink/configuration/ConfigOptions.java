@@ -180,7 +180,12 @@ public class ConfigOptions {
         public <T> ConfigOption<T> defaultValue(T value) {
             checkNotNull(value);
             return new ConfigOption<>(
-                    key, value.getClass(), ConfigOption.EMPTY_DESCRIPTION, value, false);
+                    key,
+                    value.getClass(),
+                    ConfigOption.EMPTY_DESCRIPTION,
+                    value,
+                    false,
+                    ConfigOptionScope.UNKNOWN);
         }
 
         /**
@@ -194,7 +199,12 @@ public class ConfigOptions {
         @Deprecated
         public ConfigOption<String> noDefaultValue() {
             return new ConfigOption<>(
-                    key, String.class, ConfigOption.EMPTY_DESCRIPTION, null, false);
+                    key,
+                    String.class,
+                    ConfigOption.EMPTY_DESCRIPTION,
+                    null,
+                    false,
+                    ConfigOptionScope.UNKNOWN);
         }
     }
 
@@ -224,7 +234,13 @@ public class ConfigOptions {
          * @return The config option with the default value.
          */
         public ConfigOption<T> defaultValue(T value) {
-            return new ConfigOption<>(key, clazz, ConfigOption.EMPTY_DESCRIPTION, value, false);
+            return new ConfigOption<>(
+                    key,
+                    clazz,
+                    ConfigOption.EMPTY_DESCRIPTION,
+                    value,
+                    false,
+                    ConfigOptionScope.UNKNOWN);
         }
 
         /**
@@ -234,7 +250,63 @@ public class ConfigOptions {
          */
         public ConfigOption<T> noDefaultValue() {
             return new ConfigOption<>(
-                    key, clazz, Description.builder().text("").build(), null, false);
+                    key,
+                    clazz,
+                    Description.builder().text("").build(),
+                    null,
+                    false,
+                    ConfigOptionScope.UNKNOWN);
+        }
+
+        public ScopedConfigOptionBuilder<T> asJobConfig() {
+            return new ScopedConfigOptionBuilder<>(ConfigOptionScope.JOB, key, clazz);
+        }
+
+        public ScopedConfigOptionBuilder<T> asClusterConfig() {
+            return new ScopedConfigOptionBuilder<>(ConfigOptionScope.CLUSTER, key, clazz);
+        }
+    }
+
+    /**
+     * Builder for {@link ConfigOption} with a defined config scope.
+     *
+     * @param <T> atomic type of the option
+     */
+    public static class ScopedConfigOptionBuilder<T> {
+        private final String key;
+        private final Class<T> clazz;
+        private final ConfigOptionScope scope;
+
+        ScopedConfigOptionBuilder(ConfigOptionScope scope, String key, Class<T> clazz) {
+            this.scope = scope;
+            this.key = key;
+            this.clazz = clazz;
+        }
+
+        /** Defines that the option's type should be a list of previously defined atomic type. */
+        public ListConfigOptionBuilder<T> asList() {
+            return new ListConfigOptionBuilder<>(scope, key, clazz);
+        }
+
+        /**
+         * Creates a ConfigOption with the given default value.
+         *
+         * @param value The default value for the config option
+         * @return The config option with the default value.
+         */
+        public ConfigOption<T> defaultValue(T value) {
+            return new ConfigOption<>(
+                    key, clazz, ConfigOption.EMPTY_DESCRIPTION, value, false, scope);
+        }
+
+        /**
+         * Creates a ConfigOption without a default value.
+         *
+         * @return The config option without a default value.
+         */
+        public ConfigOption<T> noDefaultValue() {
+            return new ConfigOption<>(
+                    key, clazz, Description.builder().text("").build(), null, false, scope);
         }
     }
 
@@ -246,8 +318,16 @@ public class ConfigOptions {
     public static class ListConfigOptionBuilder<E> {
         private final String key;
         private final Class<E> clazz;
+        private final ConfigOptionScope scope;
 
         ListConfigOptionBuilder(String key, Class<E> clazz) {
+            this.scope = ConfigOptionScope.UNKNOWN;
+            this.key = key;
+            this.clazz = clazz;
+        }
+
+        ListConfigOptionBuilder(ConfigOptionScope scope, String key, Class<E> clazz) {
+            this.scope = scope;
             this.key = key;
             this.clazz = clazz;
         }
@@ -261,7 +341,7 @@ public class ConfigOptions {
         @SafeVarargs
         public final ConfigOption<List<E>> defaultValues(E... values) {
             return new ConfigOption<>(
-                    key, clazz, ConfigOption.EMPTY_DESCRIPTION, Arrays.asList(values), true);
+                    key, clazz, ConfigOption.EMPTY_DESCRIPTION, Arrays.asList(values), true, scope);
         }
 
         /**
@@ -270,7 +350,8 @@ public class ConfigOptions {
          * @return The config option without a default value.
          */
         public ConfigOption<List<E>> noDefaultValue() {
-            return new ConfigOption<>(key, clazz, ConfigOption.EMPTY_DESCRIPTION, null, true);
+            return new ConfigOption<>(
+                    key, clazz, ConfigOption.EMPTY_DESCRIPTION, null, true, scope);
         }
     }
 

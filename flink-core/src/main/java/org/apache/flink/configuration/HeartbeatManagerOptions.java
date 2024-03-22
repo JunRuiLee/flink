@@ -34,6 +34,7 @@ public class HeartbeatManagerOptions {
     public static final ConfigOption<Long> HEARTBEAT_INTERVAL =
             key("heartbeat.interval")
                     .longType()
+                    .asClusterConfig()
                     .defaultValue(10000L)
                     .withDescription(
                             "Time interval between heartbeat RPC requests from the sender to the receiver side.");
@@ -43,6 +44,7 @@ public class HeartbeatManagerOptions {
     public static final ConfigOption<Long> HEARTBEAT_TIMEOUT =
             key("heartbeat.timeout")
                     .longType()
+                    .asClusterConfig()
                     .defaultValue(50000L)
                     .withDescription(
                             "Timeout for requesting and receiving heartbeats for both sender and receiver sides.");
@@ -56,6 +58,7 @@ public class HeartbeatManagerOptions {
     public static final ConfigOption<Integer> HEARTBEAT_RPC_FAILURE_THRESHOLD =
             key(HEARTBEAT_RPC_FAILURE_THRESHOLD_KEY)
                     .intType()
+                    .asClusterConfig()
                     .defaultValue(2)
                     .withDescription(
                             Description.builder()
