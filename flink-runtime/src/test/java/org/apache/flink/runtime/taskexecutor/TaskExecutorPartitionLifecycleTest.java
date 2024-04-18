@@ -26,7 +26,6 @@ import org.apache.flink.configuration.TaskManagerOptions;
 import org.apache.flink.core.testutils.BlockerSync;
 import org.apache.flink.core.testutils.OneShotLatch;
 import org.apache.flink.runtime.blob.NoOpTaskExecutorBlobService;
-import org.apache.flink.runtime.clusterframework.types.AllocationID;
 import org.apache.flink.runtime.clusterframework.types.ResourceID;
 import org.apache.flink.runtime.clusterframework.types.ResourceProfile;
 import org.apache.flink.runtime.deployment.ResultPartitionDeploymentDescriptor;
@@ -51,8 +50,6 @@ import org.apache.flink.runtime.io.network.partition.TaskExecutorPartitionTracke
 import org.apache.flink.runtime.io.network.partition.TestingTaskExecutorPartitionTracker;
 import org.apache.flink.runtime.jobgraph.IntermediateDataSetID;
 import org.apache.flink.runtime.jobgraph.tasks.AbstractInvokable;
-import org.apache.flink.runtime.jobmaster.AllocatedSlotInfo;
-import org.apache.flink.runtime.jobmaster.AllocatedSlotReport;
 import org.apache.flink.runtime.jobmaster.JMTMRegistrationSuccess;
 import org.apache.flink.runtime.jobmaster.JobMasterGateway;
 import org.apache.flink.runtime.jobmaster.utils.TestingJobMasterGateway;
@@ -60,20 +57,16 @@ import org.apache.flink.runtime.jobmaster.utils.TestingJobMasterGatewayBuilder;
 import org.apache.flink.runtime.leaderretrieval.SettableLeaderRetrievalService;
 import org.apache.flink.runtime.messages.Acknowledge;
 import org.apache.flink.runtime.metrics.groups.UnregisteredMetricGroups;
-import org.apache.flink.runtime.registration.RetryingRegistrationConfiguration;
 import org.apache.flink.runtime.resourcemanager.utils.TestingResourceManagerGateway;
 import org.apache.flink.runtime.rpc.RpcUtils;
 import org.apache.flink.runtime.rpc.TestingRpcService;
-import org.apache.flink.runtime.rpc.exceptions.RecipientUnreachableException;
 import org.apache.flink.runtime.security.token.DelegationTokenReceiverRepository;
 import org.apache.flink.runtime.shuffle.ShuffleEnvironment;
 import org.apache.flink.runtime.state.TaskExecutorLocalStateStoresManager;
 import org.apache.flink.runtime.taskexecutor.slot.TaskSlotTable;
 import org.apache.flink.runtime.taskexecutor.slot.TaskSlotUtils;
-import org.apache.flink.runtime.taskmanager.LocalUnresolvedTaskManagerLocation;
 import org.apache.flink.runtime.taskmanager.NoOpTaskManagerActions;
 import org.apache.flink.runtime.taskmanager.Task;
-import org.apache.flink.runtime.taskmanager.UnresolvedTaskManagerLocation;
 import org.apache.flink.runtime.util.TestingFatalErrorHandler;
 import org.apache.flink.testutils.TestFileUtils;
 import org.apache.flink.testutils.TestingUtils;
@@ -82,7 +75,6 @@ import org.apache.flink.testutils.junit.utils.TempDirUtils;
 import org.apache.flink.util.Reference;
 import org.apache.flink.util.SerializedValue;
 import org.apache.flink.util.concurrent.Executors;
-import org.apache.flink.util.concurrent.FutureUtils;
 import org.apache.flink.util.function.TriConsumer;
 
 import org.junit.jupiter.api.AfterAll;
@@ -110,6 +102,7 @@ import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.function.Consumer;
 import java.util.stream.StreamSupport;
 
+import static org.apache.flink.configuration.TaskManagerOptions.SLOT_TIMEOUT;
 import static org.apache.flink.core.testutils.FlinkAssertions.assertThatFuture;
 import static org.assertj.core.api.Assertions.assertThat;
 
@@ -134,9 +127,13 @@ class TaskExecutorPartitionLifecycleTest {
 
     private ResourceID jmResourceId;
 
-    private UnresolvedTaskManagerLocation unresolvedTaskManagerLocation;
+    private Duration duration = Duration.ofSeconds(15);
 
-    private JobLeaderService jobLeaderService;
+    private Duration longDuration = Duration.ofSeconds(30);
+
+    private CompletableFuture<Void> disconnectTaskManagerFuture;
+
+    private final String jobMasterAddress = "jm";
 
     @TempDir private Path tempDir;
 
@@ -149,14 +146,9 @@ class TaskExecutorPartitionLifecycleTest {
         haServices.setResourceManagerLeaderRetriever(resourceManagerLeaderRetriever);
         haServices.setJobMasterLeaderRetriever(jobId, jobManagerLeaderRetriever);
         configuration = new Configuration();
-        heartbeatServices = new TestingHeartbeatServices();
+        heartbeatServices = new TestingHeartbeatServices(50000L, 50000L);
         jmResourceId = ResourceID.generate();
-        unresolvedTaskManagerLocation = new LocalUnresolvedTaskManagerLocation();
-        jobLeaderService =
-                new TestJobLeaderService(
-                        unresolvedTaskManagerLocation,
-                        RetryingRegistrationConfiguration.defaultConfiguration(),
-                        true);
+        disconnectTaskManagerFuture = new CompletableFuture<>();
     }
 
     @AfterEach
@@ -280,11 +272,7 @@ class TaskExecutorPartitionLifecycleTest {
                 partitionTracker ->
                         partitionTracker.setStopTrackingAndReleaseAllPartitionsConsumer(
                                 releasePartitionsForJobFuture::complete),
-                (jobId,
-                        resultPartitionDeploymentDescriptor,
-                        taskExecutor,
-                        taskExecutorGateway,
-                        ignored) -> {
+                (jobId, resultPartitionDeploymentDescriptor, taskExecutor, taskExecutorGateway) -> {
                     taskExecutorGateway.disconnectJobManager(jobId, new Exception("test"));
 
                     assertThatFuture(releasePartitionsForJobFuture)
@@ -301,11 +289,7 @@ class TaskExecutorPartitionLifecycleTest {
                 partitionTracker ->
                         partitionTracker.setStopTrackingAndReleasePartitionsConsumer(
                                 releasePartitionsFuture::complete),
-                (jobId,
-                        resultPartitionDeploymentDescriptor,
-                        taskExecutor,
-                        taskExecutorGateway,
-                        ignored) -> {
+                (jobId, resultPartitionDeploymentDescriptor, taskExecutor, taskExecutorGateway) -> {
                     final ResultPartitionID resultPartitionId =
                             resultPartitionDeploymentDescriptor
                                     .getShuffleDescriptor()
@@ -320,168 +304,6 @@ class TaskExecutorPartitionLifecycleTest {
     }
 
     @Test
-    void testLostLeadershipAndReleasePartitionWhenDisableBatchJobRecovery() throws Exception {
-        testLostLeadershipAndReleasePartition(false);
-    }
-
-    @Test
-    void testLostLeadershipAndReleasePartitionWhenEnableBatchJobRecovery() throws Exception {
-        testLostLeadershipAndReleasePartition(true);
-    }
-
-    private void testLostLeadershipAndReleasePartition(boolean enableBatchJobRecovery)
-            throws Exception {
-        TestAction triggerJMCrashedAction =
-                (jobId,
-                        resultPartitionDeploymentDescriptor,
-                        taskExecutor,
-                        taskExecutorGateway,
-                        allocationId) ->
-                        jobManagerLeaderRetriever.notifyListener(null, UUID.randomUUID());
-
-        // lost leadership will not reconnect
-        boolean enableReconnectToJM = false;
-        testReleasePartitionWhenJMCrashed(
-                enableReconnectToJM, enableBatchJobRecovery, ignored -> {}, triggerJMCrashedAction);
-    }
-
-    @Test
-    void testHeartbeatTimeoutAndReleasePartitionWhenDisableBatchJobRecovery() throws Exception {
-        testHeartbeatTimeoutAndReleasePartition(true, false);
-    }
-
-    @Test
-    void testHeartbeatTimeoutAndReleasePartitionWhenEnableBatchJobRecoveryAndReconnect()
-            throws Exception {
-        testHeartbeatTimeoutAndReleasePartition(true, true);
-    }
-
-    @Test
-    void testHeartbeatTimeoutAndReleasePartitionWhenEnableBatchJobRecoveryAndDisableReconnect()
-            throws Exception {
-        testHeartbeatTimeoutAndReleasePartition(false, true);
-    }
-
-    private void testHeartbeatTimeoutAndReleasePartition(
-            boolean enableReconnectToJM, boolean enableBatchJobRecovery) throws Exception {
-        TestAction triggerJMCrashedAction =
-                (jobId,
-                        resultPartitionDeploymentDescriptor,
-                        taskExecutor,
-                        taskExecutorGateway,
-                        allocationId) ->
-                        heartbeatServices.triggerHeartbeatTimeout(
-                                taskExecutor.getResourceID(), jmResourceId);
-
-        testReleasePartitionWhenJMCrashed(
-                enableReconnectToJM, enableBatchJobRecovery, ignored -> {}, triggerJMCrashedAction);
-    }
-
-    @Test
-    void testJMUnreachableAndReleasePartitionWhenDisableBatchJobRecovery() throws Exception {
-        testJMUnreachableAndReleasePartitionWhenDisableBatchJobRecovery(true, false);
-    }
-
-    @Test
-    void testJMUnreachableAndReleasePartitionWhenEnableBatchJobRecoveryAndReconnect()
-            throws Exception {
-        testJMUnreachableAndReleasePartitionWhenDisableBatchJobRecovery(true, true);
-    }
-
-    @Test
-    void testJMUnreachableAndReleasePartitionWhenEnableBatchJobRecoveryAndDisableReconnect()
-            throws Exception {
-        testJMUnreachableAndReleasePartitionWhenDisableBatchJobRecovery(false, true);
-    }
-
-    private void testJMUnreachableAndReleasePartitionWhenDisableBatchJobRecovery(
-            boolean enableReconnectToJM, boolean enableBatchJobRecovery) throws Exception {
-        TestAction triggerJMCrashedAction =
-                (jobId,
-                        resultPartitionDeploymentDescriptor,
-                        taskExecutor,
-                        taskExecutorGateway,
-                        allocationId) ->
-                        taskExecutorGateway.heartbeatFromJobManager(
-                                jmResourceId,
-                                new AllocatedSlotReport(
-                                        jobId,
-                                        Collections.singleton(
-                                                new AllocatedSlotInfo(0, allocationId))));
-
-        testReleasePartitionWhenJMCrashed(
-                enableReconnectToJM,
-                enableBatchJobRecovery,
-                jobMasterGatewayBuilder ->
-                        jobMasterGatewayBuilder.setTaskManagerHeartbeatFunction(
-                                (resourceID, taskExecutorToJobManagerHeartbeatPayload) ->
-                                        FutureUtils.completedExceptionally(
-                                                new RecipientUnreachableException(
-                                                        "sender",
-                                                        "recipient",
-                                                        "job manager is unreachable."))),
-                triggerJMCrashedAction);
-    }
-
-    private void testReleasePartitionWhenJMCrashed(
-            boolean enableReconnectToJM,
-            boolean enableBatchJobRecovery,
-            Consumer<TestingJobMasterGatewayBuilder> jobMasterGatewayBuilderConsumer,
-            TestAction triggerJMCrashedAction)
-            throws Exception {
-        jobLeaderService =
-                new TestJobLeaderService(
-                        unresolvedTaskManagerLocation,
-                        RetryingRegistrationConfiguration.defaultConfiguration(),
-                        enableReconnectToJM);
-
-        if (enableBatchJobRecovery) {
-            configuration.set(BatchExecutionOptions.JOB_RECOVERY_ENABLED, true);
-        }
-        Duration duration = Duration.ofSeconds(15);
-        Duration longDuration = Duration.ofSeconds(30);
-        configuration.set(TaskManagerOptions.REGISTRATION_TIMEOUT, duration);
-
-        final CompletableFuture<JobID> releasePartitionsForJobFuture = new CompletableFuture<>();
-        testPartitionRelease(
-                partitionTracker ->
-                        partitionTracker.setStopTrackingAndReleaseAllPartitionsConsumer(
-                                releasePartitionsForJobFuture::complete),
-                jobMasterGatewayBuilderConsumer,
-                (jobId,
-                        resultPartitionDeploymentDescriptor,
-                        taskExecutor,
-                        taskExecutorGateway,
-                        allocationId) -> {
-                    triggerJMCrashedAction.accept(
-                            jobId,
-                            resultPartitionDeploymentDescriptor,
-                            taskExecutor,
-                            taskExecutorGateway,
-                            allocationId);
-
-                    if (enableBatchJobRecovery) {
-                        if (enableReconnectToJM) {
-                            // will not trigger release because is reconnected.
-                            assertThatFuture(releasePartitionsForJobFuture)
-                                    .willNotCompleteWithin(longDuration);
-                        } else {
-                            // the release action will delay
-                            assertThatFuture(releasePartitionsForJobFuture)
-                                    .willNotCompleteWithin(duration)
-                                    .eventuallySucceeds()
-                                    .isEqualTo(jobId);
-                        }
-                    } else {
-                        // the release action will complete intermediately
-                        assertThatFuture(releasePartitionsForJobFuture)
-                                .succeedsWithin(duration)
-                                .isEqualTo(jobId);
-                    }
-                });
-    }
-
-    @Test
     void testPartitionPromotion() throws Exception {
         final CompletableFuture<Collection<ResultPartitionID>> promotePartitionsFuture =
                 new CompletableFuture<>();
@@ -489,11 +311,7 @@ class TaskExecutorPartitionLifecycleTest {
                 partitionTracker ->
                         partitionTracker.setPromotePartitionsConsumer(
                                 promotePartitionsFuture::complete),
-                (jobId,
-                        resultPartitionDeploymentDescriptor,
-                        taskExecutor,
-                        taskExecutorGateway,
-                        ignored) -> {
+                (jobId, resultPartitionDeploymentDescriptor, taskExecutor, taskExecutorGateway) -> {
                     final ResultPartitionID resultPartitionId =
                             resultPartitionDeploymentDescriptor
                                     .getShuffleDescriptor()
@@ -514,11 +332,7 @@ class TaskExecutorPartitionLifecycleTest {
                 partitionTracker ->
                         partitionTracker.setReleaseClusterPartitionsConsumer(
                                 releasePartitionsFuture::complete),
-                (jobId,
-                        resultPartitionDeploymentDescriptor,
-                        taskExecutor,
-                        taskExecutorGateway,
-                        ignored) -> {
+                (jobId, resultPartitionDeploymentDescriptor, taskExecutor, taskExecutorGateway) -> {
                     final IntermediateDataSetID dataSetId =
                             resultPartitionDeploymentDescriptor.getResultId();
 
@@ -526,6 +340,75 @@ class TaskExecutorPartitionLifecycleTest {
                             Collections.singleton(dataSetId), timeout);
 
                     assertThat(releasePartitionsFuture.get()).contains(dataSetId);
+                });
+    }
+
+    @Test
+    void testEnableBatchJobRecoveryAndNotRetainPartitions() throws Exception {
+        testJMCrashedAndPossibleRetainPartitions(
+                false,
+                true,
+                // the release action will delay
+                releasePartitionsForJobFuture ->
+                        assertThatFuture(releasePartitionsForJobFuture)
+                                .willNotCompleteWithin(duration)
+                                .eventuallySucceeds()
+                                .isEqualTo(jobId));
+    }
+
+    @Test
+    void testEnableBatchJobRecoveryAndRetainPartitions() throws Exception {
+        testJMCrashedAndPossibleRetainPartitions(
+                true,
+                true,
+                // will not trigger release
+                releasePartitionsForJobFuture ->
+                        assertThatFuture(releasePartitionsForJobFuture)
+                                .willNotCompleteWithin(longDuration));
+    }
+
+    @Test
+    void testDisableBatchJobRecoveryAndReleasePartitions() throws Exception {
+        Consumer<CompletableFuture<JobID>> verifyAction =
+                releasePartitionsForJobFuture ->
+                        assertThatFuture(releasePartitionsForJobFuture)
+                                .succeedsWithin(duration)
+                                .isEqualTo(jobId);
+
+        // the release action will complete intermediately although enable retain partition
+        testJMCrashedAndPossibleRetainPartitions(true, false, verifyAction);
+    }
+
+    private void testJMCrashedAndPossibleRetainPartitions(
+            boolean enableRetainPartitions,
+            boolean enableBatchJobRecovery,
+            Consumer<CompletableFuture<JobID>> verifyAction)
+            throws Exception {
+        configuration.set(BatchExecutionOptions.JOB_RECOVERY_ENABLED, enableBatchJobRecovery);
+        configuration.set(TaskManagerOptions.REGISTRATION_TIMEOUT, duration);
+        // the slot time out will try to release partition again, and we should avoid it
+        configuration.set(SLOT_TIMEOUT, Duration.ofMinutes(5));
+
+        final CompletableFuture<JobID> releasePartitionsForJobFuture = new CompletableFuture<>();
+
+        testPartitionRelease(
+                partitionTracker ->
+                        partitionTracker.setStopTrackingAndReleaseAllPartitionsConsumer(
+                                releasePartitionsForJobFuture::complete),
+                (jobId, resultPartitionDeploymentDescriptor, taskExecutor, taskExecutorGateway) -> {
+                    jobManagerLeaderRetriever.notifyListener(null, UUID.randomUUID());
+
+                    // wait trigger JM disconnect TM which means TM is waiting for JM to retain
+                    // partitions
+                    disconnectTaskManagerFuture.get();
+
+                    jobManagerLeaderRetriever.notifyListener(jobMasterAddress, UUID.randomUUID());
+
+                    if (enableRetainPartitions) {
+                        taskExecutor.getAndRetainPartitionWithMetrics(jobId);
+                    }
+
+                    verifyAction.accept(releasePartitionsForJobFuture);
                 });
     }
 
@@ -563,12 +446,10 @@ class TaskExecutorPartitionLifecycleTest {
                     partitionTracker,
                     shuffleEnvironment,
                     startTrackingFuture,
-                    ignored -> {},
                     (jobId,
                             resultPartitionDeploymentDescriptor,
                             taskExecutor,
-                            taskExecutorGateway,
-                            ignored) -> {
+                            taskExecutorGateway) -> {
                         final IntermediateDataSetID dataSetId =
                                 resultPartitionDeploymentDescriptor.getResultId();
 
@@ -585,14 +466,6 @@ class TaskExecutorPartitionLifecycleTest {
 
     private void testPartitionRelease(
             PartitionTrackerSetup partitionTrackerSetup, TestAction testAction) throws Exception {
-        testPartitionRelease(partitionTrackerSetup, ignored -> {}, testAction);
-    }
-
-    private void testPartitionRelease(
-            PartitionTrackerSetup partitionTrackerSetup,
-            Consumer<TestingJobMasterGatewayBuilder> jobMasterGatewayBuilderConsumer,
-            TestAction testAction)
-            throws Exception {
         final TestingTaskExecutorPartitionTracker partitionTracker =
                 new TestingTaskExecutorPartitionTracker();
         final CompletableFuture<ResultPartitionID> startTrackingFuture = new CompletableFuture<>();
@@ -605,7 +478,6 @@ class TaskExecutorPartitionLifecycleTest {
                 partitionTracker,
                 new NettyShuffleEnvironmentBuilder().build(),
                 startTrackingFuture,
-                jobMasterGatewayBuilderConsumer,
                 testAction);
     }
 
@@ -613,7 +485,6 @@ class TaskExecutorPartitionLifecycleTest {
             TaskExecutorPartitionTracker partitionTracker,
             ShuffleEnvironment<?, ?> shuffleEnvironment,
             CompletableFuture<ResultPartitionID> startTrackingFuture,
-            Consumer<TestingJobMasterGatewayBuilder> jobMasterGatewayBuilderConsumer,
             TestAction testAction)
             throws Exception {
 
@@ -654,8 +525,6 @@ class TaskExecutorPartitionLifecycleTest {
 
         final TaskManagerServices taskManagerServices =
                 new TaskManagerServicesBuilder()
-                        .setUnresolvedTaskManagerLocation(unresolvedTaskManagerLocation)
-                        .setJobLeaderService(jobLeaderService)
                         .setTaskSlotTable(taskSlotTable)
                         .setTaskStateManager(localStateStoresManager)
                         .setShuffleEnvironment(shuffleEnvironment)
@@ -664,7 +533,7 @@ class TaskExecutorPartitionLifecycleTest {
         final CompletableFuture<Void> taskFinishedFuture = new CompletableFuture<>();
         final OneShotLatch slotOfferedLatch = new OneShotLatch();
 
-        TestingJobMasterGatewayBuilder jobMasterGatewayBuilder =
+        final TestingJobMasterGateway jobMasterGateway =
                 new TestingJobMasterGatewayBuilder()
                         .setRegisterTaskManagerFunction(
                                 (ignoredJobId, ignoredTaskManagerRegistrationInformation) ->
@@ -682,11 +551,13 @@ class TaskExecutorPartitionLifecycleTest {
                                         taskFinishedFuture.complete(null);
                                     }
                                     return CompletableFuture.completedFuture(Acknowledge.get());
-                                });
-
-        jobMasterGatewayBuilderConsumer.accept(jobMasterGatewayBuilder);
-
-        final TestingJobMasterGateway jobMasterGateway = jobMasterGatewayBuilder.build();
+                                })
+                        .setDisconnectTaskManagerFunction(
+                                ignored -> {
+                                    disconnectTaskManagerFuture.complete(null);
+                                    return CompletableFuture.completedFuture(Acknowledge.get());
+                                })
+                        .build();
 
         final TestingTaskExecutor taskExecutor =
                 createTestingTaskExecutor(taskManagerServices, partitionTracker);
@@ -716,7 +587,6 @@ class TaskExecutorPartitionLifecycleTest {
             final TaskExecutorGateway taskExecutorGateway =
                     taskExecutor.getSelfGateway(TaskExecutorGateway.class);
 
-            final String jobMasterAddress = "jm";
             rpc.registerGateway(jobMasterAddress, jobMasterGateway);
             rpc.registerGateway(
                     testingResourceManagerGateway.getAddress(), testingResourceManagerGateway);
@@ -782,11 +652,7 @@ class TaskExecutorPartitionLifecycleTest {
             taskFinishedFuture.get(timeout.getSize(), timeout.getUnit());
 
             testAction.accept(
-                    jobId,
-                    taskResultPartitionDescriptor,
-                    taskExecutor,
-                    taskExecutorGateway,
-                    taskDeploymentDescriptor.getAllocationId());
+                    jobId, taskResultPartitionDescriptor, taskExecutor, taskExecutorGateway);
         } finally {
             RpcUtils.terminateRpcEndpoint(taskExecutor);
         }
@@ -850,28 +716,7 @@ class TaskExecutorPartitionLifecycleTest {
                 JobID jobId,
                 ResultPartitionDeploymentDescriptor resultPartitionDeploymentDescriptor,
                 TaskExecutor taskExecutor,
-                TaskExecutorGateway taskExecutorGateway,
-                AllocationID allocationId)
+                TaskExecutorGateway taskExecutorGateway)
                 throws Exception;
-    }
-
-    private static class TestJobLeaderService extends DefaultJobLeaderService {
-
-        private final boolean canReconnect;
-
-        public TestJobLeaderService(
-                UnresolvedTaskManagerLocation location,
-                RetryingRegistrationConfiguration retryingRegistrationConfiguration,
-                boolean canReconnect) {
-            super(location, retryingRegistrationConfiguration);
-            this.canReconnect = canReconnect;
-        }
-
-        @Override
-        public void reconnect(JobID jobId) {
-            if (canReconnect) {
-                super.reconnect(jobId);
-            }
-        }
     }
 }

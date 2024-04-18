@@ -308,6 +308,8 @@ public interface JobMasterGateway
         return CompletableFuture.completedFuture(Collections.emptyList());
     }
 
+    default void fetchAndRetainPartitionWithMetricsOnTaskManager(ResourceID resourceId) {}
+
     /**
      * Read current {@link JobResourceRequirements job resource requirements}.
      *

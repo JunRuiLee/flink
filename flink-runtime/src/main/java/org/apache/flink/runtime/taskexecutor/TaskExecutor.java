@@ -190,6 +190,8 @@ import java.util.function.BiConsumer;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
+import static org.apache.flink.runtime.shuffle.ShuffleServiceOptions.NETTY_SHUFFLE_SERVICE_FACTORY_CLASS;
+import static org.apache.flink.runtime.shuffle.ShuffleServiceOptions.SHUFFLE_SERVICE_FACTORY_CLASS;
 import static org.apache.flink.util.Preconditions.checkArgument;
 import static org.apache.flink.util.Preconditions.checkNotNull;
 
@@ -314,6 +316,8 @@ public class TaskExecutor extends RpcEndpoint implements TaskExecutorGateway {
 
     private final ProfilingService profilingService;
 
+    private final Set<JobID> jobPartitionToCleanupSet = new HashSet<>();
+
     public TaskExecutor(
             RpcService rpcService,
             TaskManagerConfiguration taskManagerConfiguration,
@@ -410,10 +414,14 @@ public class TaskExecutor extends RpcEndpoint implements TaskExecutorGateway {
                 resourceId, new JobManagerHeartbeatListener(), getMainThreadExecutor(), log);
     }
 
-    private boolean isJobRecoveryEnabled() {
+    private boolean shouldRetainPartitionsOnJobManagerConnectionLost() {
         return taskManagerConfiguration
-                .getConfiguration()
-                .get(BatchExecutionOptions.JOB_RECOVERY_ENABLED);
+                        .getConfiguration()
+                        .get(BatchExecutionOptions.JOB_RECOVERY_ENABLED)
+                && taskManagerConfiguration
+                        .getConfiguration()
+                        .get(SHUFFLE_SERVICE_FACTORY_CLASS)
+                        .equals(NETTY_SHUFFLE_SERVICE_FACTORY_CLASS);
     }
 
     @Override
@@ -1380,15 +1388,18 @@ public class TaskExecutor extends RpcEndpoint implements TaskExecutorGateway {
             JobTable.Connection jobManagerConnection, Exception cause) {
         try (MdcCloseable ignored =
                 MdcUtils.withContext(MdcUtils.asContextData(jobManagerConnection.getJobId()))) {
-            disconnectJobManagerConnection(jobManagerConnection, cause);
+            disconnectJobManagerConnection(jobManagerConnection, cause, false);
             jobLeaderService.reconnect(jobManagerConnection.getJobId());
         }
     }
 
-    private void disconnectAndTryReconnectToJobManagerAndCleanupPartitionLater(
+    private void disconnectAndTryReconnectToJobManagerPossibleRetainPartitions(
             JobTable.Connection jobManagerConnection, Exception cause) {
-        disconnectJobManagerConnectionAndCleanupPartitionLater(jobManagerConnection, cause);
-        jobLeaderService.reconnect(jobManagerConnection.getJobId());
+        try (MdcCloseable ignored =
+                MdcUtils.withContext(MdcUtils.asContextData(jobManagerConnection.getJobId()))) {
+            disconnectJobManagerConnection(jobManagerConnection, cause, true);
+            jobLeaderService.reconnect(jobManagerConnection.getJobId());
+        }
     }
 
     @Override
@@ -1462,8 +1473,10 @@ public class TaskExecutor extends RpcEndpoint implements TaskExecutorGateway {
     }
 
     @Override
-    public CompletableFuture<Collection<PartitionWithMetrics>> getPartitionWithMetrics(
+    public CompletableFuture<Collection<PartitionWithMetrics>> getAndRetainPartitionWithMetrics(
             JobID jobId) {
+        jobPartitionToCleanupSet.remove(jobId);
+
         Collection<TaskExecutorPartitionInfo> partitionInfoList =
                 partitionTracker.getTrackedPartitionsFor(jobId);
         List<PartitionWithMetrics> partitionWithMetrics = new ArrayList<>();
@@ -1838,7 +1851,8 @@ public class TaskExecutor extends RpcEndpoint implements TaskExecutorGateway {
             } else {
                 disconnectJobManagerConnection(
                         oldJobManagerConnection,
-                        new Exception("Found new job leader for job id " + jobId + '.'));
+                        new Exception("Found new job leader for job id " + jobId + '.'),
+                        false);
             }
         }
 
@@ -1860,26 +1874,18 @@ public class TaskExecutor extends RpcEndpoint implements TaskExecutorGateway {
         job.asConnection()
                 .ifPresent(
                         jobManagerConnection ->
-                                disconnectJobManagerConnection(jobManagerConnection, cause));
+                                disconnectJobManagerConnection(jobManagerConnection, cause, false));
 
         job.close();
     }
 
     private void disconnectJobManagerConnection(
-            JobTable.Connection jobManagerConnection, Exception cause) {
-        internalDisconnectJobManagerConnection(jobManagerConnection, cause, false);
-    }
-
-    private void disconnectJobManagerConnectionAndCleanupPartitionLater(
-            JobTable.Connection jobManagerConnection, Exception cause) {
-        internalDisconnectJobManagerConnection(jobManagerConnection, cause, true);
-    }
-
-    private void internalDisconnectJobManagerConnection(
             JobTable.Connection jobManagerConnection,
             Exception cause,
-            boolean cleanupPartitionLater) {
+            boolean possibleRetainPartitions) {
         final JobID jobId = jobManagerConnection.getJobId();
+        jobPartitionToCleanupSet.add(jobId);
+
         log.info(
                 "Close JobManager connection for job {}.",
                 jobId,
@@ -1916,14 +1922,14 @@ public class TaskExecutor extends RpcEndpoint implements TaskExecutorGateway {
             }
         }
 
-        if (cleanupPartitionLater) {
+        if (possibleRetainPartitions) {
             // this branch is for job recovery
             final Duration maxRegistrationDuration =
                     taskManagerConfiguration.getMaxRegistrationDuration();
 
             if (maxRegistrationDuration != null) {
                 log.info(
-                        "Waiting for {} mills for job {} to recover. If there is no reconnection, "
+                        "Waiting for {} mills for job {} to recover. If the job manager is not reconnected, "
                                 + "the job's partitions will be cleaned up.",
                         maxRegistrationDuration.toMillis(),
                         jobId);
@@ -1932,7 +1938,9 @@ public class TaskExecutor extends RpcEndpoint implements TaskExecutorGateway {
                             // If the job is not recovery after wait for a period of time, we will
                             // clean up the partitions
                             Optional<JobTable.Job> job = jobTable.getJob(jobId);
-                            if (!job.isPresent() || !job.get().isConnected()) {
+                            if (!job.isPresent()
+                                    || !job.get().isConnected()
+                                    || jobPartitionToCleanupSet.contains(jobId)) {
                                 scheduleResultPartitionCleanup(jobId);
                             }
                         },
@@ -2058,6 +2066,7 @@ public class TaskExecutor extends RpcEndpoint implements TaskExecutorGateway {
                     .thenRunAsync(
                             () -> {
                                 partitionTracker.stopTrackingAndReleaseJobPartitionsFor(jobId);
+                                jobPartitionToCleanupSet.remove(jobId);
                             },
                             getMainThreadExecutor());
         }
@@ -2535,12 +2544,10 @@ public class TaskExecutor extends RpcEndpoint implements TaskExecutorGateway {
                             Exception cause =
                                     new Exception(
                                             "Job leader for job id " + jobId + " lost leadership.");
-                            if (isJobRecoveryEnabled()) {
-                                disconnectJobManagerConnectionAndCleanupPartitionLater(
-                                        connection.get(), cause);
-                            } else {
-                                disconnectJobManagerConnection(connection.get(), cause);
-                            }
+                            disconnectJobManagerConnection(
+                                    connection.get(),
+                                    cause,
+                                    shouldRetainPartitionsOnJobManagerConnectionLost());
                         }
                     });
         }
@@ -2712,8 +2719,8 @@ public class TaskExecutor extends RpcEndpoint implements TaskExecutorGateway {
             Optional<JobTable.Connection> connection = jobTable.getConnection(resourceID);
 
             if (connection.isPresent()) {
-                if (isJobRecoveryEnabled()) {
-                    disconnectAndTryReconnectToJobManagerAndCleanupPartitionLater(
+                if (shouldRetainPartitionsOnJobManagerConnectionLost()) {
+                    disconnectAndTryReconnectToJobManagerPossibleRetainPartitions(
                             connection.get(), cause);
                 } else {
                     disconnectAndTryReconnectToJobManager(connection.get(), cause);

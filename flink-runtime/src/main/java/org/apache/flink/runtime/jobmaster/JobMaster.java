@@ -229,6 +229,9 @@ public class JobMaster extends FencedRpcEndpoint<JobMasterId>
 
     private final BlocklistHandler blocklistHandler;
 
+    private final List<CompletableFuture<Collection<PartitionWithMetrics>>>
+            partitionWithMetricsOnTaskManagerFutures = new ArrayList<>();
+
     // ------------------------------------------------------------------------
 
     public JobMaster(
@@ -963,22 +966,23 @@ public class JobMaster extends FencedRpcEndpoint<JobMasterId>
     @Override
     public CompletableFuture<Collection<PartitionWithMetrics>>
             getAllPartitionWithMetricsOnTaskManagers() {
-        final List<CompletableFuture<Collection<PartitionWithMetrics>>> allFutures =
-                new ArrayList<>();
-        registeredTaskManagers
-                .values()
-                .forEach(
-                        taskManager ->
-                                allFutures.add(
-                                        taskManager
-                                                .getTaskExecutorGateway()
-                                                .getPartitionWithMetrics(jobGraph.getJobID())));
-        return FutureUtils.combineAll(allFutures)
+        return FutureUtils.combineAll(partitionWithMetricsOnTaskManagerFutures)
                 .thenApply(
                         partitions ->
                                 partitions.stream()
                                         .flatMap(Collection::stream)
                                         .collect(Collectors.toList()));
+    }
+
+    @Override
+    public void fetchAndRetainPartitionWithMetricsOnTaskManager(ResourceID resourceId) {
+        TaskManagerRegistration taskManager = registeredTaskManagers.get(resourceId);
+        checkNotNull(taskManager);
+
+        partitionWithMetricsOnTaskManagerFutures.add(
+                taskManager
+                        .getTaskExecutorGateway()
+                        .getAndRetainPartitionWithMetrics(jobGraph.getJobID()));
     }
 
     @Override
