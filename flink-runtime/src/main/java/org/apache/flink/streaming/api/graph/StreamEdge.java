@@ -42,6 +42,10 @@ public class StreamEdge implements Serializable {
 
     private final String edgeId;
 
+    public final String getEdgeId() {
+        return edgeId;
+    }
+
     private final int sourceId;
     private final int targetId;
 
