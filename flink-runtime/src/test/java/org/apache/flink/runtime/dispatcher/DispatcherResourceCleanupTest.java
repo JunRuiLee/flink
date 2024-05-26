@@ -50,6 +50,7 @@ import org.apache.flink.runtime.rpc.RpcService;
 import org.apache.flink.runtime.rpc.TestingRpcService;
 import org.apache.flink.runtime.scheduler.ExecutionGraphInfo;
 import org.apache.flink.runtime.testutils.TestingJobResultStore;
+import org.apache.flink.runtime.util.LogicalGraph;
 import org.apache.flink.runtime.util.TestingFatalErrorHandlerResource;
 import org.apache.flink.util.ExceptionUtils;
 import org.apache.flink.util.FlinkException;
@@ -730,7 +731,7 @@ public class DispatcherResourceCleanupTest extends TestLogger {
 
         @Override
         public TestingJobManagerRunner createJobManagerRunner(
-                JobGraph jobGraph,
+                LogicalGraph logicalGraph,
                 Configuration configuration,
                 RpcService rpcService,
                 HighAvailabilityServices highAvailabilityServices,
@@ -745,7 +746,7 @@ public class DispatcherResourceCleanupTest extends TestLogger {
 
             this.testingRunner =
                     super.createJobManagerRunner(
-                            jobGraph,
+                            logicalGraph,
                             configuration,
                             rpcService,
                             highAvailabilityServices,
@@ -764,8 +765,9 @@ public class DispatcherResourceCleanupTest extends TestLogger {
                                                     new ExecutionGraphInfo(
                                                             ArchivedExecutionGraph
                                                                     .createSparseArchivedExecutionGraph(
-                                                                            jobGraph.getJobID(),
-                                                                            jobGraph.getName(),
+                                                                            logicalGraph.getJobId(),
+                                                                            logicalGraph
+                                                                                    .getJobName(),
                                                                             JobStatus.RUNNING,
                                                                             null,
                                                                             null,
@@ -793,7 +795,7 @@ public class DispatcherResourceCleanupTest extends TestLogger {
 
         @Override
         public JobManagerRunner createJobManagerRunner(
-                JobGraph jobGraph,
+                LogicalGraph logicalGraph,
                 Configuration configuration,
                 RpcService rpcService,
                 HighAvailabilityServices highAvailabilityServices,
@@ -820,7 +822,7 @@ public class DispatcherResourceCleanupTest extends TestLogger {
 
         @Override
         public JobManagerRunner createJobManagerRunner(
-                JobGraph jobGraph,
+                LogicalGraph logicalGraph,
                 Configuration configuration,
                 RpcService rpcService,
                 HighAvailabilityServices highAvailabilityServices,

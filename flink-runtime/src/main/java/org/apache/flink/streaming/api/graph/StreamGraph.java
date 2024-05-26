@@ -468,12 +468,6 @@ public class StreamGraph implements Pipeline, Serializable {
         this.timerServiceProvider = checkNotNull(timerServiceProvider);
     }
 
-    public Collection<Tuple2<String, DistributedCache.DistributedCacheEntry>> getUserArtifacts() {
-        return Optional.ofNullable(jobConfiguration.get(PipelineOptions.CACHED_FILES))
-                .map(DistributedCache::parseCachedFilesFromString)
-                .orElse(new ArrayList<>());
-    }
-
     public void addUserJarBlobKey(PermanentBlobKey key) {
         if (key == null) {
             throw new IllegalArgumentException();
@@ -491,6 +485,18 @@ public class StreamGraph implements Pipeline, Serializable {
      */
     public List<PermanentBlobKey> getUserJarBlobKeys() {
         return this.userJarBlobKeys;
+    }
+
+    public void addUserArtifact(String name, DistributedCache.DistributedCacheEntry file) {
+        if (file == null) {
+            throw new IllegalArgumentException();
+        }
+
+        userArtifacts.putIfAbsent(name, file);
+    }
+
+    public Map<String, DistributedCache.DistributedCacheEntry> getUserArtifacts() {
+        return userArtifacts;
     }
 
     public void setUserArtifactBlobKey(String entryName, PermanentBlobKey blobKey)
@@ -1283,7 +1289,6 @@ public class StreamGraph implements Pipeline, Serializable {
     }
 
     /** Gets the assembled {@link JobGraph} with a specified {@link JobID}. */
-    @VisibleForTesting
     public JobGraph getJobGraph(ClassLoader userClassLoader, @Nullable JobID jobID) {
         return StreamingJobGraphGenerator.createJobGraph(userClassLoader, this, jobID);
     }
