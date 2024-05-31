@@ -64,7 +64,7 @@ public class DeploymentOptions {
     public static final ConfigOption<Boolean> SUBMIT_STREAM_GRAPH_ENABLED =
             key("execution.submit-stream-graph.enabled")
                     .booleanType()
-                    .defaultValue(false)
+                    .defaultValue(true)
                     .withDescription("Specifies if the job is submitted by stream graph.");
 
     public static final ConfigOption<Boolean> SHUTDOWN_IF_ATTACHED =

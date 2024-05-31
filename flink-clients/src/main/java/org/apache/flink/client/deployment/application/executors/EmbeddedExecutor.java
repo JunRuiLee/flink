@@ -33,6 +33,7 @@ import org.apache.flink.runtime.blob.BlobClient;
 import org.apache.flink.runtime.client.ClientUtils;
 import org.apache.flink.runtime.dispatcher.DispatcherGateway;
 import org.apache.flink.runtime.util.LogicalGraph;
+import org.apache.flink.streaming.api.graph.StreamGraph;
 import org.apache.flink.util.FlinkException;
 import org.apache.flink.util.function.FunctionUtils;
 
@@ -122,7 +123,8 @@ public class EmbeddedExecutor implements PipelineExecutor {
                 Time.milliseconds(configuration.get(ClientOptions.CLIENT_TIMEOUT).toMillis());
 
         LogicalGraph logicalGraph;
-        if (configuration.get(DeploymentOptions.SUBMIT_STREAM_GRAPH_ENABLED)) {
+        if (configuration.get(DeploymentOptions.SUBMIT_STREAM_GRAPH_ENABLED)
+                && pipeline instanceof StreamGraph) {
             logicalGraph =
                     LogicalGraph.createLogicalGraph(
                             PipelineExecutorUtils.getStreamGraph(pipeline, configuration));

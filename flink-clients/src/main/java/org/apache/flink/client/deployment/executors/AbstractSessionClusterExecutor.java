@@ -33,6 +33,7 @@ import org.apache.flink.core.execution.JobClient;
 import org.apache.flink.core.execution.PipelineExecutor;
 import org.apache.flink.runtime.jobgraph.IntermediateDataSetID;
 import org.apache.flink.runtime.util.LogicalGraph;
+import org.apache.flink.streaming.api.graph.StreamGraph;
 import org.apache.flink.util.AbstractID;
 import org.apache.flink.util.function.FunctionUtils;
 
@@ -70,7 +71,8 @@ public class AbstractSessionClusterExecutor<
             @Nonnull final ClassLoader userCodeClassloader)
             throws Exception {
         LogicalGraph logicalGraph;
-        if (configuration.get(DeploymentOptions.SUBMIT_STREAM_GRAPH_ENABLED)) {
+        if (configuration.get(DeploymentOptions.SUBMIT_STREAM_GRAPH_ENABLED)
+                && pipeline instanceof StreamGraph) {
             logicalGraph =
                     LogicalGraph.createLogicalGraph(
                             PipelineExecutorUtils.getStreamGraph(pipeline, configuration));
