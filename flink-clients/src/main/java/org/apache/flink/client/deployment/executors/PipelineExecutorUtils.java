@@ -110,6 +110,8 @@ public class PipelineExecutorUtils {
         streamGraph.setSavepointRestoreSettings(
                 executionConfigAccessor.getSavepointRestoreSettings());
 
+        streamGraph.serializeAllNodesToConfig();
+
         return streamGraph;
     }
 }

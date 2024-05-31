@@ -48,7 +48,6 @@ import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.CompletionException;
 
 import static org.apache.flink.util.Preconditions.checkNotNull;
-import static org.apache.flink.util.Preconditions.checkState;
 
 /**
  * A base class for {@link PipelineExecutor executors} that invoke directly methods of the {@link
@@ -175,7 +174,6 @@ public class EmbeddedExecutor implements PipelineExecutor {
             final LogicalGraph logicalGraph,
             final Time rpcTimeout) {
         checkNotNull(logicalGraph);
-        checkState(!logicalGraph.isEmpty());
 
         LOG.info("Submitting Job with JobId={}.", logicalGraph.getJobId());
 

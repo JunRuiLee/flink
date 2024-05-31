@@ -22,6 +22,7 @@ import org.apache.flink.configuration.Configuration;
 import org.apache.flink.configuration.JobManagerOptions;
 import org.apache.flink.configuration.SchedulerExecutionMode;
 import org.apache.flink.core.failure.FailureEnricher;
+import org.apache.flink.runtime.client.JobSubmissionException;
 import org.apache.flink.runtime.execution.librarycache.LibraryCacheManager;
 import org.apache.flink.runtime.heartbeat.HeartbeatServices;
 import org.apache.flink.runtime.highavailability.HighAvailabilityServices;
@@ -39,7 +40,6 @@ import org.apache.flink.runtime.leaderelection.LeaderElection;
 import org.apache.flink.runtime.rpc.FatalErrorHandler;
 import org.apache.flink.runtime.rpc.RpcService;
 import org.apache.flink.runtime.util.LogicalGraph;
-import org.apache.flink.streaming.api.graph.StreamGraph;
 import org.apache.flink.util.MdcUtils;
 import org.apache.flink.util.Preconditions;
 
@@ -64,12 +64,26 @@ public enum JobMasterServiceLeadershipRunnerFactory implements JobManagerRunnerF
             Collection<FailureEnricher> failureEnrichers,
             long initializationTimestamp)
             throws Exception {
+        final LibraryCacheManager.ClassLoaderLease classLoaderLease =
+                jobManagerServices
+                        .getLibraryCacheManager()
+                        .registerClassLoaderLease(graph.getJobId());
 
-        if (graph.isJobGraph()) {
-            checkArgument(graph.getJobGraph().getNumberOfVertices() > 0, "The given job is empty");
-        } else {
-            StreamGraph streamGraph = graph.getStreamGraph();
-            checkArgument(streamGraph.getStreamNodes().size() > 0, "The given job is empty");
+        final ClassLoader userCodeClassLoader =
+                classLoaderLease
+                        .getOrResolveClassLoader(graph.getUserJarBlobKeys(), graph.getClassPaths())
+                        .asClassLoader();
+
+        if (!graph.isJobGraph()) {
+            graph.getStreamGraph().deSerializeAllNodesFromConfig(userCodeClassLoader);
+        }
+
+        if (graph.isPartialResourceConfigured()) {
+            throw new JobSubmissionException(
+                    graph.getJobId(),
+                    "Currently jobs is not supported if parts of the vertices "
+                            + "have resources configured. The limitation will be "
+                            + "removed in future versions.");
         }
 
         return createJobManagerRunner(
@@ -82,7 +96,9 @@ public enum JobMasterServiceLeadershipRunnerFactory implements JobManagerRunnerF
                 fatalErrorHandler,
                 failureEnrichers,
                 initializationTimestamp,
-                graph);
+                graph,
+                classLoaderLease,
+                userCodeClassLoader);
     }
 
     private JobMasterServiceLeadershipRunner createJobManagerRunner(
@@ -95,8 +111,11 @@ public enum JobMasterServiceLeadershipRunnerFactory implements JobManagerRunnerF
             FatalErrorHandler fatalErrorHandler,
             Collection<FailureEnricher> failureEnrichers,
             long initializationTimestamp,
-            LogicalGraph graph)
+            LogicalGraph graph,
+            LibraryCacheManager.ClassLoaderLease classLoaderLease,
+            ClassLoader userCodeClassLoader)
             throws Exception {
+        checkArgument(!graph.isEmptyGraph(), "The given job is empty");
 
         final JobMasterConfiguration jobMasterConfiguration =
                 JobMasterConfiguration.fromConfiguration(configuration);
@@ -117,16 +136,6 @@ public enum JobMasterServiceLeadershipRunnerFactory implements JobManagerRunnerF
                             == JobManagerOptions.SchedulerType.Adaptive,
                     "Adaptive Scheduler is required for reactive mode");
         }
-
-        final LibraryCacheManager.ClassLoaderLease classLoaderLease =
-                jobManagerServices
-                        .getLibraryCacheManager()
-                        .registerClassLoaderLease(graph.getJobId());
-
-        final ClassLoader userCodeClassLoader =
-                classLoaderLease
-                        .getOrResolveClassLoader(graph.getUserJarBlobKeys(), graph.getClassPaths())
-                        .asClassLoader();
 
         DefaultJobMasterServiceFactory jobMasterServiceFactory =
                 new DefaultJobMasterServiceFactory(

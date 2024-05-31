@@ -40,7 +40,7 @@ import java.util.Map;
 
 import static org.apache.flink.util.Preconditions.checkState;
 
-/** A wrapper that either contains {@link JobGraph} or {@link StreamGraph} */
+/** A wrapper that either contains {@link JobGraph} or {@link StreamGraph}. */
 public class LogicalGraph {
 
     private final Either<JobGraph, StreamGraph> graph;
@@ -78,16 +78,18 @@ public class LogicalGraph {
         return graph.isLeft();
     }
 
+    public boolean isEmptyGraph() {
+        return graph.isLeft()
+                ? graph.left().getNumberOfVertices() == 0
+                : graph.right().getNumberOfVertices() == 0;
+    }
+
     public StreamGraph getStreamGraph() {
         return graph.right();
     }
 
     public JobGraph getJobGraph() {
         return graph.left();
-    }
-
-    public boolean isEmpty() {
-        return !graph.isLeft() && !graph.isRight();
     }
 
     public ExecutionConfig getExecutionConfig(ClassLoader userClassLoader) throws Exception {
@@ -119,7 +121,9 @@ public class LogicalGraph {
     }
 
     public int getMaximumParallelism() {
-        return graph.isLeft() ? graph.left().getMaximumParallelism() : -1;
+        return graph.isLeft()
+                ? graph.left().getMaximumParallelism()
+                : graph.right().getMaximumParallelism();
     }
 
     public Configuration getJobConfiguration() {

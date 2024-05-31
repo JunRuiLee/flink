@@ -1099,10 +1099,13 @@ public class StreamingJobGraphGenerator {
             inputConfigs[0] = new StreamConfig.NetworkInputConfig(inputSerializers[0], 0);
         }
 
+        // vertex.getTypeSerializersIn()
         config.setInputs(inputConfigs);
 
+        // vertex.getTypeSerializerOut()
         config.setTypeSerializerOut(vertex.getTypeSerializerOut());
 
+        // vertex.getOperatorFactory()
         config.setStreamOperatorFactory(vertex.getOperatorFactory());
 
         config.setTimeCharacteristic(streamGraph.getTimeCharacteristic());

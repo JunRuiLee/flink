@@ -555,13 +555,6 @@ public abstract class Dispatcher extends FencedRpcEndpoint<DispatcherId>
                                 // job with the given jobID is not terminated, yet
                                 return FutureUtils.completedExceptionally(
                                         DuplicateJobSubmissionException.of(jobID));
-                            } else if (graph.isPartialResourceConfigured()) {
-                                return FutureUtils.completedExceptionally(
-                                        new JobSubmissionException(
-                                                jobID,
-                                                "Currently jobs is not supported if parts of the vertices "
-                                                        + "have resources configured. The limitation will be "
-                                                        + "removed in future versions."));
                             } else {
                                 return internalSubmitJob(graph);
                             }

@@ -122,13 +122,13 @@ public class StreamGraph implements Pipeline, Serializable {
 
     private String jobName;
 
-    @Nullable private JobID jobId;
+    private JobID jobId = new JobID();
 
     /** Set of JAR files required to run this job. */
     private final List<Path> userJars = new ArrayList<Path>();
 
     private final Configuration jobConfiguration;
-    private final ExecutionConfig executionConfig;
+    private transient ExecutionConfig executionConfig;
     private final CheckpointConfig checkpointConfig;
     private SavepointRestoreSettings savepointRestoreSettings = SavepointRestoreSettings.none();
 
@@ -141,17 +141,17 @@ public class StreamGraph implements Pipeline, Serializable {
     /** Flag to indicate whether to put all vertices into the same slot sharing group by default. */
     private boolean allVerticesInSameSlotSharingGroupByDefault = true;
 
-    private Map<Integer, StreamNode> streamNodes;
+    private transient Map<Integer, StreamNode> streamNodes;
     private Set<Integer> sources;
     private Set<Integer> sinks;
-    private Map<Integer, Tuple2<Integer, OutputTag>> virtualSideOutputNodes;
-    private Map<Integer, Tuple3<Integer, StreamPartitioner<?>, StreamExchangeMode>>
+    private transient Map<Integer, Tuple2<Integer, OutputTag>> virtualSideOutputNodes;
+    private transient Map<Integer, Tuple3<Integer, StreamPartitioner<?>, StreamExchangeMode>>
             virtualPartitionNodes;
 
     protected Map<Integer, String> vertexIDtoBrokerID;
     protected Map<Integer, Long> vertexIDtoLoopTimeout;
-    private StateBackend stateBackend;
-    private CheckpointStorage checkpointStorage;
+    private transient StateBackend stateBackend;
+    private transient CheckpointStorage checkpointStorage;
     private Set<Tuple2<StreamNode, StreamNode>> iterationSourceSinkPairs;
     private InternalTimeServiceManager.Provider timerServiceProvider;
     private JobType jobType = JobType.STREAMING;
@@ -177,6 +177,10 @@ public class StreamGraph implements Pipeline, Serializable {
 
     /** List of classpaths required to run this job. */
     private List<URL> classpaths = Collections.emptyList();
+
+    private final StreamGraphConfig streamGraphConfig = new StreamGraphConfig();
+
+    private int maximumParallelism = -1;
 
     public StreamGraph(
             Configuration jobConfiguration,
@@ -405,7 +409,6 @@ public class StreamGraph implements Pipeline, Serializable {
         this.jobName = jobName;
     }
 
-    @Nullable
     public JobID getJobId() {
         return jobId;
     }
@@ -497,6 +500,10 @@ public class StreamGraph implements Pipeline, Serializable {
 
     public Map<String, DistributedCache.DistributedCacheEntry> getUserArtifacts() {
         return userArtifacts;
+    }
+
+    public int getMaximumParallelism() {
+        return maximumParallelism;
     }
 
     public void setUserArtifactBlobKey(String entryName, PermanentBlobKey blobKey)
@@ -1185,6 +1192,44 @@ public class StreamGraph implements Pipeline, Serializable {
 
     public Collection<StreamNode> getStreamNodes() {
         return streamNodes.values();
+    }
+
+    public void serializeAllNodesToConfig() {
+        streamGraphConfig.serializeStreamNodes(new ArrayList<>(streamNodes.values()));
+        streamGraphConfig.serializeVirtualPartitionNodes(virtualPartitionNodes);
+        streamGraphConfig.serializeStateBackends(stateBackend);
+        streamGraphConfig.serializeCheckpointStorage(checkpointStorage);
+        streamGraphConfig.serializeVirtualSideOutputNodes(virtualSideOutputNodes);
+        streamGraphConfig.serializeExecutionConfig(executionConfig);
+
+        maximumParallelism = -1;
+        for (StreamNode node : streamNodes.values()) {
+            if (!node.isParallelismConfigured() && dynamic) {
+                continue;
+            }
+            maximumParallelism = Math.max(node.getParallelism(), maximumParallelism);
+        }
+    }
+
+    public void deSerializeAllNodesFromConfig(ClassLoader userClassLoader) {
+        streamNodes = new HashMap<>();
+        for (StreamNode streamNode : streamGraphConfig.getStreamNodes(userClassLoader)) {
+            streamNodes.put(streamNode.getId(), streamNode);
+        }
+
+        virtualPartitionNodes = streamGraphConfig.getVirtualPartitionNodes(userClassLoader);
+        virtualSideOutputNodes = streamGraphConfig.getVirtualSideOutputNodes(userClassLoader);
+        stateBackend = streamGraphConfig.getStateBackend(userClassLoader);
+        checkpointStorage = streamGraphConfig.getCheckpointStorage(userClassLoader);
+        executionConfig = streamGraphConfig.getExecutionConfig(userClassLoader);
+    }
+
+    public int getNumberOfVertices() {
+        if (streamNodes.isEmpty()) {
+            return streamGraphConfig.getNumberOfVertices();
+        }
+
+        return streamNodes.size();
     }
 
     public String getBrokerID(Integer vertexID) {

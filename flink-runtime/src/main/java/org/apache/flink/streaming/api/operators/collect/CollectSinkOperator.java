@@ -36,7 +36,7 @@ public class CollectSinkOperator<IN> extends StreamSink<IN> implements OperatorE
     private final CollectSinkFunction<IN> sinkFunction;
     // we need operator id to identify the coordinator of this operator,
     // this is only used for in clients so no need to serialize
-    private final transient CompletableFuture<OperatorID> operatorIdFuture;
+    private transient CompletableFuture<OperatorID> operatorIdFuture;
 
     public CollectSinkOperator(
             TypeSerializer<IN> serializer, long maxBytesPerBatch, String accumulatorName) {
@@ -57,6 +57,15 @@ public class CollectSinkOperator<IN> extends StreamSink<IN> implements OperatorE
     }
 
     public CompletableFuture<OperatorID> getOperatorIdFuture() {
+        // Check if the operatorIdFuture has been initialized, which it might not be
+        // if the object was deserialized (because transient fields are reset to null).
+        if (operatorIdFuture == null) {
+            // Instantiate a new CompletableFuture since we know it's safe to do so.
+            // The future will be completed later with the actual OperatorID by the logic
+            // after deserialization which knows when and with what value to complete it.
+            operatorIdFuture = new CompletableFuture<>();
+        }
+
         return operatorIdFuture;
     }
 

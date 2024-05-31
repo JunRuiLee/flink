@@ -308,6 +308,7 @@ public class StreamGraphGenerator {
                 distributedCacheEntries.entrySet()) {
             streamGraph.addUserArtifact(entry.getKey(), entry.getValue());
         }
+
         final StreamGraph builtStreamGraph = streamGraph;
 
         alreadyTransformed.clear();
