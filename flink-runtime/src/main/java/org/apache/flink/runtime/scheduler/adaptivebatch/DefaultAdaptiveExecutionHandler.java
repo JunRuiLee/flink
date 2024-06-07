@@ -116,9 +116,13 @@ public class DefaultAdaptiveExecutionHandler implements AdaptiveExecutionHandler
     }
 
     private void tryUpdateJobGraph(JobVertexID jobVertexId) throws Exception {
-        List<JobVertex> newlyCreatedJobVertices =
-                jobGraphManager.onJobVertexFinishedAndUpdateGraph(jobVertexId);
-
+        long currentMs = System.currentTimeMillis();
+        log.info("Start try update job graph");
+        List<JobVertex> newlyCreatedJobVertices = jobGraphManager.onJobVertexFinished(jobVertexId);
+        log.info(
+                "End try update job graph, cost {} ms, get newly vertices {}.",
+                System.currentTimeMillis() - currentMs,
+                newlyCreatedJobVertices);
         if (!newlyCreatedJobVertices.isEmpty()) {
             notifyJobGraphUpdated(newlyCreatedJobVertices);
         }

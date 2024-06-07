@@ -242,7 +242,7 @@ public class AdaptiveBatchScheduler extends DefaultScheduler implements JobGraph
     @Override
     public void onNewJobVerticesAdded(List<JobVertex> newVertices) throws Exception {
         log.info("Received newly created job vertices: {}", newVertices);
-
+        long currentMs = System.currentTimeMillis();
         VertexParallelismStore vertexParallelismStore =
                 computeVertexParallelismStoreForDynamicGraph(
                         adaptiveExecutionHandler.getJobGraph().getVertices(),
@@ -277,6 +277,9 @@ public class AdaptiveBatchScheduler extends DefaultScheduler implements JobGraph
                 tryUpdateResultInfo(input.getSourceId(), input.getDistributionPattern());
             }
         }
+        log.info(
+                "Finished update execution graph, cost time {}",
+                System.currentTimeMillis() - currentMs);
     }
 
     private void tryUpdateResultInfo(IntermediateDataSetID id, DistributionPattern pattern) {
@@ -304,7 +307,10 @@ public class AdaptiveBatchScheduler extends DefaultScheduler implements JobGraph
     public CompletableFuture<CoordinationResponse> deliverCoordinationRequestToCoordinator(
             int streamNodeId, CoordinationRequest request) throws FlinkException {
         OperatorID operatorId = adaptiveExecutionHandler.findOperatorIdByStreamNodeId(streamNodeId);
-        checkNotNull(operatorId);
+        if (operatorId == null) {
+            throw new FlinkException(
+                    "Coordinator of stream node id " + streamNodeId + " does not exist.");
+        }
 
         return operatorCoordinatorHandler.deliverCoordinationRequestToCoordinator(
                 operatorId, request);
@@ -557,6 +563,8 @@ public class AdaptiveBatchScheduler extends DefaultScheduler implements JobGraph
     }
 
     private void notifyJobVertexFinishedIfPossible(ExecutionJobVertex jobVertex) {
+        long startMs = System.currentTimeMillis();
+
         Optional<List<BlockingResultInfo>> producedResultsInfo =
                 tryGetProducedResultsInfo(jobVertex);
         producedResultsInfo.ifPresent(
@@ -564,6 +572,10 @@ public class AdaptiveBatchScheduler extends DefaultScheduler implements JobGraph
                         adaptiveExecutionHandler.handleJobEvent(
                                 new ExecutionJobVertexFinishedEvent(
                                         jobVertex.getJobVertexId(), resultInfo)));
+
+        log.info(
+                "End notify jobvertex finished, the duration is {} ms.",
+                System.currentTimeMillis() - startMs);
     }
 
     @VisibleForTesting
