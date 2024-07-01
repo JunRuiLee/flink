@@ -2401,6 +2401,22 @@ under the License.
 								<exclude>org.apache.flink.streaming.api.environment.StreamExecutionEnvironment</exclude>
 								<exclude>org.apache.flink.streaming.api.datastream.AllWindowedStream</exclude>
 								<exclude>org.apache.flink.streaming.api.datastream.JoinedStreams</exclude>
+								<exclude>org.apache.flink.streaming.api.checkpoint.CheckpointedFunction</exclude>
+								<exclude>org.apache.flink.streaming.api.CheckpointingMode</exclude>
+								<exclude>org.apache.flink.streaming.api.datastream.DataStreamSink</exclude>
+								<exclude>org.apache.flink.streaming.api.datastream.DataStreamSource</exclude>
+								<exclude>org.apache.flink.streaming.api.datastream.KeyedStream</exclude>
+								<exclude>org.apache.flink.streaming.api.datastream.SideOutputDataStream</exclude>
+								<exclude>org.apache.flink.streaming.api.environment.CheckpointConfig</exclude>
+								<exclude>org.apache.flink.streaming.api.environment.LocalStreamEnvironment</exclude>
+								<exclude>org.apache.flink.streaming.api.environment.RemoteStreamEnvironment</exclude>
+								<exclude>org.apache.flink.streaming.api.functions.co.CoFlatMapFunction</exclude>
+								<exclude>org.apache.flink.streaming.api.functions.co.CoMapFunction</exclude>
+								<exclude>org.apache.flink.streaming.api.functions.sink.RichSinkFunction</exclude>
+								<exclude>org.apache.flink.streaming.api.functions.sink.SinkFunction</exclude>
+								<exclude>org.apache.flink.streaming.api.functions.source.SourceFunction</exclude>
+								<exclude>org.apache.flink.streaming.api.functions.windowing.WindowFunction</exclude>
+								<exclude>org.apache.flink.streaming.api.windowing.time.Time</exclude>
 								<!-- MARKER: end exclusions -->
 							</excludes>
 							<accessModifier>public</accessModifier>
