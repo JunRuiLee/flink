@@ -111,7 +111,7 @@ public class TwoInputStreamTask<IN1, IN2, OUT> extends AbstractTwoInputStreamTas
     // fairness between input consumption. But it can reduce throughput due to added control
     // flow cost on the per-record code path.
     @Override
-    public CanEmitBatchOfRecordsChecker getCanEmitBatchOfRecords() {
+    public StreamTask.CanEmitBatchOfRecordsChecker getCanEmitBatchOfRecords() {
         return () -> false;
     }
 }
