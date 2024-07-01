@@ -2388,6 +2388,17 @@ under the License.
 								<exclude>org.apache.flink.api.connector.sink2.WriterInitContext#createInputSerializer()</exclude>
 								<!-- SinkV1 is deprecated but relies on an Experimental interface. Keeping this for legacy purposes  -->
 								<exclude>org.apache.flink.api.connector.sink2.WriterInitContext#metadataConsumer()</exclude>
+								<!-- The following exclusions are due to classes being relocated from the flink-streaming-java
+									module to the flink-runtime module. -->
+								<exclude>org.apache.flink.streaming.api.functions.windowing.AllWindowFunction</exclude>
+								<exclude>org.apache.flink.streaming.api.datastream.CoGroupedStreams</exclude>
+								<exclude>org.apache.flink.streaming.api.datastream.ConnectedStreams</exclude>
+								<exclude>org.apache.flink.streaming.api.datastream.DataStream</exclude>
+								<exclude>org.apache.flink.streaming.api.datastream.IterativeStream</exclude>
+								<exclude>apache.flink.streaming.api.datastream.JoinedStreams</exclude>
+								<exclude>org.apache.flink.streaming.api.datastream.SingleOutputStreamOperator</exclude>
+								<exclude>org.apache.flink.streaming.api.datastream.WindowedStream</exclude>
+								<exclude>org.apache.flink.streaming.api.environment.StreamExecutionEnvironment</exclude>
 								<!-- MARKER: end exclusions -->
 							</excludes>
 							<accessModifier>public</accessModifier>
