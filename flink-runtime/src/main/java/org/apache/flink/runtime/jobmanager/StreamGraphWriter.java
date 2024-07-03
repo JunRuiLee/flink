@@ -7,7 +7,7 @@
  * "License"); you may not use this file except in compliance
  * with the License.  You may obtain a copy of the License at
  *
- *    http://www.apache.org/licenses/LICENSE-2.0
+ *     http://www.apache.org/licenses/LICENSE-2.0
  *
  * Unless required by applicable law or agreed to in writing, software
  * distributed under the License is distributed on an "AS IS" BASIS,
@@ -21,21 +21,21 @@ package org.apache.flink.runtime.jobmanager;
 import org.apache.flink.api.common.JobID;
 import org.apache.flink.runtime.dispatcher.cleanup.GloballyCleanableResource;
 import org.apache.flink.runtime.dispatcher.cleanup.LocallyCleanableResource;
-import org.apache.flink.runtime.jobgraph.JobGraph;
 import org.apache.flink.runtime.jobgraph.JobResourceRequirements;
+import org.apache.flink.streaming.api.graph.StreamGraph;
 import org.apache.flink.util.concurrent.FutureUtils;
 
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.Executor;
 
-/** Allows to store and remove job graphs. */
-public interface JobGraphWriter extends LocallyCleanableResource, GloballyCleanableResource {
+/** Allows to store and remove stream graphs. */
+public interface StreamGraphWriter extends LocallyCleanableResource, GloballyCleanableResource {
     /**
-     * Adds the {@link JobGraph} instance.
+     * Adds the {@link StreamGraph} instance.
      *
-     * <p>If a job graph with the same {@link JobID} exists, it is replaced.
+     * <p>If a stream graph with the same {@link JobID} exists, it is replaced.
      */
-    void putJobGraph(JobGraph jobGraph) throws Exception;
+    void putStreamGraph(StreamGraph streamGraph) throws Exception;
 
     /**
      * Persist {@link JobResourceRequirements job resource requirements} for the given job.

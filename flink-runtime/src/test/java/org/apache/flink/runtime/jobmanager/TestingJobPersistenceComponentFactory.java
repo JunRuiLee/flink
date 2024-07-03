@@ -23,22 +23,22 @@ import org.apache.flink.util.Preconditions;
 
 /**
  * {@code TestingJobPersistenceComponentFactory} implements {@link JobPersistenceComponentFactory}
- * for a given {@link JobGraphStore} and {@link JobResultStore}.
+ * for a given {@link StreamGraphStore} and {@link JobResultStore}.
  */
 public class TestingJobPersistenceComponentFactory implements JobPersistenceComponentFactory {
 
-    private final JobGraphStore jobGraphStore;
+    private final StreamGraphStore streamGraphStore;
     private final JobResultStore jobResultStore;
 
     public TestingJobPersistenceComponentFactory(
-            JobGraphStore jobGraphStore, JobResultStore jobResultStore) {
-        this.jobGraphStore = Preconditions.checkNotNull(jobGraphStore);
+            StreamGraphStore streamGraphStore, JobResultStore jobResultStore) {
+        this.streamGraphStore = Preconditions.checkNotNull(streamGraphStore);
         this.jobResultStore = Preconditions.checkNotNull(jobResultStore);
     }
 
     @Override
-    public JobGraphStore createJobGraphStore() {
-        return jobGraphStore;
+    public StreamGraphStore createStreamGraphStore() {
+        return streamGraphStore;
     }
 
     @Override

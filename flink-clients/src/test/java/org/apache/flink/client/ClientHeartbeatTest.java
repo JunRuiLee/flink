@@ -25,11 +25,11 @@ import org.apache.flink.configuration.DeploymentOptions;
 import org.apache.flink.core.execution.JobClient;
 import org.apache.flink.core.testutils.FlinkAssertions;
 import org.apache.flink.runtime.dispatcher.Dispatcher;
-import org.apache.flink.runtime.jobgraph.JobGraph;
-import org.apache.flink.runtime.jobgraph.JobGraphTestUtils;
-import org.apache.flink.runtime.jobgraph.JobVertex;
 import org.apache.flink.runtime.minicluster.MiniCluster;
 import org.apache.flink.runtime.testutils.WaitingCancelableInvokable;
+import org.apache.flink.streaming.api.graph.StreamGraph;
+import org.apache.flink.streaming.api.graph.StreamNode;
+import org.apache.flink.streaming.util.StreamGraphTestUtils;
 
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.Test;
@@ -112,22 +112,20 @@ class ClientHeartbeatTest {
                             return miniCluster;
                         });
 
-        JobGraph cancellableJobGraph = getCancellableJobGraph();
+        StreamGraph cancellableStreamGraph = getCancellableStreamGraph();
         // Enable heartbeat only when both execution.attached and
         // execution.shutdown-on-attached-exit are true.
         if (configuration.get(DeploymentOptions.ATTACHED)
                 && configuration.get(DeploymentOptions.SHUTDOWN_IF_ATTACHED)) {
-            cancellableJobGraph.setInitialClientHeartbeatTimeout(clientHeartbeatTimeout);
+            cancellableStreamGraph.setInitialClientHeartbeatTimeout(clientHeartbeatTimeout);
         }
         return perJobMiniClusterFactory
-                .submitJob(cancellableJobGraph, ClassLoader.getSystemClassLoader())
+                .submitJob(cancellableStreamGraph, ClassLoader.getSystemClassLoader())
                 .get();
     }
 
-    private static JobGraph getCancellableJobGraph() {
-        JobVertex jobVertex = new JobVertex("jobVertex");
-        jobVertex.setInvokableClass(WaitingCancelableInvokable.class);
-        jobVertex.setParallelism(1);
-        return JobGraphTestUtils.streamingJobGraph(jobVertex);
+    private static StreamGraph getCancellableStreamGraph() {
+        StreamNode streamNode = new StreamNode(0, "node1", WaitingCancelableInvokable.class);
+        return StreamGraphTestUtils.buildStreamGraph(streamNode);
     }
 }

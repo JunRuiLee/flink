@@ -122,7 +122,8 @@ public class AdaptiveSchedulerFactory implements SchedulerNGFactory {
                 AdaptiveScheduler.Settings.of(
                         jobMasterConfiguration, jobGraph.getCheckpointingSettings()),
                 jobGraph,
-                JobResourceRequirements.readFromJobGraph(jobGraph).orElse(null),
+                JobResourceRequirements.readFromJobConfiguration(jobGraph.getJobConfiguration())
+                        .orElse(null),
                 jobMasterConfiguration,
                 declarativeSlotPool,
                 slotAllocator,

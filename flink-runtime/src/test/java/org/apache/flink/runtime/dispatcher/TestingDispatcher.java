@@ -33,8 +33,7 @@ import org.apache.flink.runtime.highavailability.HighAvailabilityServices;
 import org.apache.flink.runtime.highavailability.JobResultStore;
 import org.apache.flink.runtime.highavailability.TestingHighAvailabilityServices;
 import org.apache.flink.runtime.highavailability.nonha.embedded.EmbeddedJobResultStore;
-import org.apache.flink.runtime.jobgraph.JobGraph;
-import org.apache.flink.runtime.jobmanager.JobGraphWriter;
+import org.apache.flink.runtime.jobmanager.StreamGraphWriter;
 import org.apache.flink.runtime.jobmaster.JobResult;
 import org.apache.flink.runtime.metrics.groups.JobManagerMetricGroup;
 import org.apache.flink.runtime.metrics.groups.UnregisteredMetricGroups;
@@ -45,6 +44,7 @@ import org.apache.flink.runtime.rpc.RpcService;
 import org.apache.flink.runtime.scheduler.ExecutionGraphInfo;
 import org.apache.flink.runtime.util.TestingFatalErrorHandler;
 import org.apache.flink.runtime.webmonitor.retriever.GatewayRetriever;
+import org.apache.flink.streaming.api.graph.StreamGraph;
 import org.apache.flink.testutils.TestingUtils;
 import org.apache.flink.util.Preconditions;
 import org.apache.flink.util.TimeUtils;
@@ -69,7 +69,7 @@ class TestingDispatcher extends Dispatcher {
     private TestingDispatcher(
             RpcService rpcService,
             DispatcherId fencingToken,
-            Collection<JobGraph> recoveredJobs,
+            Collection<StreamGraph> recoveredJobs,
             Collection<JobResult> recoveredDirtyJobs,
             Configuration configuration,
             HighAvailabilityServices highAvailabilityServices,
@@ -77,7 +77,7 @@ class TestingDispatcher extends Dispatcher {
             HeartbeatServices heartbeatServices,
             BlobServer blobServer,
             FatalErrorHandler fatalErrorHandler,
-            JobGraphWriter jobGraphWriter,
+            StreamGraphWriter streamGraphWriter,
             JobResultStore jobResultStore,
             JobManagerMetricGroup jobManagerMetricGroup,
             @Nullable String metricServiceQueryAddress,
@@ -109,7 +109,7 @@ class TestingDispatcher extends Dispatcher {
                         metricServiceQueryAddress,
                         dispatcherOperationCaches,
                         jobManagerMetricGroup,
-                        jobGraphWriter,
+                        streamGraphWriter,
                         jobResultStore,
                         jobManagerRunnerFactory,
                         cleanupRunnerFactory,
@@ -167,7 +167,7 @@ class TestingDispatcher extends Dispatcher {
 
     public static class Builder {
         private DispatcherId fencingToken = DispatcherId.generate();
-        private Collection<JobGraph> recoveredJobs = Collections.emptyList();
+        private Collection<StreamGraph> recoveredJobs = Collections.emptyList();
         @Nullable private Collection<JobResult> recoveredDirtyJobs = null;
         private HighAvailabilityServices highAvailabilityServices =
                 new TestingHighAvailabilityServices();
@@ -178,7 +178,7 @@ class TestingDispatcher extends Dispatcher {
                 () -> CompletableFuture.completedFuture(resourceManagerGateway);
         private HeartbeatServices heartbeatServices = new HeartbeatServicesImpl(1000L, 1000L);
 
-        private JobGraphWriter jobGraphWriter = NoOpJobGraphWriter.INSTANCE;
+        private StreamGraphWriter streamGraphWriter = NoOpStreamGraphWriter.INSTANCE;
         private JobResultStore jobResultStore = new EmbeddedJobResultStore();
 
         private Configuration configuration = new Configuration();
@@ -210,7 +210,7 @@ class TestingDispatcher extends Dispatcher {
             return this;
         }
 
-        public Builder setRecoveredJobs(Collection<JobGraph> recoveredJobs) {
+        public Builder setRecoveredJobs(Collection<StreamGraph> recoveredJobs) {
             this.recoveredJobs = recoveredJobs;
             return this;
         }
@@ -243,8 +243,8 @@ class TestingDispatcher extends Dispatcher {
             return this;
         }
 
-        public Builder setJobGraphWriter(JobGraphWriter jobGraphWriter) {
-            this.jobGraphWriter = jobGraphWriter;
+        public Builder setStreamGraphWriter(StreamGraphWriter streamGraphWriter) {
+            this.streamGraphWriter = streamGraphWriter;
             return this;
         }
 
@@ -331,7 +331,7 @@ class TestingDispatcher extends Dispatcher {
                     ioExecutor,
                     TestingRetryStrategies.NO_RETRY_STRATEGY,
                     jobManagerRunnerRegistry,
-                    jobGraphWriter,
+                    streamGraphWriter,
                     blobServer,
                     highAvailabilityServices,
                     jobManagerMetricGroup);
@@ -353,7 +353,7 @@ class TestingDispatcher extends Dispatcher {
                             blobServer,
                             "No BlobServer is specified for building the TestingDispatcher"),
                     fatalErrorHandler,
-                    jobGraphWriter,
+                    streamGraphWriter,
                     jobResultStore,
                     jobManagerMetricGroup,
                     metricServiceQueryAddress,

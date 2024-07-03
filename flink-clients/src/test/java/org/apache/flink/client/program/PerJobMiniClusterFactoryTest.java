@@ -26,11 +26,12 @@ import org.apache.flink.core.execution.JobClient;
 import org.apache.flink.core.execution.SavepointFormatType;
 import org.apache.flink.runtime.execution.Environment;
 import org.apache.flink.runtime.jobgraph.JobGraph;
-import org.apache.flink.runtime.jobgraph.JobGraphTestUtils;
-import org.apache.flink.runtime.jobgraph.JobVertex;
 import org.apache.flink.runtime.minicluster.MiniCluster;
 import org.apache.flink.runtime.testutils.CancelableInvokable;
 import org.apache.flink.runtime.testutils.WaitingCancelableInvokable;
+import org.apache.flink.streaming.api.graph.StreamGraph;
+import org.apache.flink.streaming.api.graph.StreamNode;
+import org.apache.flink.streaming.util.StreamGraphTestUtils;
 
 import org.apache.flink.shaded.guava31.com.google.common.collect.ImmutableMap;
 
@@ -64,7 +65,7 @@ class PerJobMiniClusterFactoryTest {
 
         JobClient jobClient =
                 perJobMiniClusterFactory
-                        .submitJob(getNoopJobGraph(), ClassLoader.getSystemClassLoader())
+                        .submitJob(getNoopStreamGraph(), ClassLoader.getSystemClassLoader())
                         .get();
 
         JobExecutionResult jobExecutionResult = jobClient.getJobExecutionResult().get();
@@ -80,13 +81,13 @@ class PerJobMiniClusterFactoryTest {
     void testJobClient() throws Exception {
         PerJobMiniClusterFactory perJobMiniClusterFactory = initializeMiniCluster();
 
-        JobGraph cancellableJobGraph = getCancellableJobGraph();
+        StreamGraph cancellableStreamGraph = getCancellableStreamGraph();
         JobClient jobClient =
                 perJobMiniClusterFactory
-                        .submitJob(cancellableJobGraph, ClassLoader.getSystemClassLoader())
+                        .submitJob(cancellableStreamGraph, ClassLoader.getSystemClassLoader())
                         .get();
 
-        assertThat(jobClient.getJobID()).isEqualTo(cancellableJobGraph.getJobID());
+        assertThat(jobClient.getJobID()).isEqualTo(cancellableStreamGraph.getJobId());
         assertThat(jobClient.getJobStatus().get()).isIn(JobStatus.CREATED, JobStatus.RUNNING);
 
         jobClient.cancel().get();
@@ -103,7 +104,7 @@ class PerJobMiniClusterFactoryTest {
         PerJobMiniClusterFactory perJobMiniClusterFactory = initializeMiniCluster();
         JobClient jobClient =
                 perJobMiniClusterFactory
-                        .submitJob(getCancellableJobGraph(), ClassLoader.getSystemClassLoader())
+                        .submitJob(getCancellableStreamGraph(), ClassLoader.getSystemClassLoader())
                         .get();
 
         while (jobClient.getJobStatus().get() != JobStatus.RUNNING) {
@@ -126,7 +127,7 @@ class PerJobMiniClusterFactoryTest {
         {
             JobClient jobClient =
                     perJobMiniClusterFactory
-                            .submitJob(getNoopJobGraph(), ClassLoader.getSystemClassLoader())
+                            .submitJob(getNoopStreamGraph(), ClassLoader.getSystemClassLoader())
                             .get();
             jobClient.getJobExecutionResult().get();
             assertThatMiniClusterIsShutdown();
@@ -134,7 +135,7 @@ class PerJobMiniClusterFactoryTest {
         {
             JobClient jobClient =
                     perJobMiniClusterFactory
-                            .submitJob(getNoopJobGraph(), ClassLoader.getSystemClassLoader())
+                            .submitJob(getNoopStreamGraph(), ClassLoader.getSystemClassLoader())
                             .get();
             jobClient.getJobExecutionResult().get();
             assertThatMiniClusterIsShutdown();
@@ -146,7 +147,7 @@ class PerJobMiniClusterFactoryTest {
         PerJobMiniClusterFactory perJobMiniClusterFactory = initializeMiniCluster();
         JobClient jobClient =
                 perJobMiniClusterFactory
-                        .submitJob(getNoopJobGraph(), ClassLoader.getSystemClassLoader())
+                        .submitJob(getNoopStreamGraph(), ClassLoader.getSystemClassLoader())
                         .get();
         jobClient.getJobExecutionResult().get();
         assertThatMiniClusterIsShutdown();
@@ -159,21 +160,23 @@ class PerJobMiniClusterFactoryTest {
 
     @Test
     void testTurnUpParallelismByOverwriteParallelism() throws Exception {
-        JobVertex jobVertex = getBlockingJobVertex();
-        JobGraph jobGraph = JobGraphTestUtils.streamingJobGraph(jobVertex);
-        int overwriteParallelism = jobVertex.getParallelism() + 1;
+        StreamNode streamNode = getBlockingStreamNode();
+        StreamGraph streamGraph = StreamGraphTestUtils.buildStreamGraph(streamNode);
+        int overwriteParallelism = streamNode.getParallelism() + 1;
         BlockingInvokable.reset(overwriteParallelism);
 
+        JobGraph jobGraph = streamGraph.getJobGraph();
         Configuration configuration = new Configuration();
         configuration.set(
                 PipelineOptions.PARALLELISM_OVERRIDES,
                 ImmutableMap.of(
-                        jobVertex.getID().toHexString(), String.valueOf(overwriteParallelism)));
+                        jobGraph.getVertices().iterator().next().getID().toHexString(),
+                        String.valueOf(overwriteParallelism)));
 
         PerJobMiniClusterFactory perJobMiniClusterFactory = initializeMiniCluster(configuration);
         JobClient jobClient =
                 perJobMiniClusterFactory
-                        .submitJob(jobGraph, ClassLoader.getSystemClassLoader())
+                        .submitJob(streamGraph, ClassLoader.getSystemClassLoader())
                         .get();
 
         // wait for tasks to be properly running
@@ -204,22 +207,19 @@ class PerJobMiniClusterFactoryTest {
         assertThat(miniCluster.isRunning()).isFalse();
     }
 
-    private static JobGraph getNoopJobGraph() {
-        return JobGraphTestUtils.singleNoOpJobGraph();
+    private static StreamGraph getNoopStreamGraph() {
+        return StreamGraphTestUtils.singleNoOpStreamGraph();
     }
 
-    private static JobGraph getCancellableJobGraph() {
-        JobVertex jobVertex = new JobVertex("jobVertex");
-        jobVertex.setInvokableClass(WaitingCancelableInvokable.class);
-        jobVertex.setParallelism(1);
-        return JobGraphTestUtils.streamingJobGraph(jobVertex);
+    private static StreamGraph getCancellableStreamGraph() {
+        StreamNode streamNode = new StreamNode(0, "node1", WaitingCancelableInvokable.class);
+        return StreamGraphTestUtils.buildStreamGraph(streamNode);
     }
 
-    private static JobVertex getBlockingJobVertex() {
-        JobVertex jobVertex = new JobVertex("jobVertex");
-        jobVertex.setInvokableClass(BlockingInvokable.class);
-        jobVertex.setParallelism(2);
-        return jobVertex;
+    private static StreamNode getBlockingStreamNode() {
+        StreamNode streamNode = new StreamNode(0, "node1", BlockingInvokable.class);
+        streamNode.setParallelism(2);
+        return streamNode;
     }
 
     /** Test invokable that allows waiting for all subtasks to be running. */

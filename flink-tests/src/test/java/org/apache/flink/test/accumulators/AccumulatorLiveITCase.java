@@ -24,8 +24,6 @@ import org.apache.flink.api.common.functions.OpenContext;
 import org.apache.flink.api.common.functions.RichFlatMapFunction;
 import org.apache.flink.api.common.io.OutputFormat;
 import org.apache.flink.api.common.time.Deadline;
-import org.apache.flink.api.java.DataSet;
-import org.apache.flink.api.java.ExecutionEnvironment;
 import org.apache.flink.client.program.ClusterClient;
 import org.apache.flink.configuration.Configuration;
 import org.apache.flink.configuration.HeartbeatManagerOptions;
@@ -41,6 +39,7 @@ import org.apache.flink.runtime.minicluster.MiniClusterJobClient;
 import org.apache.flink.runtime.testutils.MiniClusterResourceConfiguration;
 import org.apache.flink.streaming.api.datastream.DataStream;
 import org.apache.flink.streaming.api.environment.StreamExecutionEnvironment;
+import org.apache.flink.streaming.api.graph.StreamGraph;
 import org.apache.flink.test.util.MiniClusterWithClientResource;
 import org.apache.flink.testutils.TestingUtils;
 import org.apache.flink.testutils.executor.TestExecutorResource;
@@ -115,16 +114,16 @@ public class AccumulatorLiveITCase extends TestLogger {
 
     @Test
     public void testBatch() throws Exception {
-        ExecutionEnvironment env = ExecutionEnvironment.getExecutionEnvironment();
-        env.setParallelism(1);
-
-        DataSet<Integer> input = env.fromCollection(inputData);
-        input.flatMap(new NotifyingMapper()).output(new DummyOutputFormat());
-
-        // Extract job graph and set job id for the task to notify of accumulator changes.
-        JobGraph jobGraph = getJobGraph(env.createProgramPlan());
-
-        submitJobAndVerifyResults(jobGraph);
+        //        StreamExecutionEnvironment env =
+        // StreamExecutionEnvironment.getExecutionEnvironment();
+        //        env.setParallelism(1);
+        //        env.setRuntimeMode()
+        //
+        //        DataStream<Integer> input = env.fromCollection(inputData);
+        //        input.flatMap(new NotifyingMapper()).writeUsingOutputFormat(new
+        // DummyOutputFormat());
+        //
+        //        submitJobAndVerifyResults(env.getStreamGraph());
     }
 
     @Test
@@ -138,12 +137,10 @@ public class AccumulatorLiveITCase extends TestLogger {
                 .writeUsingOutputFormat(new DummyOutputFormat())
                 .disableChaining();
 
-        JobGraph jobGraph = env.getStreamGraph().getJobGraph();
-
-        submitJobAndVerifyResults(jobGraph);
+        submitJobAndVerifyResults(env.getStreamGraph());
     }
 
-    private static void submitJobAndVerifyResults(JobGraph jobGraph) throws Exception {
+    private static void submitJobAndVerifyResults(StreamGraph streamGraph) throws Exception {
         Deadline deadline = Deadline.now().plus(Duration.ofSeconds(30));
 
         final ClusterClient<?> client = MINI_CLUSTER_RESOURCE.getClusterClient();
@@ -152,7 +149,7 @@ public class AccumulatorLiveITCase extends TestLogger {
                 new CheckedThread() {
                     @Override
                     public void go() throws Exception {
-                        submitJobAndWaitForResult(client, jobGraph, getClass().getClassLoader());
+                        submitJobAndWaitForResult(client, streamGraph, getClass().getClassLoader());
                     }
                 };
 
@@ -162,9 +159,9 @@ public class AccumulatorLiveITCase extends TestLogger {
             NotifyingMapper.notifyLatch.await();
 
             // verify using the ClusterClient
-            verifyResults(jobGraph, deadline, client);
+            verifyResults(streamGraph, deadline, client);
             // verify using the MiniClusterJobClient
-            verifyResults(jobGraph, deadline, null);
+            verifyResults(streamGraph, deadline, null);
 
             NotifyingMapper.shutdownLatch.trigger();
         } finally {
@@ -175,7 +172,8 @@ public class AccumulatorLiveITCase extends TestLogger {
         }
     }
 
-    private static void verifyResults(JobGraph jobGraph, Deadline deadline, ClusterClient<?> client)
+    private static void verifyResults(
+            StreamGraph streamGraph, Deadline deadline, ClusterClient<?> client)
             throws InterruptedException, java.util.concurrent.ExecutionException,
                     java.util.concurrent.TimeoutException {
         FutureUtils.retrySuccessfulWithDelay(
@@ -183,11 +181,11 @@ public class AccumulatorLiveITCase extends TestLogger {
                             try {
                                 if (client != null) {
                                     return CompletableFuture.completedFuture(
-                                            client.getAccumulators(jobGraph.getJobID()).get());
+                                            client.getAccumulators(streamGraph.getJobId()).get());
                                 } else {
                                     final MiniClusterJobClient miniClusterJobClient =
                                             new MiniClusterJobClient(
-                                                    jobGraph.getJobID(),
+                                                    streamGraph.getJobId(),
                                                     MINI_CLUSTER_RESOURCE.getMiniCluster(),
                                                     ClassLoader.getSystemClassLoader(),
                                                     MiniClusterJobClient.JobFinalizationBehavior

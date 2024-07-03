@@ -20,13 +20,11 @@ package org.apache.flink.test.streaming.runtime;
 import org.apache.flink.api.common.functions.MapFunction;
 import org.apache.flink.client.deployment.StandaloneClusterId;
 import org.apache.flink.client.program.rest.RestClusterClient;
-import org.apache.flink.runtime.jobgraph.JobGraph;
 import org.apache.flink.runtime.testutils.MiniClusterResource;
 import org.apache.flink.runtime.testutils.MiniClusterResourceConfiguration;
 import org.apache.flink.streaming.api.datastream.DataStream;
 import org.apache.flink.streaming.api.environment.StreamExecutionEnvironment;
 import org.apache.flink.streaming.api.functions.sink.SinkFunction;
-import org.apache.flink.streaming.api.graph.StreamingJobGraphGenerator;
 import org.apache.flink.util.TestLogger;
 
 import org.junit.ClassRule;
@@ -85,15 +83,14 @@ public class BigUserProgramJobSubmitITCase extends TestLogger {
                         })
                 .addSink(resultSink);
 
-        JobGraph jobGraph = StreamingJobGraphGenerator.createJobGraph(env.getStreamGraph());
-
         final RestClusterClient<StandaloneClusterId> restClusterClient =
                 new RestClusterClient<>(
                         MINI_CLUSTER_RESOURCE.getClientConfiguration(),
                         StandaloneClusterId.getInstance());
 
         try {
-            submitJobAndWaitForResult(restClusterClient, jobGraph, getClass().getClassLoader());
+            submitJobAndWaitForResult(
+                    restClusterClient, env.getStreamGraph(), getClass().getClassLoader());
 
             List<String> expected = Arrays.asList("x 1 0", "x 3 0", "x 5 0");
 

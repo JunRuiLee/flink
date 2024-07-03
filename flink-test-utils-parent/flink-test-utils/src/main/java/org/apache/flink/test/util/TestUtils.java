@@ -27,7 +27,6 @@ import org.apache.flink.core.execution.JobClient;
 import org.apache.flink.runtime.checkpoint.Checkpoints;
 import org.apache.flink.runtime.checkpoint.metadata.CheckpointMetadata;
 import org.apache.flink.runtime.execution.ExecutionState;
-import org.apache.flink.runtime.jobgraph.JobGraph;
 import org.apache.flink.runtime.minicluster.MiniCluster;
 import org.apache.flink.runtime.rest.messages.EmptyRequestBody;
 import org.apache.flink.runtime.rest.messages.JobMessageParameters;
@@ -93,8 +92,9 @@ public class TestUtils {
     }
 
     public static void submitJobAndWaitForResult(
-            ClusterClient<?> client, JobGraph jobGraph, ClassLoader classLoader) throws Exception {
-        client.submitJob(jobGraph)
+            ClusterClient<?> client, StreamGraph streamGraph, ClassLoader classLoader)
+            throws Exception {
+        client.submitJob(streamGraph)
                 .thenCompose(client::requestJobResult)
                 .get()
                 .toJobExecutionResult(classLoader);

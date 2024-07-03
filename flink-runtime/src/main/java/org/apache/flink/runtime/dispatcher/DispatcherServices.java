@@ -25,7 +25,7 @@ import org.apache.flink.runtime.dispatcher.cleanup.CleanupRunnerFactory;
 import org.apache.flink.runtime.heartbeat.HeartbeatServices;
 import org.apache.flink.runtime.highavailability.HighAvailabilityServices;
 import org.apache.flink.runtime.highavailability.JobResultStore;
-import org.apache.flink.runtime.jobmanager.JobGraphWriter;
+import org.apache.flink.runtime.jobmanager.StreamGraphWriter;
 import org.apache.flink.runtime.metrics.groups.JobManagerMetricGroup;
 import org.apache.flink.runtime.resourcemanager.ResourceManagerGateway;
 import org.apache.flink.runtime.rpc.FatalErrorHandler;
@@ -62,7 +62,7 @@ public class DispatcherServices {
 
     private final DispatcherOperationCaches operationCaches;
 
-    private final JobGraphWriter jobGraphWriter;
+    private final StreamGraphWriter streamGraphWriter;
 
     private final JobResultStore jobResultStore;
 
@@ -86,7 +86,7 @@ public class DispatcherServices {
             @Nullable String metricQueryServiceAddress,
             DispatcherOperationCaches operationCaches,
             JobManagerMetricGroup jobManagerMetricGroup,
-            JobGraphWriter jobGraphWriter,
+            StreamGraphWriter streamGraphWriter,
             JobResultStore jobResultStore,
             JobManagerRunnerFactory jobManagerRunnerFactory,
             CleanupRunnerFactory cleanupRunnerFactory,
@@ -109,7 +109,7 @@ public class DispatcherServices {
         this.operationCaches = Preconditions.checkNotNull(operationCaches, "OperationCaches");
         this.jobManagerMetricGroup =
                 Preconditions.checkNotNull(jobManagerMetricGroup, "JobManagerMetricGroup");
-        this.jobGraphWriter = Preconditions.checkNotNull(jobGraphWriter, "JobGraphWriter");
+        this.streamGraphWriter = Preconditions.checkNotNull(streamGraphWriter, "StreamGraphWriter");
         this.jobResultStore = Preconditions.checkNotNull(jobResultStore, "JobResultStore");
         this.jobManagerRunnerFactory =
                 Preconditions.checkNotNull(jobManagerRunnerFactory, "JobManagerRunnerFactory");
@@ -164,8 +164,8 @@ public class DispatcherServices {
         return operationCaches;
     }
 
-    public JobGraphWriter getJobGraphWriter() {
-        return jobGraphWriter;
+    public StreamGraphWriter getStreamGraphWriter() {
+        return streamGraphWriter;
     }
 
     public JobResultStore getJobResultStore() {
@@ -210,7 +210,7 @@ public class DispatcherServices {
                 partialDispatcherServicesWithJobPersistenceComponents
                         .getJobManagerMetricGroupFactory()
                         .create(),
-                partialDispatcherServicesWithJobPersistenceComponents.getJobGraphWriter(),
+                partialDispatcherServicesWithJobPersistenceComponents.getStreamGraphWriter(),
                 partialDispatcherServicesWithJobPersistenceComponents.getJobResultStore(),
                 jobManagerRunnerFactory,
                 cleanupRunnerFactory,

@@ -27,11 +27,11 @@ import org.apache.flink.runtime.dispatcher.JobManagerRunnerRegistry;
 import org.apache.flink.runtime.dispatcher.TestingJobManagerRunnerRegistry;
 import org.apache.flink.runtime.highavailability.HighAvailabilityServices;
 import org.apache.flink.runtime.highavailability.TestingHighAvailabilityServices;
-import org.apache.flink.runtime.jobmanager.JobGraphWriter;
+import org.apache.flink.runtime.jobmanager.StreamGraphWriter;
 import org.apache.flink.runtime.metrics.MetricRegistry;
 import org.apache.flink.runtime.metrics.groups.JobManagerMetricGroup;
 import org.apache.flink.runtime.metrics.util.TestingMetricRegistry;
-import org.apache.flink.runtime.testutils.TestingJobGraphStore;
+import org.apache.flink.runtime.testutils.TestingStreamGraphStore;
 import org.apache.flink.util.concurrent.Executors;
 import org.apache.flink.util.concurrent.FutureUtils;
 
@@ -84,7 +84,7 @@ public class DispatcherResourceCleanerFactoryTest {
                         Executors.directExecutor(),
                         TestingRetryStrategies.NO_RETRY_STRATEGY,
                         createJobManagerRunnerRegistry(),
-                        createJobGraphWriter(),
+                        createStreamGraphWriter(),
                         blobServer,
                         createHighAvailabilityServices(),
                         jobManagerMetricGroup);
@@ -103,11 +103,11 @@ public class DispatcherResourceCleanerFactoryTest {
                 .build();
     }
 
-    private JobGraphWriter createJobGraphWriter() throws Exception {
+    private StreamGraphWriter createStreamGraphWriter() throws Exception {
         jobGraphWriterLocalCleanupFuture = new CompletableFuture<>();
         jobGraphWriterGlobalCleanupFuture = new CompletableFuture<>();
-        final TestingJobGraphStore jobGraphStore =
-                TestingJobGraphStore.newBuilder()
+        final TestingStreamGraphStore streamGraphStore =
+                TestingStreamGraphStore.newBuilder()
                         .setGlobalCleanupFunction(
                                 (jobId, executor) -> {
                                     jobGraphWriterGlobalCleanupFuture.complete(jobId);
@@ -119,9 +119,9 @@ public class DispatcherResourceCleanerFactoryTest {
                                     return FutureUtils.completedVoidFuture();
                                 })
                         .build();
-        jobGraphStore.start(null);
+        streamGraphStore.start(null);
 
-        return jobGraphStore;
+        return streamGraphStore;
     }
 
     private HighAvailabilityServices createHighAvailabilityServices() {

@@ -92,7 +92,8 @@ class ApplicationDispatcherBootstrapTest {
         final TestingDispatcherGateway.Builder dispatcherBuilder =
                 TestingDispatcherGateway.newBuilder()
                         .setSubmitFunction(
-                                jobGraph -> CompletableFuture.completedFuture(Acknowledge.get()));
+                                streamGraph ->
+                                        CompletableFuture.completedFuture(Acknowledge.get()));
 
         final CompletableFuture<Void> applicationFuture = runApplication(dispatcherBuilder, 0);
 
@@ -151,8 +152,8 @@ class ApplicationDispatcherBootstrapTest {
         final TestingDispatcherGateway.Builder dispatcherBuilder =
                 finishedJobGatewayBuilder()
                         .setSubmitFunction(
-                                jobGraph -> {
-                                    submittedJobId.complete(jobGraph.getJobID());
+                                streamGraph -> {
+                                    submittedJobId.complete(streamGraph.getJobId());
                                     return CompletableFuture.completedFuture(Acknowledge.get());
                                 });
 
@@ -178,8 +179,8 @@ class ApplicationDispatcherBootstrapTest {
         final TestingDispatcherGateway.Builder dispatcherBuilder =
                 finishedJobGatewayBuilder()
                         .setSubmitFunction(
-                                jobGraph -> {
-                                    submittedJobId.complete(jobGraph.getJobID());
+                                streamGraph -> {
+                                    submittedJobId.complete(streamGraph.getJobId());
                                     return CompletableFuture.completedFuture(Acknowledge.get());
                                 });
 
@@ -207,8 +208,8 @@ class ApplicationDispatcherBootstrapTest {
         final TestingDispatcherGateway.Builder dispatcherBuilder =
                 finishedJobGatewayBuilder()
                         .setSubmitFunction(
-                                jobGraph -> {
-                                    submittedJobId.complete(jobGraph.getJobID());
+                                streamGraph -> {
+                                    submittedJobId.complete(streamGraph.getJobId());
                                     return CompletableFuture.completedFuture(Acknowledge.get());
                                 });
 
@@ -228,8 +229,8 @@ class ApplicationDispatcherBootstrapTest {
         final TestingDispatcherGateway.Builder dispatcherBuilder =
                 TestingDispatcherGateway.newBuilder()
                         .setSubmitFunction(
-                                jobGraph -> {
-                                    submittedJobIds.add(jobGraph.getJobID());
+                                streamGraph -> {
+                                    submittedJobIds.add(streamGraph.getJobId());
                                     return CompletableFuture.completedFuture(Acknowledge.get());
                                 })
                         .setRequestJobStatusFunction(
@@ -376,7 +377,7 @@ class ApplicationDispatcherBootstrapTest {
         final TestingDispatcherGateway.Builder dispatcherBuilder =
                 runningJobGatewayBuilder()
                         .setSubmitFunction(
-                                jobGraph -> {
+                                streamGraph -> {
                                     throw new FlinkRuntimeException("Nope!");
                                 })
                         .setClusterShutdownFunction(
@@ -429,7 +430,7 @@ class ApplicationDispatcherBootstrapTest {
         final TestingDispatcherGateway.Builder dispatcherBuilder =
                 TestingDispatcherGateway.newBuilder()
                         .setSubmitFunction(
-                                jobGraph -> CompletableFuture.completedFuture(Acknowledge.get()))
+                                streamGraph -> CompletableFuture.completedFuture(Acknowledge.get()))
                         .setRequestJobStatusFunction(
                                 jobId -> CompletableFuture.completedFuture(JobStatus.FINISHED))
                         .setRequestJobResultFunction(
@@ -631,7 +632,7 @@ class ApplicationDispatcherBootstrapTest {
         final TestingDispatcherGateway.Builder dispatcherBuilder =
                 finishedJobGatewayBuilder()
                         .setSubmitFunction(
-                                jobGraph ->
+                                streamGraph ->
                                         FutureUtils.completedExceptionally(
                                                 DuplicateJobSubmissionException
                                                         .ofGloballyTerminated(testJobID)));
@@ -657,7 +658,7 @@ class ApplicationDispatcherBootstrapTest {
         final TestingDispatcherGateway.Builder dispatcherBuilder =
                 TestingDispatcherGateway.newBuilder()
                         .setSubmitFunction(
-                                jobGraph ->
+                                streamGraph ->
                                         FutureUtils.completedExceptionally(
                                                 DuplicateJobSubmissionException
                                                         .ofGloballyTerminated(testJobID)))
@@ -691,7 +692,7 @@ class ApplicationDispatcherBootstrapTest {
         final TestingDispatcherGateway.Builder dispatcherBuilder =
                 TestingDispatcherGateway.newBuilder()
                         .setSubmitFunction(
-                                jobGraph ->
+                                streamGraph ->
                                         FutureUtils.completedExceptionally(
                                                 DuplicateJobSubmissionException
                                                         .ofGloballyTerminated(testJobID)))
@@ -719,7 +720,7 @@ class ApplicationDispatcherBootstrapTest {
         final TestingDispatcherGateway.Builder dispatcherBuilder =
                 TestingDispatcherGateway.newBuilder()
                         .setSubmitFunction(
-                                jobGraph ->
+                                streamGraph ->
                                         FutureUtils.completedExceptionally(
                                                 DuplicateJobSubmissionException.of(testJobID)));
         final CompletableFuture<Void> applicationFuture =
@@ -881,7 +882,7 @@ class ApplicationDispatcherBootstrapTest {
         TestingDispatcherGateway.Builder builder =
                 TestingDispatcherGateway.newBuilder()
                         .setSubmitFunction(
-                                jobGraph -> CompletableFuture.completedFuture(Acknowledge.get()))
+                                streamGraph -> CompletableFuture.completedFuture(Acknowledge.get()))
                         .setRequestJobStatusFunction(
                                 jobId -> CompletableFuture.completedFuture(jobStatus));
         if (jobStatus != JobStatus.RUNNING) {

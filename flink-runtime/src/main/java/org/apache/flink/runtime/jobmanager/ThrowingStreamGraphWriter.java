@@ -20,31 +20,21 @@ package org.apache.flink.runtime.jobmanager;
 
 import org.apache.flink.api.common.JobID;
 import org.apache.flink.runtime.jobgraph.JobGraph;
-import org.apache.flink.runtime.jobgraph.JobGraphTestUtils;
-import org.apache.flink.util.concurrent.Executors;
+import org.apache.flink.runtime.jobgraph.JobResourceRequirements;
+import org.apache.flink.streaming.api.graph.StreamGraph;
 
-import org.junit.Test;
+/** {@link StreamGraphWriter} implementation which does not allow to store {@link JobGraph}. */
+public enum ThrowingStreamGraphWriter implements StreamGraphWriter {
+    INSTANCE;
 
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertNull;
+    @Override
+    public void putStreamGraph(StreamGraph streamGraph) {
+        throw new UnsupportedOperationException("Cannot store job graphs.");
+    }
 
-public class StandaloneJobGraphStoreTest {
-
-    /** Tests that all operations work and don't change the state. */
-    @Test
-    public void testNoOps() throws Exception {
-        StandaloneJobGraphStore jobGraphs = new StandaloneJobGraphStore();
-
-        JobGraph jobGraph = JobGraphTestUtils.emptyJobGraph();
-
-        assertEquals(0, jobGraphs.getJobIds().size());
-
-        jobGraphs.putJobGraph(jobGraph);
-        assertEquals(0, jobGraphs.getJobIds().size());
-
-        jobGraphs.globalCleanupAsync(jobGraph.getJobID(), Executors.directExecutor()).join();
-        assertEquals(0, jobGraphs.getJobIds().size());
-
-        assertNull(jobGraphs.recoverJobGraph(new JobID()));
+    @Override
+    public void putJobResourceRequirements(
+            JobID jobId, JobResourceRequirements jobResourceRequirements) {
+        throw new UnsupportedOperationException("Cannot persist job resource requirements.");
     }
 }

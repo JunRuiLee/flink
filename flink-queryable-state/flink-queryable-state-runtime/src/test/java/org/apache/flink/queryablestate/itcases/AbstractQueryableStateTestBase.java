@@ -48,7 +48,6 @@ import org.apache.flink.queryablestate.client.QueryableStateClient;
 import org.apache.flink.queryablestate.client.VoidNamespace;
 import org.apache.flink.queryablestate.client.VoidNamespaceSerializer;
 import org.apache.flink.queryablestate.exceptions.UnknownKeyOrNamespaceException;
-import org.apache.flink.runtime.jobgraph.JobGraph;
 import org.apache.flink.runtime.jobmaster.JobResult;
 import org.apache.flink.runtime.state.StateBackend;
 import org.apache.flink.streaming.api.datastream.DataStream;
@@ -56,6 +55,7 @@ import org.apache.flink.streaming.api.datastream.QueryableStateStream;
 import org.apache.flink.streaming.api.environment.StreamExecutionEnvironment;
 import org.apache.flink.streaming.api.functions.ProcessFunction;
 import org.apache.flink.streaming.api.functions.source.RichParallelSourceFunction;
+import org.apache.flink.streaming.api.graph.StreamGraph;
 import org.apache.flink.streaming.api.operators.AbstractStreamOperator;
 import org.apache.flink.streaming.api.operators.OneInputStreamOperator;
 import org.apache.flink.streaming.runtime.streamrecord.StreamRecord;
@@ -187,9 +187,9 @@ public abstract class AbstractQueryableStateTestBase {
                 new AutoCancellableJob(deadline, clusterClient, env)) {
 
             final JobID jobId = autoCancellableJob.getJobId();
-            final JobGraph jobGraph = autoCancellableJob.getJobGraph();
+            final StreamGraph streamGraph = autoCancellableJob.getStreamGraph();
 
-            clusterClient.submitJob(jobGraph).get();
+            clusterClient.submitJob(streamGraph).get();
 
             final AtomicLongArray counts = new AtomicLongArray(numKeys);
 
@@ -304,10 +304,10 @@ public abstract class AbstractQueryableStateTestBase {
                         .asQueryableState(queryName);
 
         // Submit the job graph
-        final JobGraph jobGraph = env.getStreamGraph().getJobGraph();
+        final StreamGraph streamGraph = env.getStreamGraph();
 
         clusterClient
-                .submitJob(jobGraph)
+                .submitJob(streamGraph)
                 .thenCompose(clusterClient::requestJobResult)
                 .thenApply(JobResult::getSerializedThrowable)
                 .thenAccept(
@@ -367,9 +367,9 @@ public abstract class AbstractQueryableStateTestBase {
                 new AutoCancellableJob(deadline, clusterClient, env)) {
 
             final JobID jobId = autoCancellableJob.getJobId();
-            final JobGraph jobGraph = autoCancellableJob.getJobGraph();
+            final StreamGraph streamGraph = autoCancellableJob.getStreamGraph();
 
-            clusterClient.submitJob(jobGraph).get();
+            clusterClient.submitJob(streamGraph).get();
             executeValueQuery(deadline, client, jobId, "hakuna", valueState, numElements);
         }
     }
@@ -422,10 +422,10 @@ public abstract class AbstractQueryableStateTestBase {
                 new AutoCancellableJob(deadline, clusterClient, env)) {
 
             final JobID jobId = autoCancellableJob.getJobId();
-            final JobGraph jobGraph = autoCancellableJob.getJobGraph();
-            jobGraph.setClasspaths(Arrays.asList(userClassLoader.getURLs()));
+            final StreamGraph streamGraph = autoCancellableJob.getStreamGraph();
+            streamGraph.setClasspaths(Arrays.asList(userClassLoader.getURLs()));
 
-            clusterClient.submitJob(jobGraph).get();
+            clusterClient.submitJob(streamGraph).get();
 
             try {
                 client.setUserClassLoader(userClassLoader);
@@ -476,20 +476,20 @@ public abstract class AbstractQueryableStateTestBase {
                         })
                 .asQueryableState("hakuna", valueState);
 
-        try (AutoCancellableJob closableJobGraph =
+        try (AutoCancellableJob closableStreamGraph =
                 new AutoCancellableJob(deadline, clusterClient, env)) {
 
-            clusterClient.submitJob(closableJobGraph.getJobGraph()).get();
+            clusterClient.submitJob(closableStreamGraph.getStreamGraph()).get();
 
             CompletableFuture<JobStatus> jobStatusFuture =
-                    clusterClient.getJobStatus(closableJobGraph.getJobId());
+                    clusterClient.getJobStatus(closableStreamGraph.getJobId());
 
             while (deadline.hasTimeLeft()
                     && !jobStatusFuture
                             .get(deadline.timeLeft().toMillis(), TimeUnit.MILLISECONDS)
                             .equals(JobStatus.RUNNING)) {
                 Thread.sleep(50);
-                jobStatusFuture = clusterClient.getJobStatus(closableJobGraph.getJobId());
+                jobStatusFuture = clusterClient.getJobStatus(closableStreamGraph.getJobId());
             }
 
             assertThat(jobStatusFuture.get(deadline.timeLeft().toMillis(), TimeUnit.MILLISECONDS))
@@ -519,7 +519,7 @@ public abstract class AbstractQueryableStateTestBase {
 
             CompletableFuture<ValueState<Tuple2<Integer, Long>>> unknownQSName =
                     client.getKvState(
-                            closableJobGraph.getJobId(),
+                            closableStreamGraph.getJobId(),
                             "wrong-hakuna", // this is the wrong name.
                             0,
                             BasicTypeInfo.INT_TYPE_INFO,
@@ -578,7 +578,7 @@ public abstract class AbstractQueryableStateTestBase {
                 new AutoCancellableJob(deadline, clusterClient, env)) {
 
             final JobID jobId = autoCancellableJob.getJobId();
-            final JobGraph jobGraph = autoCancellableJob.getJobGraph();
+            final StreamGraph streamGraph = autoCancellableJob.getStreamGraph();
 
             long expected = numElements;
 
@@ -590,7 +590,7 @@ public abstract class AbstractQueryableStateTestBase {
                     BasicTypeInfo.INT_TYPE_INFO,
                     valueState);
 
-            clusterClient.submitJob(jobGraph).get();
+            clusterClient.submitJob(streamGraph).get();
             executeValueQuery(deadline, client, jobId, "hakuna", valueState, expected);
         }
     }
@@ -639,9 +639,9 @@ public abstract class AbstractQueryableStateTestBase {
                 new AutoCancellableJob(deadline, clusterClient, env)) {
 
             final JobID jobId = autoCancellableJob.getJobId();
-            final JobGraph jobGraph = autoCancellableJob.getJobGraph();
+            final StreamGraph streamGraph = autoCancellableJob.getStreamGraph();
 
-            clusterClient.submitJob(jobGraph).get();
+            clusterClient.submitJob(streamGraph).get();
 
             // Now query
             int key = 0;
@@ -709,9 +709,9 @@ public abstract class AbstractQueryableStateTestBase {
                 new AutoCancellableJob(deadline, clusterClient, env)) {
 
             final JobID jobId = autoCancellableJob.getJobId();
-            final JobGraph jobGraph = autoCancellableJob.getJobGraph();
+            final StreamGraph streamGraph = autoCancellableJob.getStreamGraph();
 
-            clusterClient.submitJob(jobGraph).get();
+            clusterClient.submitJob(streamGraph).get();
             executeValueQuery(deadline, client, jobId, "matata", stateDesc, numElements);
         }
     }
@@ -755,9 +755,9 @@ public abstract class AbstractQueryableStateTestBase {
                 new AutoCancellableJob(deadline, clusterClient, env)) {
 
             final JobID jobId = autoCancellableJob.getJobId();
-            final JobGraph jobGraph = autoCancellableJob.getJobGraph();
+            final StreamGraph streamGraph = autoCancellableJob.getStreamGraph();
 
-            clusterClient.submitJob(jobGraph).get();
+            clusterClient.submitJob(streamGraph).get();
 
             final long expected = numElements * (numElements + 1L) / 2L;
 
@@ -855,9 +855,9 @@ public abstract class AbstractQueryableStateTestBase {
                 new AutoCancellableJob(deadline, clusterClient, env)) {
 
             final JobID jobId = autoCancellableJob.getJobId();
-            final JobGraph jobGraph = autoCancellableJob.getJobGraph();
+            final StreamGraph streamGraph = autoCancellableJob.getStreamGraph();
 
-            clusterClient.submitJob(jobGraph).get();
+            clusterClient.submitJob(streamGraph).get();
 
             final long expected = numElements * (numElements + 1L) / 2L;
 
@@ -954,9 +954,9 @@ public abstract class AbstractQueryableStateTestBase {
                 new AutoCancellableJob(deadline, clusterClient, env)) {
 
             final JobID jobId = autoCancellableJob.getJobId();
-            final JobGraph jobGraph = autoCancellableJob.getJobGraph();
+            final StreamGraph streamGraph = autoCancellableJob.getStreamGraph();
 
-            clusterClient.submitJob(jobGraph).get();
+            clusterClient.submitJob(streamGraph).get();
 
             final Map<Integer, Set<Long>> results = new HashMap<>();
 
@@ -1044,9 +1044,9 @@ public abstract class AbstractQueryableStateTestBase {
                 new AutoCancellableJob(deadline, clusterClient, env)) {
 
             final JobID jobId = autoCancellableJob.getJobId();
-            final JobGraph jobGraph = autoCancellableJob.getJobGraph();
+            final StreamGraph streamGraph = autoCancellableJob.getStreamGraph();
 
-            clusterClient.submitJob(jobGraph).get();
+            clusterClient.submitJob(streamGraph).get();
 
             for (int key = 0; key < maxParallelism; key++) {
                 boolean success = false;
@@ -1289,7 +1289,7 @@ public abstract class AbstractQueryableStateTestBase {
     private static class AutoCancellableJob implements AutoCloseable {
 
         private final ClusterClient<?> clusterClient;
-        private final JobGraph jobGraph;
+        private final StreamGraph streamGraph;
 
         private final JobID jobId;
 
@@ -1302,15 +1302,15 @@ public abstract class AbstractQueryableStateTestBase {
             Preconditions.checkNotNull(env);
 
             this.clusterClient = Preconditions.checkNotNull(clusterClient);
-            this.jobGraph = env.getStreamGraph().getJobGraph();
+            this.streamGraph = env.getStreamGraph();
 
-            this.jobId = Preconditions.checkNotNull(jobGraph.getJobID());
+            this.jobId = Preconditions.checkNotNull(streamGraph.getJobId());
 
             this.deadline = deadline;
         }
 
-        JobGraph getJobGraph() {
-            return jobGraph;
+        StreamGraph getStreamGraph() {
+            return streamGraph;
         }
 
         JobID getJobId() {

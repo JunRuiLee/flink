@@ -25,6 +25,7 @@ import org.apache.flink.kubernetes.kubeclient.FlinkKubeClient;
 import org.apache.flink.kubernetes.kubeclient.FlinkKubeClientFactory;
 import org.apache.flink.kubernetes.kubeclient.resources.KubernetesLeaderElector;
 import org.apache.flink.kubernetes.kubeclient.resources.TestingLeaderCallbackHandler;
+import org.apache.flink.runtime.jobmanager.StreamGraphStore;
 import org.apache.flink.runtime.persistence.TestingLongStateHandleHelper;
 
 import org.junit.jupiter.api.Test;
@@ -38,8 +39,8 @@ import static org.assertj.core.api.Assertions.assertThat;
  * IT Tests for the {@link KubernetesStateHandleStore}. We expect only the leader could update the
  * state store. The standby JobManagers update operations should not be issued. This is a
  * "check-leadership-and-update" behavior test. It is a very basic requirement for {@link
- * org.apache.flink.runtime.jobmanager.JobGraphStore} and {@link
- * org.apache.flink.runtime.checkpoint.CompletedCheckpointStore} implementation for Kubernetes.
+ * StreamGraphStore} and {@link org.apache.flink.runtime.checkpoint.CompletedCheckpointStore}
+ * implementation for Kubernetes.
  */
 class KubernetesStateHandleStoreITCase {
 

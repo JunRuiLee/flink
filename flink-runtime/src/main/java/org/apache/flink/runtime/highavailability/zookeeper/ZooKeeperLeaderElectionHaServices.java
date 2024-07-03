@@ -25,7 +25,7 @@ import org.apache.flink.runtime.checkpoint.CheckpointRecoveryFactory;
 import org.apache.flink.runtime.checkpoint.ZooKeeperCheckpointRecoveryFactory;
 import org.apache.flink.runtime.highavailability.AbstractHaServices;
 import org.apache.flink.runtime.highavailability.FileSystemJobResultStore;
-import org.apache.flink.runtime.jobmanager.JobGraphStore;
+import org.apache.flink.runtime.jobmanager.StreamGraphStore;
 import org.apache.flink.runtime.leaderelection.ZooKeeperLeaderElectionDriverFactory;
 import org.apache.flink.runtime.leaderretrieval.LeaderRetrievalService;
 import org.apache.flink.runtime.util.ZooKeeperUtils;
@@ -91,8 +91,8 @@ public class ZooKeeperLeaderElectionHaServices extends AbstractHaServices {
     }
 
     @Override
-    public JobGraphStore createJobGraphStore() throws Exception {
-        return ZooKeeperUtils.createJobGraphs(
+    public StreamGraphStore createStreamGraphStore() throws Exception {
+        return ZooKeeperUtils.createStreamGraphs(
                 curatorFrameworkWrapper.asCuratorFramework(), configuration);
     }
 

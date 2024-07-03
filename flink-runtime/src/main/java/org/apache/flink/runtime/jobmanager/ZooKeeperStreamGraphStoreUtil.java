@@ -18,17 +18,20 @@
 
 package org.apache.flink.runtime.jobmanager;
 
-/** Singleton {@link JobGraphStoreWatcher} empty implementation. */
-public enum NoOpJobGraphStoreWatcher implements JobGraphStoreWatcher {
+import org.apache.flink.api.common.JobID;
+import org.apache.flink.runtime.util.ZooKeeperUtils;
+
+/** Singleton {@link StreamGraphStoreUtil} implementation for ZooKeeper. */
+public enum ZooKeeperStreamGraphStoreUtil implements StreamGraphStoreUtil {
     INSTANCE;
 
     @Override
-    public void start(JobGraphStore.JobGraphListener jobGraphListener) {
-        // noop
+    public String jobIDToName(JobID jobId) {
+        return ZooKeeperUtils.getPathForJob(jobId);
     }
 
     @Override
-    public void stop() {
-        // noop
+    public JobID nameToJobID(String name) {
+        return JobID.fromHexString(name);
     }
 }

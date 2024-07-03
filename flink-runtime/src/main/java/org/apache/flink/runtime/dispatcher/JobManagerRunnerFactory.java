@@ -20,6 +20,7 @@ package org.apache.flink.runtime.dispatcher;
 
 import org.apache.flink.configuration.Configuration;
 import org.apache.flink.core.failure.FailureEnricher;
+import org.apache.flink.runtime.execution.librarycache.LibraryCacheManager;
 import org.apache.flink.runtime.heartbeat.HeartbeatServices;
 import org.apache.flink.runtime.highavailability.HighAvailabilityServices;
 import org.apache.flink.runtime.jobgraph.JobGraph;
@@ -45,6 +46,8 @@ public interface JobManagerRunnerFactory {
             JobManagerJobMetricGroupFactory jobManagerJobMetricGroupFactory,
             FatalErrorHandler fatalErrorHandler,
             Collection<FailureEnricher> failureEnrichers,
-            long initializationTimestamp)
+            long initializationTimestamp,
+            LibraryCacheManager.ClassLoaderLease classLoaderLease,
+            ClassLoader userCodeClassLoader)
             throws Exception;
 }

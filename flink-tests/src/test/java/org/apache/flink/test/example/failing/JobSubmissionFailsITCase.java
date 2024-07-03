@@ -19,16 +19,20 @@
 
 package org.apache.flink.test.example.failing;
 
+import org.apache.flink.api.common.io.InputFormat;
+import org.apache.flink.api.common.io.statistics.BaseStatistics;
 import org.apache.flink.client.program.ClusterClient;
 import org.apache.flink.configuration.Configuration;
 import org.apache.flink.configuration.MemorySize;
 import org.apache.flink.configuration.TaskManagerOptions;
+import org.apache.flink.core.io.InputSplit;
+import org.apache.flink.core.io.InputSplitAssigner;
 import org.apache.flink.runtime.blob.PermanentBlobKey;
-import org.apache.flink.runtime.jobgraph.JobGraph;
-import org.apache.flink.runtime.jobgraph.JobGraphTestUtils;
-import org.apache.flink.runtime.jobgraph.JobVertex;
 import org.apache.flink.runtime.testtasks.NoOpInvokable;
 import org.apache.flink.runtime.testutils.MiniClusterResourceConfiguration;
+import org.apache.flink.streaming.api.graph.StreamGraph;
+import org.apache.flink.streaming.api.graph.StreamNode;
+import org.apache.flink.streaming.util.StreamGraphTestUtils;
 import org.apache.flink.test.util.MiniClusterWithClientResource;
 import org.apache.flink.util.ExceptionUtils;
 import org.apache.flink.util.TestLogger;
@@ -70,21 +74,59 @@ public class JobSubmissionFailsITCase extends TestLogger {
         return config;
     }
 
-    private static JobGraph getWorkingJobGraph() {
-        return JobGraphTestUtils.singleNoOpJobGraph();
+    private static StreamGraph getWorkingStreamGraph() {
+        return StreamGraphTestUtils.singleNoOpStreamGraph();
     }
 
     // --------------------------------------------------------------------------------------------
 
     @Test
     public void testExceptionInInitializeOnMaster() throws Exception {
-        final JobVertex failingJobVertex = new FailingJobVertex("Failing job vertex");
-        failingJobVertex.setInvokableClass(NoOpInvokable.class);
-        failingJobVertex.setParallelism(1);
+        final StreamNode failingStreamNode = new StreamNode(0, "node", NoOpInvokable.class);
+        failingStreamNode.setInputFormat(
+                new InputFormat<Object, InputSplit>() {
+                    @Override
+                    public void configure(Configuration parameters) {
+                        throw new RuntimeException("Test exception.");
+                    }
 
-        final JobGraph failingJobGraph = JobGraphTestUtils.streamingJobGraph(failingJobVertex);
+                    @Override
+                    public BaseStatistics getStatistics(BaseStatistics cachedStatistics)
+                            throws IOException {
+                        return null;
+                    }
+
+                    @Override
+                    public InputSplit[] createInputSplits(int minNumSplits) throws IOException {
+                        return new InputSplit[0];
+                    }
+
+                    @Override
+                    public InputSplitAssigner getInputSplitAssigner(InputSplit[] inputSplits) {
+                        return null;
+                    }
+
+                    @Override
+                    public void open(InputSplit split) throws IOException {}
+
+                    @Override
+                    public boolean reachedEnd() throws IOException {
+                        return false;
+                    }
+
+                    @Override
+                    public Object nextRecord(Object reuse) throws IOException {
+                        return null;
+                    }
+
+                    @Override
+                    public void close() throws IOException {}
+                });
+
+        final StreamGraph failingStreamGraph =
+                StreamGraphTestUtils.buildStreamGraph(failingStreamNode);
         runJobSubmissionTest(
-                failingJobGraph,
+                failingStreamGraph,
                 e ->
                         ExceptionUtils.findThrowable(
                                         e,
@@ -94,10 +136,10 @@ public class JobSubmissionFailsITCase extends TestLogger {
     }
 
     @Test
-    public void testSubmitEmptyJobGraph() throws Exception {
-        final JobGraph jobGraph = JobGraphTestUtils.emptyJobGraph();
+    public void testSubmitEmptyStreamGraph() throws Exception {
+        final StreamGraph streamGraph = StreamGraphTestUtils.emptyStreamGraph();
         runJobSubmissionTest(
-                jobGraph,
+                streamGraph,
                 e ->
                         ExceptionUtils.findThrowable(
                                         e,
@@ -109,17 +151,17 @@ public class JobSubmissionFailsITCase extends TestLogger {
 
     @Test
     public void testMissingJarBlob() throws Exception {
-        final JobGraph jobGraph = getJobGraphWithMissingBlobKey();
+        final StreamGraph streamGraph = getStreamGraphWithMissingBlobKey();
         runJobSubmissionTest(
-                jobGraph, e -> ExceptionUtils.findThrowable(e, IOException.class).isPresent());
+                streamGraph, e -> ExceptionUtils.findThrowable(e, IOException.class).isPresent());
     }
 
-    private void runJobSubmissionTest(JobGraph jobGraph, Predicate<Exception> failurePredicate)
-            throws Exception {
+    private void runJobSubmissionTest(
+            StreamGraph streamGraph, Predicate<Exception> failurePredicate) throws Exception {
         ClusterClient<?> client = MINI_CLUSTER_RESOURCE.getClusterClient();
 
         try {
-            submitJobAndWaitForResult(client, jobGraph, getClass().getClassLoader());
+            submitJobAndWaitForResult(client, streamGraph, getClass().getClassLoader());
             fail("Job submission should have thrown an exception.");
         } catch (Exception e) {
             if (!failurePredicate.test(e)) {
@@ -127,28 +169,13 @@ public class JobSubmissionFailsITCase extends TestLogger {
             }
         }
 
-        submitJobAndWaitForResult(client, getWorkingJobGraph(), getClass().getClassLoader());
+        submitJobAndWaitForResult(client, getWorkingStreamGraph(), getClass().getClassLoader());
     }
 
     @Nonnull
-    private static JobGraph getJobGraphWithMissingBlobKey() {
-        final JobGraph jobGraph = getWorkingJobGraph();
-        jobGraph.addUserJarBlobKey(new PermanentBlobKey());
-        return jobGraph;
-    }
-
-    // --------------------------------------------------------------------------------------------
-
-    private static class FailingJobVertex extends JobVertex {
-        private static final long serialVersionUID = -6365291240199412135L;
-
-        public FailingJobVertex(final String msg) {
-            super(msg);
-        }
-
-        @Override
-        public void initializeOnMaster(InitializeOnMasterContext context) throws Exception {
-            throw new Exception("Test exception.");
-        }
+    private static StreamGraph getStreamGraphWithMissingBlobKey() {
+        final StreamGraph streamGraph = getWorkingStreamGraph();
+        streamGraph.addUserJarBlobKey(new PermanentBlobKey());
+        return streamGraph;
     }
 }

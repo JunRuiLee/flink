@@ -21,6 +21,7 @@ package org.apache.flink.runtime.jobmanager;
 import org.apache.flink.api.common.JobID;
 import org.apache.flink.runtime.jobgraph.JobGraph;
 import org.apache.flink.runtime.jobgraph.JobResourceRequirements;
+import org.apache.flink.streaming.api.graph.StreamGraph;
 
 import java.util.Collection;
 import java.util.Collections;
@@ -31,10 +32,10 @@ import java.util.Collections;
  * <p>All operations are NoOps, because {@link JobGraph} instances cannot be recovered in this
  * recovery mode.
  */
-public class StandaloneJobGraphStore implements JobGraphStore {
+public class StandaloneStreamGraphStore implements StreamGraphStore {
 
     @Override
-    public void start(JobGraphListener jobGraphListener) throws Exception {
+    public void start(StreamGraphListener streamGraphListener) throws Exception {
         // Nothing to do
     }
 
@@ -44,7 +45,7 @@ public class StandaloneJobGraphStore implements JobGraphStore {
     }
 
     @Override
-    public void putJobGraph(JobGraph jobGraph) {
+    public void putStreamGraph(StreamGraph streamGraph) {
         // Nothing to do
     }
 
@@ -60,7 +61,7 @@ public class StandaloneJobGraphStore implements JobGraphStore {
     }
 
     @Override
-    public JobGraph recoverJobGraph(JobID jobId) {
+    public StreamGraph recoverStreamGraph(JobID jobId) {
         return null;
     }
 }

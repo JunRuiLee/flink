@@ -34,7 +34,6 @@ import org.apache.flink.configuration.HighAvailabilityOptions;
 import org.apache.flink.core.execution.SavepointFormatType;
 import org.apache.flink.kubernetes.KubernetesExtension;
 import org.apache.flink.kubernetes.configuration.KubernetesConfigOptions;
-import org.apache.flink.runtime.jobgraph.JobGraph;
 import org.apache.flink.runtime.jobgraph.SavepointRestoreSettings;
 import org.apache.flink.runtime.jobmanager.HighAvailabilityMode;
 import org.apache.flink.runtime.state.FunctionInitializationContext;
@@ -47,6 +46,7 @@ import org.apache.flink.streaming.api.checkpoint.CheckpointedFunction;
 import org.apache.flink.streaming.api.environment.StreamExecutionEnvironment;
 import org.apache.flink.streaming.api.functions.sink.v2.DiscardingSink;
 import org.apache.flink.streaming.api.functions.source.RichParallelSourceFunction;
+import org.apache.flink.streaming.api.graph.StreamGraph;
 import org.apache.flink.test.junit5.InjectClusterClient;
 import org.apache.flink.test.junit5.MiniClusterExtension;
 import org.apache.flink.testutils.TestingUtils;
@@ -109,33 +109,37 @@ class KubernetesHighAvailabilityRecoverFromSavepointITCase {
     @Test
     void testRecoverFromSavepoint() throws Exception {
         Path stateBackend1 = Files.createDirectory(temporaryPath.resolve("stateBackend1"));
-        final JobGraph jobGraph = createJobGraph(stateBackend1.toFile());
+        final StreamGraph streamGraph = createStreamGraph(stateBackend1.toFile());
         clusterClient
-                .submitJob(jobGraph)
+                .submitJob(streamGraph)
                 .get(TestingUtils.infiniteTime().toMilliseconds(), TimeUnit.MILLISECONDS);
 
         // Wait until all tasks running and getting a successful savepoint
         CommonTestUtils.waitUntilCondition(
-                () -> triggerSavepoint(clusterClient, jobGraph.getJobID(), savepointPath) != null,
+                () ->
+                        triggerSavepoint(clusterClient, streamGraph.getJobId(), savepointPath)
+                                != null,
                 1000);
 
         // Trigger savepoint 2
         final String savepoint2Path =
-                triggerSavepoint(clusterClient, jobGraph.getJobID(), savepointPath);
+                triggerSavepoint(clusterClient, streamGraph.getJobId(), savepointPath);
 
         // Cancel the old job
-        clusterClient.cancel(jobGraph.getJobID());
+        clusterClient.cancel(streamGraph.getJobId());
         CommonTestUtils.waitUntilCondition(
-                () -> clusterClient.getJobStatus(jobGraph.getJobID()).get() == JobStatus.CANCELED,
+                () ->
+                        clusterClient.getJobStatus(streamGraph.getJobId()).get()
+                                == JobStatus.CANCELED,
                 1000);
 
         // Start a new job with savepoint 2
         Path stateBackend2 = Files.createDirectory(temporaryPath.resolve("stateBackend2"));
-        final JobGraph jobGraphWithSavepoint = createJobGraph(stateBackend2.toFile());
-        final JobID jobId = jobGraphWithSavepoint.getJobID();
-        jobGraphWithSavepoint.setSavepointRestoreSettings(
+        final StreamGraph streamGraphWithSavepoint = createStreamGraph(stateBackend2.toFile());
+        final JobID jobId = streamGraphWithSavepoint.getJobId();
+        streamGraphWithSavepoint.setSavepointRestoreSettings(
                 SavepointRestoreSettings.forPath(savepoint2Path));
-        clusterClient.submitJob(jobGraphWithSavepoint).get(TIMEOUT, TimeUnit.MILLISECONDS);
+        clusterClient.submitJob(streamGraphWithSavepoint).get(TIMEOUT, TimeUnit.MILLISECONDS);
 
         assertThat(clusterClient.requestJobResult(jobId).join().isSuccess()).isTrue();
     }
@@ -166,7 +170,7 @@ class KubernetesHighAvailabilityRecoverFromSavepointITCase {
         return null;
     }
 
-    private JobGraph createJobGraph(File stateBackendFolder) throws Exception {
+    private StreamGraph createStreamGraph(File stateBackendFolder) throws Exception {
         final StreamExecutionEnvironment sEnv =
                 StreamExecutionEnvironment.getExecutionEnvironment();
         final StateBackend stateBackend = new FsStateBackend(stateBackendFolder.toURI(), 1);
@@ -203,7 +207,7 @@ class KubernetesHighAvailabilityRecoverFromSavepointITCase {
                 .uid(FLAT_MAP_UID)
                 .sinkTo(new DiscardingSink<>());
 
-        return sEnv.getStreamGraph().getJobGraph();
+        return sEnv.getStreamGraph();
     }
 
     private static final class InfiniteSourceFunction extends RichParallelSourceFunction<Integer>

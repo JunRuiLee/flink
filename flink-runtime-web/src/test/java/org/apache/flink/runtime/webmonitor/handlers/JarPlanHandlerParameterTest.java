@@ -28,6 +28,7 @@ import org.apache.flink.runtime.jobgraph.jsonplan.JsonPlanGenerator;
 import org.apache.flink.runtime.rest.handler.HandlerRequest;
 import org.apache.flink.runtime.rest.messages.JobPlanInfo;
 import org.apache.flink.runtime.webmonitor.testutils.ParameterProgram;
+import org.apache.flink.streaming.api.graph.StreamGraph;
 import org.apache.flink.testutils.TestingUtils;
 import org.apache.flink.testutils.executor.TestExecutorExtension;
 
@@ -41,6 +42,7 @@ import java.util.Arrays;
 import java.util.Collections;
 import java.util.List;
 import java.util.concurrent.ScheduledExecutorService;
+import java.util.concurrent.atomic.AtomicReference;
 import java.util.stream.Collectors;
 
 import static org.assertj.core.api.Assertions.assertThat;
@@ -48,6 +50,8 @@ import static org.assertj.core.api.Assertions.assertThat;
 /** Tests for the parameter handling of the {@link JarPlanHandler}. */
 class JarPlanHandlerParameterTest
         extends JarHandlerParameterTest<JarPlanRequestBody, JarPlanMessageParameters> {
+    private static final AtomicReference<JobGraph> LAST_SUBMITTED_JOB_GRAPH_REFERENCE =
+            new AtomicReference<>();
     private static JarPlanHandler handler;
     private static final Configuration FLINK_CONFIGURATION =
             new Configuration()
@@ -151,8 +155,8 @@ class JarPlanHandlerParameterTest
     }
 
     @Override
-    void validateGraphWithFlinkConfig(JobGraph jobGraph) {
-        final ExecutionConfig executionConfig = getExecutionConfig(jobGraph);
+    void validateGraphWithFlinkConfig(StreamGraph streamGraph) {
+        final ExecutionConfig executionConfig = getExecutionConfig(streamGraph);
         assertThat(executionConfig.getParallelism())
                 .isEqualTo(FLINK_CONFIGURATION.get(CoreOptions.DEFAULT_PARALLELISM));
         assertThat(executionConfig.getTaskCancellationTimeout())

@@ -24,7 +24,7 @@ import org.apache.flink.runtime.concurrent.ComponentMainThreadExecutor;
 import org.apache.flink.runtime.dispatcher.DispatcherServices;
 import org.apache.flink.runtime.dispatcher.JobManagerRunnerRegistry;
 import org.apache.flink.runtime.highavailability.HighAvailabilityServices;
-import org.apache.flink.runtime.jobmanager.JobGraphWriter;
+import org.apache.flink.runtime.jobmanager.StreamGraphWriter;
 import org.apache.flink.runtime.metrics.groups.JobManagerMetricGroup;
 import org.apache.flink.util.Preconditions;
 import org.apache.flink.util.concurrent.RetryStrategy;
@@ -44,7 +44,7 @@ import java.util.concurrent.Executor;
 public class DispatcherResourceCleanerFactory implements ResourceCleanerFactory {
 
     private static final String JOB_MANAGER_RUNNER_REGISTRY_LABEL = "JobManagerRunnerRegistry";
-    private static final String JOB_GRAPH_STORE_LABEL = "JobGraphStore";
+    private static final String STREAM_GRAPH_STORE_LABEL = "StreamGraphStore";
     private static final String BLOB_SERVER_LABEL = "BlobServer";
     private static final String HA_SERVICES_LABEL = "HighAvailabilityServices";
     private static final String JOB_MANAGER_METRIC_GROUP_LABEL = "JobManagerMetricGroup";
@@ -53,7 +53,7 @@ public class DispatcherResourceCleanerFactory implements ResourceCleanerFactory 
     private final RetryStrategy retryStrategy;
 
     private final JobManagerRunnerRegistry jobManagerRunnerRegistry;
-    private final JobGraphWriter jobGraphWriter;
+    private final StreamGraphWriter streamGraphWriter;
     private final BlobServer blobServer;
     private final HighAvailabilityServices highAvailabilityServices;
     private final JobManagerMetricGroup jobManagerMetricGroup;
@@ -66,7 +66,7 @@ public class DispatcherResourceCleanerFactory implements ResourceCleanerFactory 
                 CleanupRetryStrategyFactory.INSTANCE.createRetryStrategy(
                         dispatcherServices.getConfiguration()),
                 jobManagerRunnerRegistry,
-                dispatcherServices.getJobGraphWriter(),
+                dispatcherServices.getStreamGraphWriter(),
                 dispatcherServices.getBlobServer(),
                 dispatcherServices.getHighAvailabilityServices(),
                 dispatcherServices.getJobManagerMetricGroup());
@@ -77,14 +77,14 @@ public class DispatcherResourceCleanerFactory implements ResourceCleanerFactory 
             Executor cleanupExecutor,
             RetryStrategy retryStrategy,
             JobManagerRunnerRegistry jobManagerRunnerRegistry,
-            JobGraphWriter jobGraphWriter,
+            StreamGraphWriter streamGraphWriter,
             BlobServer blobServer,
             HighAvailabilityServices highAvailabilityServices,
             JobManagerMetricGroup jobManagerMetricGroup) {
         this.cleanupExecutor = Preconditions.checkNotNull(cleanupExecutor);
         this.retryStrategy = retryStrategy;
         this.jobManagerRunnerRegistry = Preconditions.checkNotNull(jobManagerRunnerRegistry);
-        this.jobGraphWriter = Preconditions.checkNotNull(jobGraphWriter);
+        this.streamGraphWriter = Preconditions.checkNotNull(streamGraphWriter);
         this.blobServer = Preconditions.checkNotNull(blobServer);
         this.highAvailabilityServices = Preconditions.checkNotNull(highAvailabilityServices);
         this.jobManagerMetricGroup = Preconditions.checkNotNull(jobManagerMetricGroup);
@@ -96,7 +96,7 @@ public class DispatcherResourceCleanerFactory implements ResourceCleanerFactory 
         return DefaultResourceCleaner.forLocallyCleanableResources(
                         mainThreadExecutor, cleanupExecutor, retryStrategy)
                 .withPrioritizedCleanup(JOB_MANAGER_RUNNER_REGISTRY_LABEL, jobManagerRunnerRegistry)
-                .withRegularCleanup(JOB_GRAPH_STORE_LABEL, jobGraphWriter)
+                .withRegularCleanup(STREAM_GRAPH_STORE_LABEL, streamGraphWriter)
                 .withRegularCleanup(BLOB_SERVER_LABEL, blobServer)
                 .withRegularCleanup(JOB_MANAGER_METRIC_GROUP_LABEL, jobManagerMetricGroup)
                 .build();
@@ -110,7 +110,7 @@ public class DispatcherResourceCleanerFactory implements ResourceCleanerFactory 
                 .withPrioritizedCleanup(
                         JOB_MANAGER_RUNNER_REGISTRY_LABEL,
                         ofLocalResource(jobManagerRunnerRegistry))
-                .withRegularCleanup(JOB_GRAPH_STORE_LABEL, jobGraphWriter)
+                .withRegularCleanup(STREAM_GRAPH_STORE_LABEL, streamGraphWriter)
                 .withRegularCleanup(BLOB_SERVER_LABEL, blobServer)
                 .withRegularCleanup(HA_SERVICES_LABEL, highAvailabilityServices)
                 .withRegularCleanup(

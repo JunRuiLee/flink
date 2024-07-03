@@ -32,8 +32,6 @@ import org.apache.flink.runtime.heartbeat.HeartbeatServices;
 import org.apache.flink.runtime.heartbeat.HeartbeatServicesImpl;
 import org.apache.flink.runtime.highavailability.TestingHighAvailabilityServices;
 import org.apache.flink.runtime.highavailability.TestingHighAvailabilityServicesBuilder;
-import org.apache.flink.runtime.jobgraph.JobGraph;
-import org.apache.flink.runtime.jobgraph.JobGraphTestUtils;
 import org.apache.flink.runtime.jobmaster.JobResult;
 import org.apache.flink.runtime.jobmaster.TestingJobManagerRunner;
 import org.apache.flink.runtime.metrics.groups.UnregisteredMetricGroups;
@@ -45,6 +43,8 @@ import org.apache.flink.runtime.scheduler.ExecutionGraphInfo;
 import org.apache.flink.runtime.testutils.CommonTestUtils;
 import org.apache.flink.runtime.testutils.TestingJobResultStore;
 import org.apache.flink.runtime.util.TestingFatalErrorHandlerResource;
+import org.apache.flink.streaming.api.graph.StreamGraph;
+import org.apache.flink.streaming.util.StreamGraphTestUtils;
 import org.apache.flink.util.TestLogger;
 import org.apache.flink.util.concurrent.FutureUtils;
 
@@ -81,7 +81,7 @@ public class MiniDispatcherTest extends TestLogger {
     public final TestingFatalErrorHandlerResource testingFatalErrorHandlerResource =
             new TestingFatalErrorHandlerResource();
 
-    private static JobGraph jobGraph;
+    private static StreamGraph streamGraph;
 
     private static ExecutionGraphInfo executionGraphInfo;
 
@@ -109,12 +109,12 @@ public class MiniDispatcherTest extends TestLogger {
 
     @BeforeClass
     public static void setupClass() throws IOException {
-        jobGraph = JobGraphTestUtils.singleNoOpJobGraph();
+        streamGraph = StreamGraphTestUtils.singleNoOpStreamGraph();
 
         executionGraphInfo =
                 new ExecutionGraphInfo(
                         new ArchivedExecutionGraphBuilder()
-                                .setJobID(jobGraph.getJobID())
+                                .setJobID(streamGraph.getJobId())
                                 .setState(JobStatus.FINISHED)
                                 .build());
 
@@ -161,7 +161,7 @@ public class MiniDispatcherTest extends TestLogger {
             final TestingJobManagerRunner testingJobManagerRunner =
                     testingJobManagerRunnerFactory.takeCreatedJobManagerRunner();
 
-            assertThat(testingJobManagerRunner.getJobID(), is(jobGraph.getJobID()));
+            assertThat(testingJobManagerRunner.getJobID(), is(streamGraph.getJobId()));
         } finally {
             RpcUtils.terminateRpcEndpoint(miniDispatcher);
         }
@@ -247,7 +247,7 @@ public class MiniDispatcherTest extends TestLogger {
             testingJobManagerRunner.completeResultFuture(
                     new ExecutionGraphInfo(
                             new ArchivedExecutionGraphBuilder()
-                                    .setJobID(jobGraph.getJobID())
+                                    .setJobID(streamGraph.getJobId())
                                     .setState(JobStatus.SUSPENDED)
                                     .build()));
 
@@ -283,11 +283,11 @@ public class MiniDispatcherTest extends TestLogger {
                     miniDispatcher.getSelfGateway(DispatcherGateway.class);
 
             final CompletableFuture<JobResult> jobResultFuture =
-                    dispatcherGateway.requestJobResult(jobGraph.getJobID(), timeout);
+                    dispatcherGateway.requestJobResult(streamGraph.getJobId(), timeout);
 
             final JobResult jobResult = jobResultFuture.get();
 
-            assertThat(jobResult.getJobId(), is(jobGraph.getJobID()));
+            assertThat(jobResult.getJobId(), is(streamGraph.getJobId()));
         } finally {
             RpcUtils.terminateRpcEndpoint(miniDispatcher);
         }
@@ -309,11 +309,11 @@ public class MiniDispatcherTest extends TestLogger {
             final DispatcherGateway dispatcherGateway =
                     miniDispatcher.getSelfGateway(DispatcherGateway.class);
 
-            dispatcherGateway.cancelJob(jobGraph.getJobID(), Time.seconds(10L));
+            dispatcherGateway.cancelJob(streamGraph.getJobId(), Time.seconds(10L));
             testingJobManagerRunner.completeResultFuture(
                     new ExecutionGraphInfo(
                             new ArchivedExecutionGraphBuilder()
-                                    .setJobID(jobGraph.getJobID())
+                                    .setJobID(streamGraph.getJobId())
                                     .setState(JobStatus.CANCELED)
                                     .build()));
 
@@ -330,12 +330,12 @@ public class MiniDispatcherTest extends TestLogger {
 
     private MiniDispatcher createMiniDispatcher(ClusterEntrypoint.ExecutionMode executionMode)
             throws Exception {
-        return createMiniDispatcher(executionMode, jobGraph, null);
+        return createMiniDispatcher(executionMode, streamGraph, null);
     }
 
     private MiniDispatcher createMiniDispatcher(
             ClusterEntrypoint.ExecutionMode executionMode,
-            @Nullable JobGraph recoveredJobGraph,
+            @Nullable StreamGraph streamGraph,
             @Nullable JobResult recoveredDirtyJob)
             throws Exception {
         final JobManagerRunnerRegistry jobManagerRunnerRegistry =
@@ -355,13 +355,13 @@ public class MiniDispatcherTest extends TestLogger {
                         null,
                         new DispatcherOperationCaches(),
                         UnregisteredMetricGroups.createUnregisteredJobManagerMetricGroup(),
-                        highAvailabilityServices.getJobGraphStore(),
+                        highAvailabilityServices.getStreamGraphStore(),
                         highAvailabilityServices.getJobResultStore(),
                         testingJobManagerRunnerFactory,
                         testingCleanupRunnerFactory,
                         ForkJoinPool.commonPool(),
                         Collections.emptySet()),
-                recoveredJobGraph,
+                streamGraph,
                 recoveredDirtyJob,
                 (dispatcher, scheduledExecutor, errorHandler) -> new NoOpDispatcherBootstrap(),
                 jobManagerRunnerRegistry,

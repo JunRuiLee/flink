@@ -24,8 +24,8 @@ import org.apache.flink.runtime.dispatcher.TestingPartialDispatcherServices;
 import org.apache.flink.runtime.highavailability.TestingHighAvailabilityServicesBuilder;
 import org.apache.flink.runtime.jobgraph.JobGraph;
 import org.apache.flink.runtime.jobgraph.JobGraphTestUtils;
-import org.apache.flink.runtime.jobmanager.JobGraphStore;
-import org.apache.flink.runtime.jobmanager.StandaloneJobGraphStore;
+import org.apache.flink.runtime.jobmanager.StandaloneStreamGraphStore;
+import org.apache.flink.runtime.jobmanager.StreamGraphStore;
 import org.apache.flink.runtime.jobmanager.TestingJobPersistenceComponentFactory;
 import org.apache.flink.runtime.jobmaster.JobResult;
 import org.apache.flink.runtime.rest.util.NoOpFatalErrorHandler;
@@ -117,15 +117,15 @@ class JobDispatcherLeaderProcessFactoryFactoryTest {
                         .withGetDirtyResultsSupplier(
                                 () -> CollectionUtil.ofNullable(dirtyJobResult))
                         .build();
-        final JobGraphStore jobGraphStore = new StandaloneJobGraphStore();
+        final StreamGraphStore streamGraphStore = new StandaloneStreamGraphStore();
         return testInstance.createFactory(
-                new TestingJobPersistenceComponentFactory(jobGraphStore, jobResultStore),
+                new TestingJobPersistenceComponentFactory(streamGraphStore, jobResultStore),
                 Executors.directExecutor(),
                 new TestingRpcService(),
                 TestingPartialDispatcherServices.builder()
                         .withHighAvailabilityServices(
                                 new TestingHighAvailabilityServicesBuilder()
-                                        .setJobGraphStore(jobGraphStore)
+                                        .setStreamGraphStore(streamGraphStore)
                                         .setJobResultStore(jobResultStore)
                                         .build())
                         .build(storageDir.toFile(), new Configuration()),

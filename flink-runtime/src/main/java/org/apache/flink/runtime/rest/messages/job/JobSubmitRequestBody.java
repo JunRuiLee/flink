@@ -38,13 +38,13 @@ import java.util.Objects;
  */
 public final class JobSubmitRequestBody implements RequestBody {
 
-    public static final String FIELD_NAME_JOB_GRAPH = "jobGraphFileName";
+    public static final String FIELD_NAME_STREAM_GRAPH = "streamGraphFileName";
     private static final String FIELD_NAME_JOB_JARS = "jobJarFileNames";
     private static final String FIELD_NAME_JOB_ARTIFACTS = "jobArtifactFileNames";
 
-    @JsonProperty(FIELD_NAME_JOB_GRAPH)
+    @JsonProperty(FIELD_NAME_STREAM_GRAPH)
     @Nullable
-    public final String jobGraphFileName;
+    public final String streamGraphFileName;
 
     @JsonProperty(FIELD_NAME_JOB_JARS)
     @Nonnull
@@ -56,11 +56,11 @@ public final class JobSubmitRequestBody implements RequestBody {
 
     @JsonCreator
     public JobSubmitRequestBody(
-            @Nullable @JsonProperty(FIELD_NAME_JOB_GRAPH) String jobGraphFileName,
+            @Nullable @JsonProperty(FIELD_NAME_STREAM_GRAPH) String streamGraphFileName,
             @Nullable @JsonProperty(FIELD_NAME_JOB_JARS) Collection<String> jarFileNames,
             @Nullable @JsonProperty(FIELD_NAME_JOB_ARTIFACTS)
                     Collection<DistributedCacheFile> artifactFileNames) {
-        this.jobGraphFileName = jobGraphFileName;
+        this.streamGraphFileName = streamGraphFileName;
         if (jarFileNames == null) {
             this.jarFileNames = Collections.emptyList();
         } else {
@@ -82,21 +82,21 @@ public final class JobSubmitRequestBody implements RequestBody {
             return false;
         }
         JobSubmitRequestBody that = (JobSubmitRequestBody) o;
-        return Objects.equals(jobGraphFileName, that.jobGraphFileName)
+        return Objects.equals(streamGraphFileName, that.streamGraphFileName)
                 && Objects.equals(jarFileNames, that.jarFileNames)
                 && Objects.equals(artifactFileNames, that.artifactFileNames);
     }
 
     @Override
     public int hashCode() {
-        return Objects.hash(jobGraphFileName, jarFileNames, artifactFileNames);
+        return Objects.hash(streamGraphFileName, jarFileNames, artifactFileNames);
     }
 
     @Override
     public String toString() {
         return "JobSubmitRequestBody{"
-                + "jobGraphFileName='"
-                + jobGraphFileName
+                + "streamGraphFileName='"
+                + streamGraphFileName
                 + '\''
                 + ", jarFileNames="
                 + jarFileNames

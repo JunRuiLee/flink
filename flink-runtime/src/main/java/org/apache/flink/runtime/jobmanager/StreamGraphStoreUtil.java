@@ -20,30 +20,25 @@ package org.apache.flink.runtime.jobmanager;
 
 import org.apache.flink.api.common.JobID;
 
-import static org.apache.flink.util.Preconditions.checkNotNull;
+/**
+ * StreamGraphStore utility interfaces. For example, convert a name(e.g. ZooKeeper path, key name in
+ * Kubernetes ConfigMap) to {@link JobID}, or vice versa.
+ */
+public interface StreamGraphStoreUtil {
 
-/** {@link JobGraphStoreWatcher} implementation for testing purposes. */
-public class TestingJobGraphStoreWatcher implements JobGraphStoreWatcher {
+    /**
+     * Get the name in external storage from job id.
+     *
+     * @param jobId job id
+     * @return Key name in ConfigMap or child path name in ZooKeeper
+     */
+    String jobIDToName(JobID jobId);
 
-    private JobGraphStore.JobGraphListener jobGraphListener;
-
-    @Override
-    public void start(JobGraphStore.JobGraphListener jobGraphListener) {
-        this.jobGraphListener = jobGraphListener;
-    }
-
-    @Override
-    public void stop() {
-        // noop
-    }
-
-    public void addJobGraph(JobID jobID) {
-        checkNotNull(jobGraphListener, "TestingJobGraphStoreWatcher is not started.");
-        jobGraphListener.onAddedJobGraph(jobID);
-    }
-
-    public void removeJobGraph(JobID jobID) {
-        checkNotNull(jobGraphListener, "TestingJobGraphStoreWatcher is not started.");
-        jobGraphListener.onRemovedJobGraph(jobID);
-    }
+    /**
+     * Get the job id from name.
+     *
+     * @param name Key name in ConfigMap or child path name in ZooKeeper
+     * @return parsed job id.
+     */
+    JobID nameToJobID(String name);
 }

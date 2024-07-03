@@ -7,7 +7,7 @@
  * "License"); you may not use this file except in compliance
  * with the License.  You may obtain a copy of the License at
  *
- *    http://www.apache.org/licenses/LICENSE-2.0
+ *     http://www.apache.org/licenses/LICENSE-2.0
  *
  * Unless required by applicable law or agreed to in writing, software
  * distributed under the License is distributed on an "AS IS" BASIS,
@@ -16,25 +16,35 @@
  * limitations under the License.
  */
 
-package org.apache.flink.runtime.dispatcher;
+package org.apache.flink.runtime.jobmanager;
 
 import org.apache.flink.api.common.JobID;
-import org.apache.flink.runtime.jobgraph.JobGraph;
-import org.apache.flink.runtime.jobgraph.JobResourceRequirements;
-import org.apache.flink.runtime.jobmanager.JobGraphWriter;
 
-/** Testing implementation of {@link JobGraphWriter} which does nothing. */
-public enum NoOpJobGraphWriter implements JobGraphWriter {
-    INSTANCE;
+import java.util.ArrayList;
+import java.util.List;
+
+/** {@link StreamGraphStore.StreamGraphListener} implementation for testing purposes. */
+public class TestingStreamGraphListener implements StreamGraphStore.StreamGraphListener {
+
+    private final List<JobID> addedStreamGraphs = new ArrayList<>();
+
+    private final List<JobID> removedStreamGraphs = new ArrayList<>();
 
     @Override
-    public void putJobGraph(JobGraph jobGraph) {
-        // No-op.
+    public void onAddedStreamGraph(JobID jobId) {
+        addedStreamGraphs.add(jobId);
     }
 
     @Override
-    public void putJobResourceRequirements(
-            JobID jobId, JobResourceRequirements jobResourceRequirements) {
-        // No-op.
+    public void onRemovedStreamGraph(JobID jobId) {
+        removedStreamGraphs.add(jobId);
+    }
+
+    public List<JobID> getAddedStreamGraphs() {
+        return addedStreamGraphs;
+    }
+
+    public List<JobID> getRemovedStreamGraphs() {
+        return removedStreamGraphs;
     }
 }

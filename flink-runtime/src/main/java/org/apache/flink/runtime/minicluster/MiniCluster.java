@@ -100,6 +100,7 @@ import org.apache.flink.runtime.webmonitor.retriever.LeaderRetriever;
 import org.apache.flink.runtime.webmonitor.retriever.MetricQueryServiceRetriever;
 import org.apache.flink.runtime.webmonitor.retriever.impl.RpcGatewayRetriever;
 import org.apache.flink.runtime.webmonitor.retriever.impl.RpcMetricQueryServiceRetriever;
+import org.apache.flink.streaming.api.graph.StreamGraph;
 import org.apache.flink.util.AbstractID;
 import org.apache.flink.util.AutoCloseableAsync;
 import org.apache.flink.util.ExceptionUtils;
@@ -1027,6 +1028,27 @@ public class MiniCluster implements AutoCloseableAsync {
     }
 
     /**
+     * This method executes a job in detached mode. The method returns immediately after the job has
+     * been added to the
+     *
+     * @param job The Flink job to execute
+     * @throws JobExecutionException Thrown if anything went amiss during initial job launch, or if
+     *     the job terminally failed.
+     */
+    public void runDetached(StreamGraph job) throws JobExecutionException, InterruptedException {
+        checkNotNull(job, "job is null");
+
+        final CompletableFuture<JobSubmissionResult> submissionFuture = submitJob(job);
+
+        try {
+            submissionFuture.get();
+        } catch (ExecutionException e) {
+            throw new JobExecutionException(
+                    job.getJobId(), ExceptionUtils.stripExecutionException(e));
+        }
+    }
+
+    /**
      * This method runs a job in blocking mode. The method returns only after the job completed
      * successfully, or after it failed terminally.
      *
@@ -1060,6 +1082,43 @@ public class MiniCluster implements AutoCloseableAsync {
             return jobResult.toJobExecutionResult(Thread.currentThread().getContextClassLoader());
         } catch (IOException | ClassNotFoundException e) {
             throw new JobExecutionException(job.getJobID(), e);
+        }
+    }
+
+    /**
+     * This method runs a job in blocking mode. The method returns only after the job completed
+     * successfully, or after it failed terminally.
+     *
+     * @param job The Flink job to execute
+     * @return The result of the job execution
+     * @throws JobExecutionException Thrown if anything went amiss during initial job launch, or if
+     *     the job terminally failed.
+     */
+    public JobExecutionResult executeJobBlocking(StreamGraph job)
+            throws JobExecutionException, InterruptedException {
+        checkNotNull(job, "job is null");
+
+        final CompletableFuture<JobSubmissionResult> submissionFuture = submitJob(job);
+
+        final CompletableFuture<JobResult> jobResultFuture =
+                submissionFuture.thenCompose(
+                        (JobSubmissionResult ignored) -> requestJobResult(job.getJobId()));
+
+        final JobResult jobResult;
+
+        try {
+            jobResult = jobResultFuture.get();
+        } catch (ExecutionException e) {
+            throw new JobExecutionException(
+                    job.getJobId(),
+                    "Could not retrieve JobResult.",
+                    ExceptionUtils.stripExecutionException(e));
+        }
+
+        try {
+            return jobResult.toJobExecutionResult(Thread.currentThread().getContextClassLoader());
+        } catch (IOException | ClassNotFoundException e) {
+            throw new JobExecutionException(job.getJobId(), e);
         }
     }
 
@@ -1101,6 +1160,44 @@ public class MiniCluster implements AutoCloseableAsync {
         }
     }
 
+    public CompletableFuture<JobSubmissionResult> submitJob(StreamGraph streamGraph) {
+        // When MiniCluster uses the local RPC, the provided StreamGraph is passed directly to the
+        // Dispatcher. This means that any mutations to the SG can affect the Dispatcher behaviour,
+        // so we rather clone it to guard against this.
+        final StreamGraph clonedStreamGraph = InstantiationUtil.cloneUnchecked(streamGraph);
+        checkRestoreModeForChangelogStateBackend(clonedStreamGraph);
+        final CompletableFuture<DispatcherGateway> dispatcherGatewayFuture =
+                getDispatcherGatewayFuture();
+        final CompletableFuture<InetSocketAddress> blobServerAddressFuture =
+                createBlobServerAddress(dispatcherGatewayFuture);
+        final CompletableFuture<Void> jarUploadFuture =
+                uploadAndSetJobFiles(blobServerAddressFuture, clonedStreamGraph);
+        final CompletableFuture<Acknowledge> acknowledgeCompletableFuture =
+                jarUploadFuture
+                        .thenCombine(
+                                dispatcherGatewayFuture,
+                                (Void ack, DispatcherGateway dispatcherGateway) ->
+                                        dispatcherGateway.submitJob(clonedStreamGraph, rpcTimeout))
+                        .thenCompose(Function.identity());
+        return acknowledgeCompletableFuture.thenApply(
+                (Acknowledge ignored) -> new JobSubmissionResult(clonedStreamGraph.getJobId()));
+    }
+
+    // HACK: temporary hack to make the randomized changelog state backend tests work with forced
+    // full snapshots. This option should be removed once changelog state backend supports forced
+    // full snapshots
+    private void checkRestoreModeForChangelogStateBackend(StreamGraph graph) {
+        final SavepointRestoreSettings savepointRestoreSettings =
+                graph.getSavepointRestoreSettings();
+        if (overrideRestoreModeForChangelogStateBackend
+                && savepointRestoreSettings.getRestoreMode() == RestoreMode.NO_CLAIM) {
+            final Configuration conf = new Configuration();
+            SavepointRestoreSettings.toConfiguration(savepointRestoreSettings, conf);
+            conf.set(StateRecoveryOptions.RESTORE_MODE, RestoreMode.LEGACY);
+            graph.setSavepointRestoreSettings(SavepointRestoreSettings.fromConfiguration(conf));
+        }
+    }
+
     public CompletableFuture<JobResult> requestJobResult(JobID jobId) {
         return runDispatcherCommand(
                 dispatcherGateway ->
@@ -1135,6 +1232,24 @@ public class MiniCluster implements AutoCloseableAsync {
                 blobServerAddress -> {
                     try {
                         ClientUtils.extractAndUploadJobGraphFiles(
+                                job,
+                                () ->
+                                        new BlobClient(
+                                                blobServerAddress,
+                                                miniClusterConfiguration.getConfiguration()));
+                    } catch (FlinkException e) {
+                        throw new CompletionException(e);
+                    }
+                });
+    }
+
+    private CompletableFuture<Void> uploadAndSetJobFiles(
+            final CompletableFuture<InetSocketAddress> blobServerAddressFuture,
+            final StreamGraph job) {
+        return blobServerAddressFuture.thenAccept(
+                blobServerAddress -> {
+                    try {
+                        ClientUtils.extractAndUploadStreamGraphFiles(
                                 job,
                                 () ->
                                         new BlobClient(

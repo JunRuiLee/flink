@@ -35,12 +35,11 @@ import org.apache.flink.runtime.checkpoint.ZooKeeperCheckpointIDCounter;
 import org.apache.flink.runtime.checkpoint.ZooKeeperCheckpointStoreUtil;
 import org.apache.flink.runtime.highavailability.HighAvailabilityServicesUtils;
 import org.apache.flink.runtime.highavailability.zookeeper.CuratorFrameworkWithUnhandledErrorListener;
-import org.apache.flink.runtime.jobgraph.JobGraph;
-import org.apache.flink.runtime.jobmanager.DefaultJobGraphStore;
+import org.apache.flink.runtime.jobmanager.DefaultStreamGraphStore;
 import org.apache.flink.runtime.jobmanager.HighAvailabilityMode;
-import org.apache.flink.runtime.jobmanager.JobGraphStore;
-import org.apache.flink.runtime.jobmanager.ZooKeeperJobGraphStoreUtil;
-import org.apache.flink.runtime.jobmanager.ZooKeeperJobGraphStoreWatcher;
+import org.apache.flink.runtime.jobmanager.StreamGraphStore;
+import org.apache.flink.runtime.jobmanager.ZooKeeperStreamGraphStoreUtil;
+import org.apache.flink.runtime.jobmanager.ZooKeeperStreamGraphStoreWatcher;
 import org.apache.flink.runtime.leaderelection.LeaderInformation;
 import org.apache.flink.runtime.leaderretrieval.DefaultLeaderRetrievalService;
 import org.apache.flink.runtime.leaderretrieval.LeaderRetrievalDriverFactory;
@@ -51,6 +50,7 @@ import org.apache.flink.runtime.persistence.filesystem.FileSystemStateStorageHel
 import org.apache.flink.runtime.rpc.FatalErrorHandler;
 import org.apache.flink.runtime.state.SharedStateRegistryFactory;
 import org.apache.flink.runtime.zookeeper.ZooKeeperStateHandleStore;
+import org.apache.flink.streaming.api.graph.StreamGraph;
 import org.apache.flink.util.concurrent.Executors;
 import org.apache.flink.util.function.RunnableWithException;
 
@@ -99,7 +99,7 @@ public class ZooKeeperUtils {
     private static final Logger LOG = LoggerFactory.getLogger(ZooKeeperUtils.class);
 
     /** The prefix of the submitted job graph file. */
-    public static final String HA_STORAGE_SUBMITTED_JOBGRAPH_PREFIX = "submittedJobGraph";
+    public static final String HA_STORAGE_SUBMITTED_JOBGRAPH_PREFIX = "submittedstreamGraph";
 
     /** The prefix of the completed checkpoint file. */
     public static final String HA_STORAGE_COMPLETED_CHECKPOINT = "completedCheckpoint";
@@ -514,20 +514,20 @@ public class ZooKeeperUtils {
     }
 
     /**
-     * Creates a {@link DefaultJobGraphStore} instance with {@link ZooKeeperStateHandleStore},
-     * {@link ZooKeeperJobGraphStoreWatcher} and {@link ZooKeeperJobGraphStoreUtil}.
+     * Creates a {@link DefaultStreamGraphStore} instance with {@link ZooKeeperStateHandleStore},
+     * {@link ZooKeeperStreamGraphStoreWatcher} and {@link ZooKeeperStreamGraphStoreUtil}.
      *
      * @param client The {@link CuratorFramework} ZooKeeper client to use
      * @param configuration {@link Configuration} object
-     * @return {@link DefaultJobGraphStore} instance
+     * @return {@link DefaultStreamGraphStore} instance
      * @throws Exception if the submitted job graph store cannot be created
      */
-    public static JobGraphStore createJobGraphs(
+    public static StreamGraphStore createStreamGraphs(
             CuratorFramework client, Configuration configuration) throws Exception {
 
         checkNotNull(configuration, "Configuration");
 
-        RetrievableStateStorageHelper<JobGraph> stateStorage =
+        RetrievableStateStorageHelper<StreamGraph> stateStorage =
                 createFileSystemStateStorage(configuration, HA_STORAGE_SUBMITTED_JOBGRAPH_PREFIX);
 
         // ZooKeeper submitted jobs root dir
@@ -542,15 +542,15 @@ public class ZooKeeperUtils {
 
         final String zooKeeperFullJobsPath = client.getNamespace() + zooKeeperJobsPath;
 
-        final ZooKeeperStateHandleStore<JobGraph> zooKeeperStateHandleStore =
+        final ZooKeeperStateHandleStore<StreamGraph> zooKeeperStateHandleStore =
                 new ZooKeeperStateHandleStore<>(facade, stateStorage);
 
         final PathChildrenCache pathCache = new PathChildrenCache(facade, "/", false);
 
-        return new DefaultJobGraphStore<>(
+        return new DefaultStreamGraphStore<>(
                 zooKeeperStateHandleStore,
-                new ZooKeeperJobGraphStoreWatcher(pathCache),
-                ZooKeeperJobGraphStoreUtil.INSTANCE);
+                new ZooKeeperStreamGraphStoreWatcher(pathCache),
+                ZooKeeperStreamGraphStoreUtil.INSTANCE);
     }
 
     /**

@@ -24,6 +24,7 @@ import org.apache.flink.core.fs.Path;
 import org.apache.flink.runtime.blob.BlobClient;
 import org.apache.flink.runtime.blob.PermanentBlobKey;
 import org.apache.flink.runtime.jobgraph.JobGraph;
+import org.apache.flink.streaming.api.graph.StreamGraph;
 import org.apache.flink.util.FlinkException;
 import org.apache.flink.util.function.SupplierWithException;
 
@@ -37,6 +38,57 @@ import java.util.stream.Collectors;
 /** Contains utility methods for clients. */
 public enum ClientUtils {
     ;
+
+    /**
+     * Extracts all files required for the execution from the given {@link StreamGraph} and uploads
+     * them using the {@link BlobClient} from the given {@link Supplier}.
+     *
+     * @param streamGraph streamgraph requiring files
+     * @param clientSupplier supplier of blob client to upload files with
+     * @throws FlinkException if the upload fails
+     */
+    public static void extractAndUploadStreamGraphFiles(
+            StreamGraph streamGraph, SupplierWithException<BlobClient, IOException> clientSupplier)
+            throws FlinkException {
+        List<Path> userJars = streamGraph.getUserJars();
+        Collection<Tuple2<String, Path>> userArtifacts =
+                streamGraph.getUserArtifacts().entrySet().stream()
+                        .map(
+                                entry ->
+                                        Tuple2.of(
+                                                entry.getKey(),
+                                                new Path(entry.getValue().filePath)))
+                        .collect(Collectors.toList());
+
+        uploadStreamGraphFiles(streamGraph, userJars, userArtifacts, clientSupplier);
+    }
+
+    /**
+     * Uploads the given jars and artifacts required for the execution of the given {@link
+     * StreamGraph} using the {@link BlobClient} from the given {@link Supplier}.
+     *
+     * @param streamGraph streamGraph requiring files
+     * @param userJars jars to upload
+     * @param userArtifacts artifacts to upload
+     * @param clientSupplier supplier of blob client to upload files with
+     * @throws FlinkException if the upload fails
+     */
+    public static void uploadStreamGraphFiles(
+            StreamGraph streamGraph,
+            Collection<Path> userJars,
+            Collection<Tuple2<String, org.apache.flink.core.fs.Path>> userArtifacts,
+            SupplierWithException<BlobClient, IOException> clientSupplier)
+            throws FlinkException {
+        if (!userJars.isEmpty() || !userArtifacts.isEmpty()) {
+            try (BlobClient client = clientSupplier.get()) {
+                uploadAndSetUserJars(streamGraph, userJars, client);
+                uploadAndSetUserArtifacts(streamGraph, userArtifacts, client);
+            } catch (IOException ioe) {
+                throw new FlinkException("Could not upload job files.", ioe);
+            }
+        }
+        streamGraph.writeUserArtifactEntriesToConfiguration();
+    }
 
     /**
      * Extracts all files required for the execution from the given {@link JobGraph} and uploads
@@ -72,7 +124,7 @@ public enum ClientUtils {
      * @param clientSupplier supplier of blob client to upload files with
      * @throws FlinkException if the upload fails
      */
-    public static void uploadJobGraphFiles(
+    private static void uploadJobGraphFiles(
             JobGraph jobGraph,
             Collection<Path> userJars,
             Collection<Tuple2<String, org.apache.flink.core.fs.Path>> userArtifacts,
@@ -87,6 +139,23 @@ public enum ClientUtils {
             }
         }
         jobGraph.writeUserArtifactEntriesToConfiguration();
+    }
+
+    /**
+     * Uploads the given user jars using the given {@link BlobClient}, and sets the appropriate
+     * blobkeys on the given {@link StreamGraph}.
+     *
+     * @param streamGraph streamGraph requiring user jars
+     * @param userJars jars to upload
+     * @param blobClient client to upload jars with
+     * @throws IOException if the upload fails
+     */
+    private static void uploadAndSetUserJars(
+            StreamGraph streamGraph, Collection<Path> userJars, BlobClient blobClient)
+            throws IOException {
+        Collection<PermanentBlobKey> blobKeys =
+                uploadUserJars(streamGraph.getJobId(), userJars, blobClient);
+        setUserJarBlobKeys(blobKeys, streamGraph);
     }
 
     /**
@@ -117,8 +186,32 @@ public enum ClientUtils {
     }
 
     private static void setUserJarBlobKeys(
+            Collection<PermanentBlobKey> blobKeys, StreamGraph streamGraph) {
+        blobKeys.forEach(streamGraph::addUserJarBlobKey);
+    }
+
+    private static void setUserJarBlobKeys(
             Collection<PermanentBlobKey> blobKeys, JobGraph jobGraph) {
         blobKeys.forEach(jobGraph::addUserJarBlobKey);
+    }
+
+    /**
+     * Uploads the given user artifacts using the given {@link BlobClient}, and sets the appropriate
+     * blobkeys on the given {@link StreamGraph}.
+     *
+     * @param streamGraph streamgraph requiring user artifacts
+     * @param artifactPaths artifacts to upload
+     * @param blobClient client to upload artifacts with
+     * @throws IOException if the upload fails
+     */
+    private static void uploadAndSetUserArtifacts(
+            StreamGraph streamGraph,
+            Collection<Tuple2<String, Path>> artifactPaths,
+            BlobClient blobClient)
+            throws IOException {
+        Collection<Tuple2<String, PermanentBlobKey>> blobKeys =
+                uploadUserArtifacts(streamGraph.getJobId(), artifactPaths, blobClient);
+        setUserArtifactBlobKeys(streamGraph, blobKeys);
     }
 
     /**
@@ -153,6 +246,14 @@ public enum ClientUtils {
             }
         }
         return blobKeys;
+    }
+
+    private static void setUserArtifactBlobKeys(
+            StreamGraph streamGraph, Collection<Tuple2<String, PermanentBlobKey>> blobKeys)
+            throws IOException {
+        for (Tuple2<String, PermanentBlobKey> blobKey : blobKeys) {
+            streamGraph.setUserArtifactBlobKey(blobKey.f0, blobKey.f1);
+        }
     }
 
     private static void setUserArtifactBlobKeys(

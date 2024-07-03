@@ -29,7 +29,6 @@ import org.apache.flink.changelog.fs.FsStateChangelogStorageFactory;
 import org.apache.flink.configuration.Configuration;
 import org.apache.flink.configuration.ExternalizedCheckpointRetention;
 import org.apache.flink.runtime.io.network.logger.NetworkActionsLogger;
-import org.apache.flink.runtime.jobgraph.JobGraph;
 import org.apache.flink.runtime.jobgraph.SavepointRestoreSettings;
 import org.apache.flink.runtime.operators.testutils.ExpectedTestException;
 import org.apache.flink.runtime.state.FunctionInitializationContext;
@@ -251,11 +250,10 @@ class UnalignedCheckpointStressITCase {
                 .map(File::toString)
                 .map(SavepointRestoreSettings::forPath)
                 .ifPresent(streamGraph::setSavepointRestoreSettings);
-        JobGraph jobGraph = streamGraph.getJobGraph();
 
         try {
             submitJobAndWaitForResult(
-                    cluster.getClusterClient(), jobGraph, getClass().getClassLoader());
+                    cluster.getClusterClient(), streamGraph, getClass().getClassLoader());
         } catch (Exception e) {
             if (!ExceptionUtils.findThrowable(e, ExpectedTestException.class).isPresent()) {
                 throw e;

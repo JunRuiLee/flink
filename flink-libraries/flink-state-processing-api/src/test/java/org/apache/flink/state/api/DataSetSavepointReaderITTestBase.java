@@ -29,7 +29,6 @@ import org.apache.flink.api.java.ExecutionEnvironment;
 import org.apache.flink.api.java.tuple.Tuple2;
 import org.apache.flink.client.program.ClusterClient;
 import org.apache.flink.core.execution.SavepointFormatType;
-import org.apache.flink.runtime.jobgraph.JobGraph;
 import org.apache.flink.runtime.state.FunctionInitializationContext;
 import org.apache.flink.runtime.state.FunctionSnapshotContext;
 import org.apache.flink.runtime.state.memory.MemoryStateBackend;
@@ -39,6 +38,7 @@ import org.apache.flink.streaming.api.environment.StreamExecutionEnvironment;
 import org.apache.flink.streaming.api.functions.co.BroadcastProcessFunction;
 import org.apache.flink.streaming.api.functions.sink.v2.DiscardingSink;
 import org.apache.flink.streaming.api.functions.source.SourceFunction;
+import org.apache.flink.streaming.api.graph.StreamGraph;
 import org.apache.flink.test.util.AbstractTestBaseJUnit4;
 import org.apache.flink.util.AbstractID;
 import org.apache.flink.util.Collector;
@@ -97,9 +97,9 @@ public abstract class DataSetSavepointReaderITTestBase extends AbstractTestBaseJ
                 .uid(UID)
                 .sinkTo(new DiscardingSink<>());
 
-        JobGraph jobGraph = streamEnv.getStreamGraph().getJobGraph();
+        StreamGraph streamGraph = streamEnv.getStreamGraph();
 
-        String savepoint = takeSavepoint(jobGraph);
+        String savepoint = takeSavepoint(streamGraph);
 
         ExecutionEnvironment batchEnv = ExecutionEnvironment.getExecutionEnvironment();
 
@@ -169,18 +169,18 @@ public abstract class DataSetSavepointReaderITTestBase extends AbstractTestBaseJ
                 broadcastStateValues);
     }
 
-    private String takeSavepoint(JobGraph jobGraph) throws Exception {
+    private String takeSavepoint(StreamGraph streamGraph) throws Exception {
         SavepointSource.initializeForTest();
 
         ClusterClient<?> client = MINI_CLUSTER_RESOURCE.getClusterClient();
-        JobID jobId = jobGraph.getJobID();
+        JobID jobId = streamGraph.getJobId();
 
         Deadline deadline = Deadline.fromNow(Duration.ofMinutes(5));
 
         String dirPath = getTempDirPath(new AbstractID().toHexString());
 
         try {
-            JobID jobID = client.submitJob(jobGraph).get();
+            JobID jobID = client.submitJob(streamGraph).get();
 
             waitForAllRunningOrSomeTerminal(jobID, MINI_CLUSTER_RESOURCE);
             boolean finished = false;

@@ -32,12 +32,9 @@ import org.apache.flink.runtime.execution.ExecutionState;
 import org.apache.flink.runtime.highavailability.JobResultEntry;
 import org.apache.flink.runtime.highavailability.JobResultStore;
 import org.apache.flink.runtime.highavailability.nonha.embedded.EmbeddedJobResultStore;
-import org.apache.flink.runtime.jobgraph.JobGraph;
-import org.apache.flink.runtime.jobgraph.JobGraphBuilder;
-import org.apache.flink.runtime.jobgraph.JobVertex;
 import org.apache.flink.runtime.jobgraph.tasks.CheckpointCoordinatorConfiguration;
 import org.apache.flink.runtime.jobgraph.tasks.JobCheckpointingSettings;
-import org.apache.flink.runtime.jobmanager.JobGraphStore;
+import org.apache.flink.runtime.jobmanager.StreamGraphStore;
 import org.apache.flink.runtime.jobmaster.JobManagerRunner;
 import org.apache.flink.runtime.jobmaster.JobMasterGateway;
 import org.apache.flink.runtime.jobmaster.JobMasterId;
@@ -47,10 +44,11 @@ import org.apache.flink.runtime.leaderelection.TestingLeaderElection;
 import org.apache.flink.runtime.metrics.groups.UnregisteredMetricGroups;
 import org.apache.flink.runtime.rpc.RpcEndpoint;
 import org.apache.flink.runtime.rpc.RpcUtils;
-import org.apache.flink.runtime.testtasks.NoOpInvokable;
 import org.apache.flink.runtime.testutils.CommonTestUtils;
-import org.apache.flink.runtime.testutils.TestingJobGraphStore;
 import org.apache.flink.runtime.testutils.TestingJobResultStore;
+import org.apache.flink.runtime.testutils.TestingStreamGraphStore;
+import org.apache.flink.streaming.api.graph.StreamGraph;
+import org.apache.flink.streaming.util.StreamGraphTestUtils;
 import org.apache.flink.util.concurrent.FutureUtils;
 
 import org.hamcrest.CoreMatchers;
@@ -93,7 +91,7 @@ public class DispatcherCleanupITCase extends AbstractDispatcherTest {
                                 restoreMode) -> {
                             if (previous != null) {
                                 // First job cleanup still succeeded for the
-                                // CompletedCheckpointStore because the JobGraph cleanup happens
+                                // CompletedCheckpointStore because the StreamGraph cleanup happens
                                 // after the JobManagerRunner closing
                                 assertTrue(previous.getShutdownStatus().isPresent());
                                 assertTrue(previous.getAllCheckpoints().isEmpty());
@@ -129,18 +127,18 @@ public class DispatcherCleanupITCase extends AbstractDispatcherTest {
 
     @Test
     public void testCleanupThroughRetries() throws Exception {
-        final JobGraph jobGraph = createJobGraph();
-        final JobID jobId = jobGraph.getJobID();
+        final StreamGraph streamGraph = createStreamGraph();
+        final JobID jobId = streamGraph.getJobId();
 
-        // JobGraphStore
+        // StreamGraphStore
         final AtomicInteger actualGlobalCleanupCallCount = new AtomicInteger();
         final OneShotLatch successfulCleanupLatch = new OneShotLatch();
         final int numberOfErrors = 5;
         final RuntimeException temporaryError =
                 new RuntimeException("Expected RuntimeException: Unable to remove job graph.");
         final AtomicInteger failureCount = new AtomicInteger(numberOfErrors);
-        final JobGraphStore jobGraphStore =
-                TestingJobGraphStore.newBuilder()
+        final StreamGraphStore streamGraphStore =
+                TestingStreamGraphStore.newBuilder()
                         .setGlobalCleanupFunction(
                                 (ignoredJobId, ignoredExecutor) -> {
                                     actualGlobalCleanupCallCount.incrementAndGet();
@@ -154,8 +152,8 @@ public class DispatcherCleanupITCase extends AbstractDispatcherTest {
                                 })
                         .build();
 
-        jobGraphStore.start(NoOpJobGraphListener.INSTANCE);
-        haServices.setJobGraphStore(jobGraphStore);
+        streamGraphStore.start(NoOpStreamGraphListener.INSTANCE);
+        haServices.setStreamGraphStore(streamGraphStore);
 
         // Construct leader election.
         final TestingLeaderElection leaderElection = new TestingLeaderElection();
@@ -172,7 +170,7 @@ public class DispatcherCleanupITCase extends AbstractDispatcherTest {
                                         TestingRetryStrategies.createWithNumberOfRetries(
                                                 numberOfErrors),
                                         jobManagerRunnerRegistry,
-                                        haServices.getJobGraphStore(),
+                                        haServices.getStreamGraphStore(),
                                         blobServer,
                                         haServices,
                                         UnregisteredMetricGroups
@@ -185,7 +183,7 @@ public class DispatcherCleanupITCase extends AbstractDispatcherTest {
                 leaderElection.isLeader(UUID.randomUUID());
         final DispatcherGateway dispatcherGateway =
                 dispatcher.getSelfGateway(DispatcherGateway.class);
-        dispatcherGateway.submitJob(jobGraph, TIMEOUT).get();
+        dispatcherGateway.submitJob(streamGraph, TIMEOUT).get();
 
         waitForJobToFinish(confirmedLeaderInformation, dispatcherGateway, jobId);
 
@@ -194,8 +192,8 @@ public class DispatcherCleanupITCase extends AbstractDispatcherTest {
         assertThat(actualGlobalCleanupCallCount.get(), equalTo(numberOfErrors + 1));
 
         assertThat(
-                "The JobGraph should be removed from JobGraphStore.",
-                haServices.getJobGraphStore().getJobIds(),
+                "The StreamGraph should be removed from StreamGraphStore.",
+                haServices.getStreamGraphStore().getJobIds(),
                 IsEmptyCollection.empty());
 
         CommonTestUtils.waitUntilCondition(
@@ -204,8 +202,8 @@ public class DispatcherCleanupITCase extends AbstractDispatcherTest {
 
     @Test
     public void testCleanupNotCancellable() throws Exception {
-        final JobGraph jobGraph = createJobGraph();
-        final JobID jobId = jobGraph.getJobID();
+        final StreamGraph streamGraph = createStreamGraph();
+        final JobID jobId = streamGraph.getJobId();
 
         final JobResultStore jobResultStore = new EmbeddedJobResultStore();
         jobResultStore
@@ -255,15 +253,15 @@ public class DispatcherCleanupITCase extends AbstractDispatcherTest {
 
     @Test
     public void testCleanupAfterLeadershipChange() throws Exception {
-        final JobGraph jobGraph = createJobGraph();
-        final JobID jobId = jobGraph.getJobID();
+        final StreamGraph streamGraph = createStreamGraph();
+        final JobID jobId = streamGraph.getJobId();
 
         // Construct job graph store.
         final AtomicInteger actualGlobalCleanupCallCount = new AtomicInteger();
         final OneShotLatch firstCleanupTriggered = new OneShotLatch();
-        final CompletableFuture<JobID> successfulJobGraphCleanup = new CompletableFuture<>();
-        final JobGraphStore jobGraphStore =
-                TestingJobGraphStore.newBuilder()
+        final CompletableFuture<JobID> successfulStreamGraphCleanup = new CompletableFuture<>();
+        final StreamGraphStore streamGraphStore =
+                TestingStreamGraphStore.newBuilder()
                         .setGlobalCleanupFunction(
                                 (actualJobId, ignoredExecutor) -> {
                                     final int callCount =
@@ -276,13 +274,13 @@ public class DispatcherCleanupITCase extends AbstractDispatcherTest {
                                                         "Expected RuntimeException: Unable to remove job graph."));
                                     }
 
-                                    successfulJobGraphCleanup.complete(actualJobId);
+                                    successfulStreamGraphCleanup.complete(actualJobId);
                                     return FutureUtils.completedVoidFuture();
                                 })
                         .build();
 
-        jobGraphStore.start(NoOpJobGraphListener.INSTANCE);
-        haServices.setJobGraphStore(jobGraphStore);
+        streamGraphStore.start(NoOpStreamGraphListener.INSTANCE);
+        haServices.setStreamGraphStore(streamGraphStore);
 
         // Construct leader election.
         final TestingLeaderElection leaderElection = new TestingLeaderElection();
@@ -300,7 +298,7 @@ public class DispatcherCleanupITCase extends AbstractDispatcherTest {
                 leaderElection.isLeader(UUID.randomUUID());
         final DispatcherGateway dispatcherGateway =
                 dispatcher.getSelfGateway(DispatcherGateway.class);
-        dispatcherGateway.submitJob(jobGraph, TIMEOUT).get();
+        dispatcherGateway.submitJob(streamGraph, TIMEOUT).get();
 
         waitForJobToFinish(confirmedLeaderInformation, dispatcherGateway, jobId);
         firstCleanupTriggered.await();
@@ -311,12 +309,12 @@ public class DispatcherCleanupITCase extends AbstractDispatcherTest {
                 equalTo(1));
         assertThat(
                 "The cleanup should not have reached the successful cleanup code path.",
-                successfulJobGraphCleanup.isDone(),
+                successfulStreamGraphCleanup.isDone(),
                 equalTo(false));
 
         assertThat(
-                "The JobGraph is still stored in the JobGraphStore.",
-                haServices.getJobGraphStore().getJobIds(),
+                "The StreamGraph is still stored in the StreamGraphStore.",
+                haServices.getStreamGraphStore().getJobIds(),
                 equalTo(Collections.singleton(jobId)));
         assertThat(
                 "The JobResultStore should have this job marked as dirty.",
@@ -339,14 +337,14 @@ public class DispatcherCleanupITCase extends AbstractDispatcherTest {
                 () -> haServices.getJobResultStore().getDirtyResults().isEmpty());
 
         assertThat(
-                "The JobGraph is not stored in the JobGraphStore.",
-                haServices.getJobGraphStore().getJobIds(),
+                "The StreamGraph is not stored in the StreamGraphStore.",
+                haServices.getStreamGraphStore().getJobIds(),
                 IsEmptyCollection.empty());
         assertTrue(
                 "The JobResultStore has the job listed as clean.",
                 haServices.getJobResultStore().hasJobResultEntryAsync(jobId).get());
 
-        assertThat(successfulJobGraphCleanup.get(), equalTo(jobId));
+        assertThat(successfulStreamGraphCleanup.get(), equalTo(jobId));
 
         assertThat(actualGlobalCleanupCallCount.get(), equalTo(2));
     }
@@ -371,14 +369,8 @@ public class DispatcherCleanupITCase extends AbstractDispatcherTest {
         awaitStatus(dispatcherGateway, jobId, JobStatus.FINISHED);
     }
 
-    private JobGraph createJobGraph() {
-        final JobVertex firstVertex = new JobVertex("first");
-        firstVertex.setInvokableClass(NoOpInvokable.class);
-        firstVertex.setParallelism(1);
-
-        final JobVertex secondVertex = new JobVertex("second");
-        secondVertex.setInvokableClass(NoOpInvokable.class);
-        secondVertex.setParallelism(1);
+    private StreamGraph createStreamGraph() {
+        StreamGraph streamGraph = StreamGraphTestUtils.singleNoOpStreamGraph();
 
         final CheckpointCoordinatorConfiguration checkpointCoordinatorConfiguration =
                 CheckpointCoordinatorConfiguration.builder()
@@ -388,11 +380,8 @@ public class DispatcherCleanupITCase extends AbstractDispatcherTest {
                         .build();
         final JobCheckpointingSettings checkpointingSettings =
                 new JobCheckpointingSettings(checkpointCoordinatorConfiguration, null);
-        return JobGraphBuilder.newStreamingJobGraphBuilder()
-                .addJobVertex(firstVertex)
-                .addJobVertex(secondVertex)
-                .setJobCheckpointingSettings(checkpointingSettings)
-                .build();
+        streamGraph.setCheckpointingSettings(checkpointingSettings);
+        return streamGraph;
     }
 
     private static CompletableFuture<JobMasterGateway> connectToLeadingJobMaster(

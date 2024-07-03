@@ -25,7 +25,6 @@ import org.apache.flink.core.fs.Path;
 import org.apache.flink.runtime.blob.BlobClient;
 import org.apache.flink.runtime.client.ClientUtils;
 import org.apache.flink.runtime.dispatcher.DispatcherGateway;
-import org.apache.flink.runtime.jobgraph.JobGraph;
 import org.apache.flink.runtime.messages.Acknowledge;
 import org.apache.flink.runtime.rest.handler.AbstractRestHandler;
 import org.apache.flink.runtime.rest.handler.HandlerRequest;
@@ -35,6 +34,7 @@ import org.apache.flink.runtime.rest.messages.job.JobSubmitHeaders;
 import org.apache.flink.runtime.rest.messages.job.JobSubmitRequestBody;
 import org.apache.flink.runtime.rest.messages.job.JobSubmitResponseBody;
 import org.apache.flink.runtime.webmonitor.retriever.GatewayRetriever;
+import org.apache.flink.streaming.api.graph.StreamGraph;
 import org.apache.flink.util.FlinkException;
 
 import org.apache.flink.shaded.netty4.io.netty.handler.codec.http.HttpResponseStatus;
@@ -60,7 +60,7 @@ public final class JobSubmitHandler
                 JobSubmitResponseBody,
                 EmptyMessageParameters> {
 
-    private static final String FILE_TYPE_JOB_GRAPH = "JobGraph";
+    private static final String FILE_TYPE_JOB_GRAPH = "StreamGraph";
     private static final String FILE_TYPE_JAR = "Jar";
     private static final String FILE_TYPE_ARTIFACT = "Artifact";
 
@@ -100,55 +100,56 @@ public final class JobSubmitHandler
 
         final JobSubmitRequestBody requestBody = request.getRequestBody();
 
-        if (requestBody.jobGraphFileName == null) {
+        if (requestBody.streamGraphFileName == null) {
             throw new RestHandlerException(
                     String.format(
                             "The %s field must not be omitted or be null.",
-                            JobSubmitRequestBody.FIELD_NAME_JOB_GRAPH),
+                            JobSubmitRequestBody.FIELD_NAME_STREAM_GRAPH),
                     HttpResponseStatus.BAD_REQUEST);
         }
 
-        CompletableFuture<JobGraph> jobGraphFuture = loadJobGraph(requestBody, nameToFile);
+        CompletableFuture<StreamGraph> streamGraphFuture = loadStreamGraph(requestBody, nameToFile);
 
         Collection<Path> jarFiles = getJarFilesToUpload(requestBody.jarFileNames, nameToFile);
 
         Collection<Tuple2<String, Path>> artifacts =
                 getArtifactFilesToUpload(requestBody.artifactFileNames, nameToFile);
 
-        CompletableFuture<JobGraph> finalizedJobGraphFuture =
-                uploadJobGraphFiles(gateway, jobGraphFuture, jarFiles, artifacts, configuration);
+        CompletableFuture<StreamGraph> finalizedStreamGraphFuture =
+                uploadStreamGraphFiles(
+                        gateway, streamGraphFuture, jarFiles, artifacts, configuration);
 
         CompletableFuture<Acknowledge> jobSubmissionFuture =
-                finalizedJobGraphFuture.thenCompose(
-                        jobGraph -> gateway.submitJob(jobGraph, timeout));
+                finalizedStreamGraphFuture.thenCompose(
+                        streamGraph -> gateway.submitJob(streamGraph, timeout));
 
         return jobSubmissionFuture.thenCombine(
-                jobGraphFuture,
-                (ack, jobGraph) -> new JobSubmitResponseBody("/jobs/" + jobGraph.getJobID()));
+                streamGraphFuture,
+                (ack, streamGraph) -> new JobSubmitResponseBody("/jobs/" + streamGraph.getJobId()));
     }
 
-    private CompletableFuture<JobGraph> loadJobGraph(
+    private CompletableFuture<StreamGraph> loadStreamGraph(
             JobSubmitRequestBody requestBody, Map<String, Path> nameToFile)
             throws MissingFileException {
-        final Path jobGraphFile =
+        final Path streamGraphFile =
                 getPathAndAssertUpload(
-                        requestBody.jobGraphFileName, FILE_TYPE_JOB_GRAPH, nameToFile);
+                        requestBody.streamGraphFileName, FILE_TYPE_JOB_GRAPH, nameToFile);
 
         return CompletableFuture.supplyAsync(
                 () -> {
-                    JobGraph jobGraph;
+                    StreamGraph streamGraph;
                     try (ObjectInputStream objectIn =
                             new ObjectInputStream(
-                                    jobGraphFile.getFileSystem().open(jobGraphFile))) {
-                        jobGraph = (JobGraph) objectIn.readObject();
+                                    streamGraphFile.getFileSystem().open(streamGraphFile))) {
+                        streamGraph = (StreamGraph) objectIn.readObject();
                     } catch (Exception e) {
                         throw new CompletionException(
                                 new RestHandlerException(
-                                        "Failed to deserialize JobGraph.",
+                                        "Failed to deserialize StreamGraph.",
                                         HttpResponseStatus.BAD_REQUEST,
                                         e));
                     }
-                    return jobGraph;
+                    return streamGraph;
                 },
                 executor);
     }
@@ -178,25 +179,26 @@ public final class JobSubmitHandler
         return artifacts;
     }
 
-    private CompletableFuture<JobGraph> uploadJobGraphFiles(
+    private CompletableFuture<StreamGraph> uploadStreamGraphFiles(
             DispatcherGateway gateway,
-            CompletableFuture<JobGraph> jobGraphFuture,
+            CompletableFuture<StreamGraph> streamGraphFuture,
             Collection<Path> jarFiles,
             Collection<Tuple2<String, Path>> artifacts,
             Configuration configuration) {
         CompletableFuture<Integer> blobServerPortFuture = gateway.getBlobServerPort(timeout);
 
-        return jobGraphFuture.thenCombine(
+        return streamGraphFuture.thenCombine(
                 blobServerPortFuture,
-                (JobGraph jobGraph, Integer blobServerPort) -> {
+                (StreamGraph streamGraph, Integer blobServerPort) -> {
                     final InetSocketAddress address =
                             new InetSocketAddress(gateway.getHostname(), blobServerPort);
                     try {
-                        ClientUtils.uploadJobGraphFiles(
-                                jobGraph,
+                        ClientUtils.uploadStreamGraphFiles(
+                                streamGraph,
                                 jarFiles,
                                 artifacts,
                                 () -> new BlobClient(address, configuration));
+
                     } catch (FlinkException e) {
                         throw new CompletionException(
                                 new RestHandlerException(
@@ -204,7 +206,7 @@ public final class JobSubmitHandler
                                         HttpResponseStatus.INTERNAL_SERVER_ERROR,
                                         e));
                     }
-                    return jobGraph;
+                    return streamGraph;
                 });
     }
 

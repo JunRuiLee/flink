@@ -28,13 +28,12 @@ import org.apache.flink.configuration.TaskManagerOptions;
 import org.apache.flink.configuration.WebOptions;
 import org.apache.flink.runtime.client.JobStatusMessage;
 import org.apache.flink.runtime.execution.Environment;
-import org.apache.flink.runtime.jobgraph.JobGraph;
-import org.apache.flink.runtime.jobgraph.JobGraphBuilder;
-import org.apache.flink.runtime.jobgraph.JobGraphTestUtils;
-import org.apache.flink.runtime.jobgraph.JobVertex;
 import org.apache.flink.runtime.jobgraph.tasks.AbstractInvokable;
 import org.apache.flink.runtime.testutils.MiniClusterResourceConfiguration;
 import org.apache.flink.runtime.webmonitor.testutils.HttpTestClient;
+import org.apache.flink.streaming.api.graph.StreamGraph;
+import org.apache.flink.streaming.api.graph.StreamNode;
+import org.apache.flink.streaming.util.StreamGraphTestUtils;
 import org.apache.flink.test.junit5.InjectClusterClient;
 import org.apache.flink.test.junit5.InjectClusterRESTAddress;
 import org.apache.flink.test.junit5.MiniClusterExtension;
@@ -302,18 +301,13 @@ class WebFrontendITCase {
         assertThat(getRunningJobs(clusterClient).isEmpty());
 
         // Create a task
-        final JobVertex sender = new JobVertex("Sender");
-        sender.setParallelism(2);
-        sender.setInvokableClass(BlockingInvokable.class);
+        final StreamNode node = new StreamNode(0, "node", BlockingInvokable.class);
+        node.setParallelism(2);
 
-        final JobGraph jobGraph =
-                JobGraphBuilder.newStreamingJobGraphBuilder()
-                        .setJobName("Stoppable streaming test job")
-                        .addJobVertex(sender)
-                        .build();
-        final JobID jid = jobGraph.getJobID();
+        final StreamGraph streamGraph = StreamGraphTestUtils.buildStreamGraph(node);
+        final JobID jid = streamGraph.getJobId();
 
-        clusterClient.submitJob(jobGraph).get();
+        clusterClient.submitJob(streamGraph).get();
 
         // wait for job to show up
         while (getRunningJobs(clusterClient).isEmpty()) {
@@ -372,13 +366,12 @@ class WebFrontendITCase {
         assertThat(getRunningJobs(clusterClient).isEmpty());
 
         // Create a task
-        final JobVertex sender = new JobVertex("Sender");
-        sender.setParallelism(2);
-        sender.setInvokableClass(BlockingInvokable.class);
+        final StreamNode node = new StreamNode(0, "node", BlockingInvokable.class);
+        node.setParallelism(2);
 
-        final JobGraph jobGraph = JobGraphTestUtils.streamingJobGraph(sender);
+        final StreamGraph streamGraph = StreamGraphTestUtils.buildStreamGraph(node);
 
-        clusterClient.submitJob(jobGraph).get();
+        clusterClient.submitJob(streamGraph).get();
 
         // wait for job to show up
         while (getRunningJobs(clusterClient).isEmpty()) {
@@ -397,7 +390,7 @@ class WebFrontendITCase {
         assertThat(jsonJobs.size()).isEqualTo(1);
         assertThat(jsonJobs.get(0).get("duration").asInt()).isGreaterThan(0);
 
-        clusterClient.cancel(jobGraph.getJobID()).get();
+        clusterClient.cancel(streamGraph.getJobId()).get();
 
         // ensure cancellation is finished
         while (!getRunningJobs(clusterClient).isEmpty()) {
@@ -416,14 +409,14 @@ class WebFrontendITCase {
         assertThat(getRunningJobs(clusterClient).isEmpty());
 
         // Create a task
-        final JobVertex sender = new JobVertex("Sender");
-        sender.setParallelism(2);
-        sender.setInvokableClass(BlockingInvokable.class);
+        final StreamNode node = new StreamNode(0, "node", BlockingInvokable.class);
+        node.setParallelism(2);
 
-        final JobGraph jobGraph = JobGraphTestUtils.streamingJobGraph(sender);
-        final JobID jid = jobGraph.getJobID();
+        final StreamGraph streamGraph = StreamGraphTestUtils.buildStreamGraph(node);
+        final JobID jid = streamGraph.getJobId();
 
-        clusterClient.submitJob(jobGraph).get();
+        clusterClient.submitJob(streamGraph).get();
+        ;
 
         // wait for job to show up
         while (getRunningJobs(clusterClient).isEmpty()) {

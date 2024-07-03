@@ -19,19 +19,15 @@
 package org.apache.flink.client.deployment.executors;
 
 import org.apache.flink.annotation.Internal;
-import org.apache.flink.api.common.Plan;
 import org.apache.flink.api.dag.Pipeline;
 import org.apache.flink.client.program.PerJobMiniClusterFactory;
 import org.apache.flink.configuration.Configuration;
 import org.apache.flink.configuration.DeploymentOptions;
-import org.apache.flink.configuration.TaskManagerOptions;
 import org.apache.flink.core.execution.JobClient;
 import org.apache.flink.core.execution.PipelineExecutor;
-import org.apache.flink.runtime.jobgraph.JobGraph;
 import org.apache.flink.runtime.minicluster.MiniCluster;
 import org.apache.flink.runtime.minicluster.MiniClusterConfiguration;
 
-import java.net.MalformedURLException;
 import java.util.concurrent.CompletableFuture;
 import java.util.function.Function;
 
@@ -78,29 +74,9 @@ public class LocalExecutor implements PipelineExecutor {
         // we only support attached execution with the local executor.
         checkState(configuration.get(DeploymentOptions.ATTACHED));
 
-        final JobGraph jobGraph = getJobGraph(pipeline, effectiveConfig, userCodeClassloader);
-
         return PerJobMiniClusterFactory.createWithFactory(effectiveConfig, miniClusterFactory)
-                .submitJob(jobGraph, userCodeClassloader);
-    }
-
-    private JobGraph getJobGraph(
-            Pipeline pipeline, Configuration configuration, ClassLoader userCodeClassloader)
-            throws MalformedURLException {
-        // This is a quirk in how LocalEnvironment used to work. It sets the default parallelism
-        // to <num taskmanagers> * <num task slots>. Might be questionable but we keep the behaviour
-        // for now.
-        if (pipeline instanceof Plan) {
-            Plan plan = (Plan) pipeline;
-            final int slotsPerTaskManager =
-                    configuration.get(
-                            TaskManagerOptions.NUM_TASK_SLOTS, plan.getMaximumParallelism());
-            final int numTaskManagers =
-                    configuration.get(TaskManagerOptions.MINI_CLUSTER_NUM_TASK_MANAGERS);
-
-            plan.setDefaultParallelism(slotsPerTaskManager * numTaskManagers);
-        }
-
-        return PipelineExecutorUtils.getJobGraph(pipeline, configuration, userCodeClassloader);
+                .submitJob(
+                        PipelineExecutorUtils.getStreamGraph(pipeline, configuration),
+                        userCodeClassloader);
     }
 }

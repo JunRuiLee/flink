@@ -45,8 +45,8 @@ public class DefaultDispatcherGatewayService
     }
 
     @Override
-    public CompletableFuture<Void> onRemovedJobGraph(JobID jobId) {
-        return dispatcher.onRemovedJobGraph(jobId);
+    public CompletableFuture<Void> onRemovedStreamGraph(JobID jobId) {
+        return dispatcher.onRemovedStreamGraph(jobId);
     }
 
     @Override

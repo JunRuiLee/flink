@@ -25,10 +25,10 @@ import org.apache.flink.runtime.dispatcher.NoOpDispatcherBootstrap;
 import org.apache.flink.runtime.dispatcher.PartialDispatcherServices;
 import org.apache.flink.runtime.dispatcher.PartialDispatcherServicesWithJobPersistenceComponents;
 import org.apache.flink.runtime.highavailability.JobResultStore;
-import org.apache.flink.runtime.jobgraph.JobGraph;
-import org.apache.flink.runtime.jobmanager.JobGraphWriter;
+import org.apache.flink.runtime.jobmanager.StreamGraphWriter;
 import org.apache.flink.runtime.jobmaster.JobResult;
 import org.apache.flink.runtime.rpc.RpcService;
+import org.apache.flink.streaming.api.graph.StreamGraph;
 import org.apache.flink.util.FlinkRuntimeException;
 
 import java.util.Collection;
@@ -55,9 +55,9 @@ class DefaultDispatcherGatewayServiceFactory
     @Override
     public AbstractDispatcherLeaderProcess.DispatcherGatewayService create(
             DispatcherId fencingToken,
-            Collection<JobGraph> recoveredJobs,
+            Collection<StreamGraph> recoveredJobs,
             Collection<JobResult> recoveredDirtyJobResults,
-            JobGraphWriter jobGraphWriter,
+            StreamGraphWriter streamGraphWriter,
             JobResultStore jobResultStore) {
 
         final Dispatcher dispatcher;
@@ -71,7 +71,7 @@ class DefaultDispatcherGatewayServiceFactory
                             (dispatcherGateway, scheduledExecutor, errorHandler) ->
                                     new NoOpDispatcherBootstrap(),
                             PartialDispatcherServicesWithJobPersistenceComponents.from(
-                                    partialDispatcherServices, jobGraphWriter, jobResultStore));
+                                    partialDispatcherServices, streamGraphWriter, jobResultStore));
         } catch (Exception e) {
             throw new FlinkRuntimeException("Could not create the Dispatcher rpc endpoint.", e);
         }

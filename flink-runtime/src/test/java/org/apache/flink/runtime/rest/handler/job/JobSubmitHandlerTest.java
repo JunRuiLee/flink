@@ -24,8 +24,6 @@ import org.apache.flink.configuration.Configuration;
 import org.apache.flink.runtime.blob.BlobServer;
 import org.apache.flink.runtime.blob.VoidBlobStore;
 import org.apache.flink.runtime.dispatcher.DispatcherGateway;
-import org.apache.flink.runtime.jobgraph.JobGraph;
-import org.apache.flink.runtime.jobgraph.JobGraphTestUtils;
 import org.apache.flink.runtime.messages.Acknowledge;
 import org.apache.flink.runtime.net.SSLUtilsTest;
 import org.apache.flink.runtime.rest.handler.HandlerRequest;
@@ -34,6 +32,8 @@ import org.apache.flink.runtime.rest.messages.EmptyMessageParameters;
 import org.apache.flink.runtime.rest.messages.job.JobSubmitRequestBody;
 import org.apache.flink.runtime.rpc.RpcUtils;
 import org.apache.flink.runtime.webmonitor.TestingDispatcherGateway;
+import org.apache.flink.streaming.api.graph.StreamGraph;
+import org.apache.flink.streaming.util.StreamGraphTestUtils;
 import org.apache.flink.testutils.junit.extensions.parameterized.ParameterizedTestExtension;
 import org.apache.flink.testutils.junit.extensions.parameterized.Parameters;
 import org.apache.flink.testutils.junit.utils.TempDirUtils;
@@ -145,7 +145,7 @@ public class JobSubmitHandlerTest {
         final Path jobGraphFile = TempDirUtils.newFile(temporaryFolder).toPath();
         try (ObjectOutputStream objectOut =
                 new ObjectOutputStream(Files.newOutputStream(jobGraphFile))) {
-            objectOut.writeObject(JobGraphTestUtils.emptyJobGraph());
+            objectOut.writeObject(StreamGraphTestUtils.emptyStreamGraph());
         }
 
         TestingDispatcherGateway.Builder builder = TestingDispatcherGateway.newBuilder();
@@ -182,7 +182,7 @@ public class JobSubmitHandlerTest {
         final Path jobGraphFile = TempDirUtils.newFile(temporaryFolder).toPath();
         try (ObjectOutputStream objectOut =
                 new ObjectOutputStream(Files.newOutputStream(jobGraphFile))) {
-            objectOut.writeObject(JobGraphTestUtils.emptyJobGraph());
+            objectOut.writeObject(StreamGraphTestUtils.emptyStreamGraph());
         }
         final Path countExceedingFile = TempDirUtils.newFile(temporaryFolder).toPath();
 
@@ -227,13 +227,13 @@ public class JobSubmitHandlerTest {
     void testFileHandling() throws Exception {
         final String dcEntryName = "entry";
 
-        CompletableFuture<JobGraph> submittedJobGraphFuture = new CompletableFuture<>();
+        CompletableFuture<StreamGraph> submittedStreamGraphFuture = new CompletableFuture<>();
         DispatcherGateway dispatcherGateway =
                 TestingDispatcherGateway.newBuilder()
                         .setBlobServerPort(blobServer.getPort())
                         .setSubmitFunction(
-                                submittedJobGraph -> {
-                                    submittedJobGraphFuture.complete(submittedJobGraph);
+                                submittedStreamGraph -> {
+                                    submittedStreamGraphFuture.complete(submittedStreamGraph);
                                     return CompletableFuture.completedFuture(Acknowledge.get());
                                 })
                         .build();
@@ -250,7 +250,7 @@ public class JobSubmitHandlerTest {
         final Path jarFile = TempDirUtils.newFile(temporaryFolder).toPath();
         final Path artifactFile = TempDirUtils.newFile(temporaryFolder).toPath();
 
-        final JobGraph jobGraph = JobGraphTestUtils.emptyJobGraph();
+        final StreamGraph jobGraph = StreamGraphTestUtils.emptyStreamGraph();
         // the entry that should be updated
         jobGraph.addUserArtifact(
                 dcEntryName, new DistributedCache.DistributedCacheEntry("random", false));
@@ -278,11 +278,11 @@ public class JobSubmitHandlerTest {
                         dispatcherGateway)
                 .get();
 
-        assertThat(submittedJobGraphFuture).as("No JobGraph was submitted.").isCompleted();
-        final JobGraph submittedJobGraph = submittedJobGraphFuture.get();
-        assertThat(submittedJobGraph.getUserJarBlobKeys()).hasSize(1);
-        assertThat(submittedJobGraph.getUserArtifacts()).hasSize(1);
-        assertThat(submittedJobGraph.getUserArtifacts().get(dcEntryName).blobKey).isNotNull();
+        assertThat(submittedStreamGraphFuture).as("No StreamGraph was submitted.").isCompleted();
+        final StreamGraph submittedStreamGraph = submittedStreamGraphFuture.get();
+        assertThat(submittedStreamGraph.getUserJarBlobKeys()).hasSize(1);
+        assertThat(submittedStreamGraph.getUserArtifacts()).hasSize(1);
+        assertThat(submittedStreamGraph.getUserArtifacts().get(dcEntryName).blobKey).isNotNull();
     }
 
     @TestTemplate
@@ -306,7 +306,7 @@ public class JobSubmitHandlerTest {
 
         final Path jobGraphFile = TempDirUtils.newFile(temporaryFolder).toPath();
 
-        JobGraph jobGraph = JobGraphTestUtils.emptyJobGraph();
+        StreamGraph jobGraph = StreamGraphTestUtils.emptyStreamGraph();
         try (ObjectOutputStream objectOut =
                 new ObjectOutputStream(Files.newOutputStream(jobGraphFile))) {
             objectOut.writeObject(jobGraph);

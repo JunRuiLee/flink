@@ -75,7 +75,7 @@ public class StreamNode {
     private KeySelector<?, ?>[] statePartitioners = new KeySelector[0];
     private TypeSerializer<?> stateKeySerializer;
 
-    private @Nullable StreamOperatorFactory<?> operatorFactory;
+    private @Nullable transient StreamOperatorFactory<?> operatorFactory;
     private TypeSerializer<?>[] typeSerializersIn = new TypeSerializer[0];
     private TypeSerializer<?> typeSerializerOut;
 
@@ -97,6 +97,12 @@ public class StreamNode {
     private boolean supportsConcurrentExecutionAttempts = true;
 
     private boolean parallelismConfigured = false;
+
+    @VisibleForTesting
+    public StreamNode(
+            Integer id, String operatorName, Class<? extends TaskInvokable> jobVertexClass) {
+        this(id, null, null, (StreamOperator<?>) null, operatorName, jobVertexClass);
+    }
 
     @VisibleForTesting
     public StreamNode(
@@ -217,7 +223,7 @@ public class StreamNode {
      *
      * @param maxParallelism Maximum parallelism to be set
      */
-    void setMaxParallelism(int maxParallelism) {
+    public void setMaxParallelism(int maxParallelism) {
         this.maxParallelism = maxParallelism;
     }
 
@@ -265,6 +271,10 @@ public class StreamNode {
 
     public @Nullable StreamOperatorFactory<?> getOperatorFactory() {
         return operatorFactory;
+    }
+
+    public void setOperatorFactory(StreamOperatorFactory<?> operatorFactory) {
+        this.operatorFactory = operatorFactory;
     }
 
     public String getOperatorName() {

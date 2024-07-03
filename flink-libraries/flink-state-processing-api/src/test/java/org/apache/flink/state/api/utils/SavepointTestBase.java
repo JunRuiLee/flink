@@ -25,11 +25,11 @@ import org.apache.flink.api.java.typeutils.TypeExtractor;
 import org.apache.flink.client.program.ClusterClient;
 import org.apache.flink.core.execution.SavepointFormatType;
 import org.apache.flink.runtime.execution.ExecutionState;
-import org.apache.flink.runtime.jobgraph.JobGraph;
 import org.apache.flink.runtime.rest.messages.job.JobDetailsInfo;
 import org.apache.flink.streaming.api.environment.StreamExecutionEnvironment;
 import org.apache.flink.streaming.api.functions.source.FromElementsFunction;
 import org.apache.flink.streaming.api.functions.source.SourceFunction;
+import org.apache.flink.streaming.api.graph.StreamGraph;
 import org.apache.flink.test.util.AbstractTestBaseJUnit4;
 import org.apache.flink.test.util.MiniClusterWithClientResource;
 import org.apache.flink.util.AbstractID;
@@ -52,14 +52,14 @@ public abstract class SavepointTestBase extends AbstractTestBaseJUnit4 {
         StreamExecutionEnvironment env = StreamExecutionEnvironment.getExecutionEnvironment();
         env.getConfig().disableClosureCleaner();
 
-        JobGraph jobGraph = executionEnvironment.getStreamGraph().getJobGraph();
+        StreamGraph streamGraph = executionEnvironment.getStreamGraph();
 
-        JobID jobId = jobGraph.getJobID();
+        JobID jobId = streamGraph.getJobId();
 
         ClusterClient<?> client = MINI_CLUSTER_RESOURCE.getClusterClient();
 
         try {
-            JobID jobID = client.submitJob(jobGraph).get();
+            JobID jobID = client.submitJob(streamGraph).get();
 
             waitForAllRunningOrSomeTerminal(jobID, MINI_CLUSTER_RESOURCE);
 

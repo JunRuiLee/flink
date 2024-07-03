@@ -30,13 +30,13 @@ import org.apache.flink.runtime.blob.TestingBlobStoreBuilder;
 import org.apache.flink.runtime.client.DuplicateJobSubmissionException;
 import org.apache.flink.runtime.client.JobSubmissionException;
 import org.apache.flink.runtime.dispatcher.cleanup.TestingResourceCleanerFactory;
+import org.apache.flink.runtime.execution.librarycache.LibraryCacheManager;
 import org.apache.flink.runtime.executiongraph.ArchivedExecutionGraph;
 import org.apache.flink.runtime.heartbeat.HeartbeatServices;
 import org.apache.flink.runtime.highavailability.HighAvailabilityServices;
 import org.apache.flink.runtime.highavailability.JobResultEntry;
 import org.apache.flink.runtime.highavailability.JobResultStore;
 import org.apache.flink.runtime.jobgraph.JobGraph;
-import org.apache.flink.runtime.jobgraph.JobGraphTestUtils;
 import org.apache.flink.runtime.jobmaster.JobManagerRunner;
 import org.apache.flink.runtime.jobmaster.JobManagerSharedServices;
 import org.apache.flink.runtime.jobmaster.TestingJobManagerRunner;
@@ -51,6 +51,8 @@ import org.apache.flink.runtime.rpc.TestingRpcService;
 import org.apache.flink.runtime.scheduler.ExecutionGraphInfo;
 import org.apache.flink.runtime.testutils.TestingJobResultStore;
 import org.apache.flink.runtime.util.TestingFatalErrorHandlerResource;
+import org.apache.flink.streaming.api.graph.StreamGraph;
+import org.apache.flink.streaming.util.StreamGraphTestUtils;
 import org.apache.flink.util.ExceptionUtils;
 import org.apache.flink.util.FlinkException;
 import org.apache.flink.util.Preconditions;
@@ -109,7 +111,7 @@ public class DispatcherResourceCleanupTest extends TestLogger {
 
     private JobID jobId;
 
-    private JobGraph jobGraph;
+    private StreamGraph streamGraph;
 
     private TestingDispatcher dispatcher;
 
@@ -127,8 +129,8 @@ public class DispatcherResourceCleanupTest extends TestLogger {
 
     @Before
     public void setup() throws Exception {
-        jobGraph = JobGraphTestUtils.singleNoOpJobGraph();
-        jobId = jobGraph.getJobID();
+        streamGraph = StreamGraphTestUtils.singleNoOpStreamGraph();
+        jobId = streamGraph.getJobId();
 
         globalCleanupFuture = new CompletableFuture<>();
         localCleanupFuture = new CompletableFuture<>();
@@ -246,7 +248,7 @@ public class DispatcherResourceCleanupTest extends TestLogger {
     }
 
     private CompletableFuture<Acknowledge> submitJob() {
-        return dispatcherGateway.submitJob(jobGraph, timeout);
+        return dispatcherGateway.submitJob(streamGraph, timeout);
     }
 
     private void submitJobAndWait() {
@@ -431,7 +433,7 @@ public class DispatcherResourceCleanupTest extends TestLogger {
         testingJobManagerRunner.getCloseAsyncCalledLatch().await();
 
         final CompletableFuture<Acknowledge> submissionFuture =
-                dispatcherGateway.submitJob(jobGraph, timeout);
+                dispatcherGateway.submitJob(streamGraph, timeout);
 
         try {
             submissionFuture.get(10L, TimeUnit.MILLISECONDS);
@@ -457,7 +459,7 @@ public class DispatcherResourceCleanupTest extends TestLogger {
                 startDispatcherAndSubmitJob();
 
         final CompletableFuture<Acknowledge> submissionFuture =
-                dispatcherGateway.submitJob(jobGraph, timeout);
+                dispatcherGateway.submitJob(streamGraph, timeout);
 
         try {
             try {
@@ -647,7 +649,7 @@ public class DispatcherResourceCleanupTest extends TestLogger {
         // submit and fail during job master runner construction
         queue.offer(Optional.of(testException));
         try {
-            dispatcherGateway.submitJob(jobGraph, Time.minutes(1)).get();
+            dispatcherGateway.submitJob(streamGraph, Time.minutes(1)).get();
             fail("A FlinkException is expected");
         } catch (Throwable expectedException) {
             assertThat(expectedException, containsCause(FlinkException.class));
@@ -659,7 +661,7 @@ public class DispatcherResourceCleanupTest extends TestLogger {
         // don't fail this time
         queue.offer(Optional.empty());
         // submit job again
-        dispatcherGateway.submitJob(jobGraph, Time.minutes(1L)).get();
+        dispatcherGateway.submitJob(streamGraph, Time.minutes(1L)).get();
         blockingJobManagerRunnerFactory.setJobStatus(JobStatus.RUNNING);
 
         // Ensure job is running
@@ -739,7 +741,9 @@ public class DispatcherResourceCleanupTest extends TestLogger {
                 JobManagerJobMetricGroupFactory jobManagerJobMetricGroupFactory,
                 FatalErrorHandler fatalErrorHandler,
                 Collection<FailureEnricher> failureEnrichers,
-                long initializationTimestamp)
+                long initializationTimestamp,
+                LibraryCacheManager.ClassLoaderLease classLoaderLease,
+                ClassLoader userCodeClassLoader)
                 throws Exception {
             jobManagerRunnerCreationLatch.run();
 
@@ -754,7 +758,9 @@ public class DispatcherResourceCleanupTest extends TestLogger {
                             jobManagerJobMetricGroupFactory,
                             fatalErrorHandler,
                             failureEnrichers,
-                            initializationTimestamp);
+                            initializationTimestamp,
+                            classLoaderLease,
+                            userCodeClassLoader);
 
             TestingJobMasterGateway testingJobMasterGateway =
                     new TestingJobMasterGatewayBuilder()
@@ -802,7 +808,9 @@ public class DispatcherResourceCleanupTest extends TestLogger {
                 JobManagerJobMetricGroupFactory jobManagerJobMetricGroupFactory,
                 FatalErrorHandler fatalErrorHandler,
                 Collection<FailureEnricher> failureEnrichers,
-                long initializationTimestamp) {
+                long initializationTimestamp,
+                LibraryCacheManager.ClassLoaderLease classLoaderLease,
+                ClassLoader userCodeClassLoader) {
             return Optional.ofNullable(jobManagerRunners.poll())
                     .orElseThrow(
                             () ->
@@ -829,7 +837,9 @@ public class DispatcherResourceCleanupTest extends TestLogger {
                 JobManagerJobMetricGroupFactory jobManagerJobMetricGroupFactory,
                 FatalErrorHandler fatalErrorHandler,
                 Collection<FailureEnricher> failureEnrichers,
-                long initializationTimestamp)
+                long initializationTimestamp,
+                LibraryCacheManager.ClassLoaderLease classLoaderLease,
+                ClassLoader userCodeClassLoader)
                 throws Exception {
             throw testException;
         }

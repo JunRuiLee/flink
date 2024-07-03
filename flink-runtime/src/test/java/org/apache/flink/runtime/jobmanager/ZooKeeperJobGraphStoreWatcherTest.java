@@ -23,14 +23,14 @@ import org.apache.flink.configuration.Configuration;
 import org.apache.flink.configuration.HighAvailabilityOptions;
 import org.apache.flink.core.testutils.EachCallbackWrapper;
 import org.apache.flink.runtime.highavailability.zookeeper.CuratorFrameworkWithUnhandledErrorListener;
-import org.apache.flink.runtime.jobgraph.JobGraph;
-import org.apache.flink.runtime.jobgraph.JobGraphTestUtils;
 import org.apache.flink.runtime.persistence.RetrievableStateStorageHelper;
 import org.apache.flink.runtime.rest.util.NoOpFatalErrorHandler;
 import org.apache.flink.runtime.testutils.CommonTestUtils;
 import org.apache.flink.runtime.util.ZooKeeperUtils;
 import org.apache.flink.runtime.zookeeper.ZooKeeperExtension;
 import org.apache.flink.runtime.zookeeper.ZooKeeperStateHandleStore;
+import org.apache.flink.streaming.api.graph.StreamGraph;
+import org.apache.flink.streaming.util.StreamGraphTestUtils;
 import org.apache.flink.testutils.junit.utils.TempDirUtils;
 
 import org.apache.flink.shaded.curator5.org.apache.curator.framework.CuratorFramework;
@@ -45,8 +45,8 @@ import java.nio.file.Path;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
-/** Tests for the {@link ZooKeeperJobGraphStoreWatcher}. */
-class ZooKeeperJobGraphStoreWatcherTest {
+/** Tests for the {@link ZooKeeperStreamGraphStoreWatcher}. */
+class ZooKeeperStreamGraphStoreWatcherTest {
 
     @RegisterExtension
     public EachCallbackWrapper<ZooKeeperExtension> zooKeeperExtensionWrapper =
@@ -56,7 +56,7 @@ class ZooKeeperJobGraphStoreWatcherTest {
 
     private Configuration configuration;
 
-    private TestingJobGraphListener testingJobGraphListener;
+    private TestingStreamGraphListener testingStreamGraphListener;
 
     @BeforeEach
     void setup() throws Exception {
@@ -67,51 +67,51 @@ class ZooKeeperJobGraphStoreWatcherTest {
         configuration.set(
                 HighAvailabilityOptions.HA_STORAGE_PATH,
                 TempDirUtils.newFolder(temporaryFolder).getAbsolutePath());
-        testingJobGraphListener = new TestingJobGraphListener();
+        testingStreamGraphListener = new TestingStreamGraphListener();
     }
 
     @Test
-    void testJobGraphAddedAndRemovedShouldNotifyGraphStoreListener() throws Exception {
+    void testStreamGraphAddedAndRemovedShouldNotifyGraphStoreListener() throws Exception {
         try (final CuratorFrameworkWithUnhandledErrorListener curatorFrameworkWrapper =
                 ZooKeeperUtils.startCuratorFramework(
                         configuration, NoOpFatalErrorHandler.INSTANCE)) {
             final CuratorFramework client = curatorFrameworkWrapper.asCuratorFramework();
-            final JobGraphStoreWatcher jobGraphStoreWatcher =
-                    createAndStartJobGraphStoreWatcher(client);
+            final StreamGraphStoreWatcher streamGraphStoreWatcher =
+                    createAndStartStreamGraphStoreWatcher(client);
 
-            final ZooKeeperStateHandleStore<JobGraph> stateHandleStore =
+            final ZooKeeperStateHandleStore<StreamGraph> stateHandleStore =
                     createStateHandleStore(client);
 
-            final JobGraph jobGraph = JobGraphTestUtils.emptyJobGraph();
-            final JobID jobID = jobGraph.getJobID();
-            stateHandleStore.addAndLock("/" + jobID, jobGraph);
+            final StreamGraph streamGraph = StreamGraphTestUtils.emptyStreamGraph();
+            final JobID jobID = streamGraph.getJobId();
+            stateHandleStore.addAndLock("/" + jobID, streamGraph);
 
             CommonTestUtils.waitUntilCondition(
-                    () -> testingJobGraphListener.getAddedJobGraphs().size() > 0);
+                    () -> testingStreamGraphListener.getAddedStreamGraphs().size() > 0);
 
-            assertThat(testingJobGraphListener.getAddedJobGraphs()).containsExactly(jobID);
+            assertThat(testingStreamGraphListener.getAddedStreamGraphs()).containsExactly(jobID);
 
             stateHandleStore.releaseAndTryRemove("/" + jobID);
 
             CommonTestUtils.waitUntilCondition(
-                    () -> testingJobGraphListener.getRemovedJobGraphs().size() > 0);
-            assertThat(testingJobGraphListener.getRemovedJobGraphs()).containsExactly(jobID);
+                    () -> testingStreamGraphListener.getRemovedStreamGraphs().size() > 0);
+            assertThat(testingStreamGraphListener.getRemovedStreamGraphs()).containsExactly(jobID);
 
-            jobGraphStoreWatcher.stop();
+            streamGraphStoreWatcher.stop();
         }
     }
 
-    private JobGraphStoreWatcher createAndStartJobGraphStoreWatcher(CuratorFramework client)
+    private StreamGraphStoreWatcher createAndStartStreamGraphStoreWatcher(CuratorFramework client)
             throws Exception {
-        final ZooKeeperJobGraphStoreWatcher jobGraphStoreWatcher =
-                new ZooKeeperJobGraphStoreWatcher(new PathChildrenCache(client, "/", false));
-        jobGraphStoreWatcher.start(testingJobGraphListener);
-        return jobGraphStoreWatcher;
+        final ZooKeeperStreamGraphStoreWatcher streamGraphStoreWatcher =
+                new ZooKeeperStreamGraphStoreWatcher(new PathChildrenCache(client, "/", false));
+        streamGraphStoreWatcher.start(testingStreamGraphListener);
+        return streamGraphStoreWatcher;
     }
 
-    private ZooKeeperStateHandleStore<JobGraph> createStateHandleStore(CuratorFramework client)
+    private ZooKeeperStateHandleStore<StreamGraph> createStateHandleStore(CuratorFramework client)
             throws Exception {
-        final RetrievableStateStorageHelper<JobGraph> stateStorage =
+        final RetrievableStateStorageHelper<StreamGraph> stateStorage =
                 ZooKeeperUtils.createFileSystemStateStorage(configuration, "test_jobgraph");
         return new ZooKeeperStateHandleStore<>(client, stateStorage);
     }

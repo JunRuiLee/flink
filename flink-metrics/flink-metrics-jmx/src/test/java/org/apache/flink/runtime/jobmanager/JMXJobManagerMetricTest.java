@@ -26,13 +26,13 @@ import org.apache.flink.configuration.MetricOptions;
 import org.apache.flink.core.testutils.OneShotLatch;
 import org.apache.flink.metrics.jmx.JMXReporterFactory;
 import org.apache.flink.runtime.execution.Environment;
-import org.apache.flink.runtime.jobgraph.JobGraph;
-import org.apache.flink.runtime.jobgraph.JobGraphBuilder;
-import org.apache.flink.runtime.jobgraph.JobVertex;
 import org.apache.flink.runtime.jobgraph.tasks.AbstractInvokable;
 import org.apache.flink.runtime.jobgraph.tasks.CheckpointCoordinatorConfiguration;
 import org.apache.flink.runtime.jobgraph.tasks.JobCheckpointingSettings;
 import org.apache.flink.runtime.testutils.MiniClusterResourceConfiguration;
+import org.apache.flink.streaming.api.graph.StreamGraph;
+import org.apache.flink.streaming.api.graph.StreamNode;
+import org.apache.flink.streaming.util.StreamGraphTestUtils;
 import org.apache.flink.test.junit5.InjectClusterClient;
 import org.apache.flink.test.junit5.MiniClusterExtension;
 import org.apache.flink.testutils.TestingUtils;
@@ -87,25 +87,20 @@ class JMXJobManagerMetricTest {
         Deadline deadline = Deadline.now().plus(Duration.ofMinutes(2));
 
         try {
-            JobVertex sourceJobVertex = new JobVertex("Source");
-            sourceJobVertex.setInvokableClass(BlockingInvokable.class);
-            sourceJobVertex.setParallelism(1);
+            StreamNode streamNode = new StreamNode(0, "source", BlockingInvokable.class);
 
             final JobCheckpointingSettings jobCheckpointingSettings =
                     new JobCheckpointingSettings(
                             CheckpointCoordinatorConfiguration.builder().build(), null);
 
-            final JobGraph jobGraph =
-                    JobGraphBuilder.newStreamingJobGraphBuilder()
-                            .setJobName("TestingJob")
-                            .addJobVertex(sourceJobVertex)
-                            .setJobCheckpointingSettings(jobCheckpointingSettings)
-                            .build();
+            final StreamGraph streamGraph = StreamGraphTestUtils.buildStreamGraph(streamNode);
+            streamGraph.setJobName("TestingJob");
+            streamGraph.setCheckpointingSettings(jobCheckpointingSettings);
 
-            client.submitJob(jobGraph).get();
+            client.submitJob(streamGraph).get();
 
             FutureUtils.retrySuccessfulWithDelay(
-                            () -> client.getJobStatus(jobGraph.getJobID()),
+                            () -> client.getJobStatus(streamGraph.getJobId()),
                             Duration.ofMillis(10),
                             deadline,
                             status -> status == JobStatus.RUNNING,

@@ -18,6 +18,7 @@
 
 package org.apache.flink.runtime.dispatcher;
 
+import org.apache.flink.annotation.VisibleForTesting;
 import org.apache.flink.api.common.JobID;
 import org.apache.flink.api.common.time.Time;
 import org.apache.flink.core.execution.CheckpointType;
@@ -28,6 +29,7 @@ import org.apache.flink.runtime.messages.Acknowledge;
 import org.apache.flink.runtime.rpc.FencedRpcGateway;
 import org.apache.flink.runtime.rpc.RpcTimeout;
 import org.apache.flink.runtime.webmonitor.RestfulGateway;
+import org.apache.flink.streaming.api.graph.StreamGraph;
 
 import java.util.Collection;
 import java.util.concurrent.CompletableFuture;
@@ -38,11 +40,16 @@ public interface DispatcherGateway extends FencedRpcGateway<DispatcherId>, Restf
     /**
      * Submit a job to the dispatcher.
      *
-     * @param jobGraph JobGraph to submit
+     * @param streamGraph StreamGraph to submit
      * @param timeout RPC timeout
      * @return A future acknowledge if the submission succeeded
      */
-    CompletableFuture<Acknowledge> submitJob(JobGraph jobGraph, @RpcTimeout Time timeout);
+    CompletableFuture<Acknowledge> submitJob(StreamGraph streamGraph, @RpcTimeout Time timeout);
+
+    @VisibleForTesting
+    default CompletableFuture<Acknowledge> submitJob(JobGraph jobGraph, @RpcTimeout Time timeout) {
+        throw new UnsupportedOperationException();
+    }
 
     CompletableFuture<Acknowledge> submitFailedJob(
             JobID jobId, String jobName, Throwable exception);

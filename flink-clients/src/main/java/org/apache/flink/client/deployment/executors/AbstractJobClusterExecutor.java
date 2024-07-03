@@ -20,16 +20,10 @@ package org.apache.flink.client.deployment.executors;
 
 import org.apache.flink.annotation.Internal;
 import org.apache.flink.api.dag.Pipeline;
-import org.apache.flink.client.cli.ExecutionConfigAccessor;
 import org.apache.flink.client.deployment.ClusterClientFactory;
-import org.apache.flink.client.deployment.ClusterClientJobClientAdapter;
-import org.apache.flink.client.deployment.ClusterDescriptor;
-import org.apache.flink.client.deployment.ClusterSpecification;
-import org.apache.flink.client.program.ClusterClientProvider;
 import org.apache.flink.configuration.Configuration;
 import org.apache.flink.core.execution.JobClient;
 import org.apache.flink.core.execution.PipelineExecutor;
-import org.apache.flink.runtime.jobgraph.JobGraph;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -68,25 +62,29 @@ public class AbstractJobClusterExecutor<
             @Nonnull final Configuration configuration,
             @Nonnull final ClassLoader userCodeClassloader)
             throws Exception {
-        final JobGraph jobGraph =
-                PipelineExecutorUtils.getJobGraph(pipeline, configuration, userCodeClassloader);
-
-        try (final ClusterDescriptor<ClusterID> clusterDescriptor =
-                clusterClientFactory.createClusterDescriptor(configuration)) {
-            final ExecutionConfigAccessor configAccessor =
-                    ExecutionConfigAccessor.fromConfiguration(configuration);
-
-            final ClusterSpecification clusterSpecification =
-                    clusterClientFactory.getClusterSpecification(configuration);
-
-            final ClusterClientProvider<ClusterID> clusterClientProvider =
-                    clusterDescriptor.deployJobCluster(
-                            clusterSpecification, jobGraph, configAccessor.getDetachedMode());
-            LOG.info("Job has been submitted with JobID " + jobGraph.getJobID());
-
-            return CompletableFuture.completedFuture(
-                    new ClusterClientJobClientAdapter<>(
-                            clusterClientProvider, jobGraph.getJobID(), userCodeClassloader));
-        }
+        throw new UnsupportedOperationException();
+        //        final JobGraph jobGraph =
+        //                PipelineExecutorUtils.getJobGraph(pipeline, configuration,
+        // userCodeClassloader);
+        //
+        //        try (final ClusterDescriptor<ClusterID> clusterDescriptor =
+        //                clusterClientFactory.createClusterDescriptor(configuration)) {
+        //            final ExecutionConfigAccessor configAccessor =
+        //                    ExecutionConfigAccessor.fromConfiguration(configuration);
+        //
+        //            final ClusterSpecification clusterSpecification =
+        //                    clusterClientFactory.getClusterSpecification(configuration);
+        //
+        //            final ClusterClientProvider<ClusterID> clusterClientProvider =
+        //                    clusterDescriptor.deployJobCluster(
+        //                            clusterSpecification, jobGraph,
+        // configAccessor.getDetachedMode());
+        //            LOG.info("Job has been submitted with JobID " + jobGraph.getJobID());
+        //
+        //            return CompletableFuture.completedFuture(
+        //                    new ClusterClientJobClientAdapter<>(
+        //                            clusterClientProvider, jobGraph.getJobID(),
+        // userCodeClassloader));
+        //        }
     }
 }

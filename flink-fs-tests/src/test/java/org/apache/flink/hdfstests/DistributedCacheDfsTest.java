@@ -23,11 +23,11 @@ import org.apache.flink.client.program.rest.RestClusterClient;
 import org.apache.flink.core.fs.FileStatus;
 import org.apache.flink.core.fs.FileSystem;
 import org.apache.flink.core.fs.Path;
-import org.apache.flink.runtime.jobgraph.JobGraph;
 import org.apache.flink.runtime.jobmaster.JobResult;
 import org.apache.flink.runtime.testutils.MiniClusterResourceConfiguration;
 import org.apache.flink.streaming.api.environment.StreamExecutionEnvironment;
 import org.apache.flink.streaming.api.functions.sink.v2.DiscardingSink;
+import org.apache.flink.streaming.api.graph.StreamGraph;
 import org.apache.flink.test.util.MiniClusterWithClientResource;
 import org.apache.flink.util.NetUtils;
 import org.apache.flink.util.TestLogger;
@@ -135,8 +135,8 @@ public class DistributedCacheDfsTest extends TestLogger {
 
     /**
      * All the Flink Standalone, Yarn, Kubernetes sessions are using {@link
-     * RestClusterClient#submitJob(JobGraph)} to submit a job to an existing session. This test will
-     * cover this cases.
+     * RestClusterClient#submitJob(StreamGraph)} to submit a job to an existing session. This test
+     * will cover this cases.
      */
     @Test
     public void testSubmittingJobViaRestClusterClient() throws Exception {
@@ -145,12 +145,11 @@ public class DistributedCacheDfsTest extends TestLogger {
                         MINI_CLUSTER_RESOURCE.getClientConfiguration(),
                         "testSubmittingJobViaRestClusterClient");
 
-        final JobGraph jobGraph =
-                createJobWithRegisteredCachedFiles().getStreamGraph().getJobGraph();
+        final StreamGraph streamGraph = createJobWithRegisteredCachedFiles().getStreamGraph();
 
         final JobResult jobResult =
                 restClusterClient
-                        .submitJob(jobGraph)
+                        .submitJob(streamGraph)
                         .thenCompose(restClusterClient::requestJobResult)
                         .get();
 

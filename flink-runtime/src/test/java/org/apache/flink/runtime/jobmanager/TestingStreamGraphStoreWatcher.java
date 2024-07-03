@@ -20,31 +20,30 @@ package org.apache.flink.runtime.jobmanager;
 
 import org.apache.flink.api.common.JobID;
 
-import java.util.ArrayList;
-import java.util.List;
+import static org.apache.flink.util.Preconditions.checkNotNull;
 
-/** {@link JobGraphStore.JobGraphListener} implementation for testing purposes. */
-public class TestingJobGraphListener implements JobGraphStore.JobGraphListener {
+/** {@link StreamGraphStoreWatcher} implementation for testing purposes. */
+public class TestingStreamGraphStoreWatcher implements StreamGraphStoreWatcher {
 
-    private final List<JobID> addedJobGraphs = new ArrayList<>();
-
-    private final List<JobID> removedJobGraphs = new ArrayList<>();
+    private StreamGraphStore.StreamGraphListener streamGraphListener;
 
     @Override
-    public void onAddedJobGraph(JobID jobId) {
-        addedJobGraphs.add(jobId);
+    public void start(StreamGraphStore.StreamGraphListener streamGraphListener) {
+        this.streamGraphListener = streamGraphListener;
     }
 
     @Override
-    public void onRemovedJobGraph(JobID jobId) {
-        removedJobGraphs.add(jobId);
+    public void stop() {
+        // noop
     }
 
-    public List<JobID> getAddedJobGraphs() {
-        return addedJobGraphs;
+    public void addStreamGraph(JobID jobID) {
+        checkNotNull(streamGraphListener, "TestingStreamGraphStoreWatcher is not started.");
+        streamGraphListener.onAddedStreamGraph(jobID);
     }
 
-    public List<JobID> getRemovedJobGraphs() {
-        return removedJobGraphs;
+    public void removeStreamGraph(JobID jobID) {
+        checkNotNull(streamGraphListener, "TestingStreamGraphStoreWatcher is not started.");
+        streamGraphListener.onRemovedStreamGraph(jobID);
     }
 }

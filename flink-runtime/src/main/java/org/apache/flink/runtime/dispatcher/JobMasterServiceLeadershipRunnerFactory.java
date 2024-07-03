@@ -61,7 +61,9 @@ public enum JobMasterServiceLeadershipRunnerFactory implements JobManagerRunnerF
             JobManagerJobMetricGroupFactory jobManagerJobMetricGroupFactory,
             FatalErrorHandler fatalErrorHandler,
             Collection<FailureEnricher> failureEnrichers,
-            long initializationTimestamp)
+            long initializationTimestamp,
+            LibraryCacheManager.ClassLoaderLease classLoaderLease,
+            ClassLoader userCodeClassLoader)
             throws Exception {
 
         checkArgument(jobGraph.getNumberOfVertices() > 0, "The given job is empty");
@@ -85,17 +87,6 @@ public enum JobMasterServiceLeadershipRunnerFactory implements JobManagerRunnerF
                             == JobManagerOptions.SchedulerType.Adaptive,
                     "Adaptive Scheduler is required for reactive mode");
         }
-
-        final LibraryCacheManager.ClassLoaderLease classLoaderLease =
-                jobManagerServices
-                        .getLibraryCacheManager()
-                        .registerClassLoaderLease(jobGraph.getJobID());
-
-        final ClassLoader userCodeClassLoader =
-                classLoaderLease
-                        .getOrResolveClassLoader(
-                                jobGraph.getUserJarBlobKeys(), jobGraph.getClasspaths())
-                        .asClassLoader();
 
         final DefaultJobMasterServiceFactory jobMasterServiceFactory =
                 new DefaultJobMasterServiceFactory(

@@ -42,7 +42,6 @@ import org.apache.flink.runtime.checkpoint.StandaloneCompletedCheckpointStore;
 import org.apache.flink.runtime.highavailability.HighAvailabilityServices;
 import org.apache.flink.runtime.highavailability.HighAvailabilityServicesFactory;
 import org.apache.flink.runtime.highavailability.nonha.embedded.EmbeddedHaServicesWithLeadershipControl;
-import org.apache.flink.runtime.jobgraph.JobGraph;
 import org.apache.flink.runtime.state.FunctionInitializationContext;
 import org.apache.flink.runtime.state.FunctionSnapshotContext;
 import org.apache.flink.runtime.state.KeyGroupRangeAssignment;
@@ -53,6 +52,7 @@ import org.apache.flink.streaming.api.datastream.DataStreamUtils;
 import org.apache.flink.streaming.api.environment.StreamExecutionEnvironment;
 import org.apache.flink.streaming.api.functions.sink.RichSinkFunction;
 import org.apache.flink.streaming.api.functions.source.RichParallelSourceFunction;
+import org.apache.flink.streaming.api.graph.StreamGraph;
 import org.apache.flink.test.util.MiniClusterWithClientResource;
 import org.apache.flink.util.TestLogger;
 
@@ -143,9 +143,9 @@ public class RegionFailoverITCase extends TestLogger {
     @Test(timeout = 60000)
     public void testMultiRegionFailover() {
         try {
-            JobGraph jobGraph = createJobGraph();
+            StreamGraph streamGraph = createStreamGraph();
             ClusterClient<?> client = cluster.getClusterClient();
-            submitJobAndWaitForResult(client, jobGraph, getClass().getClassLoader());
+            submitJobAndWaitForResult(client, streamGraph, getClass().getClassLoader());
             verifyAfterJobExecuted();
         } catch (Exception e) {
             e.printStackTrace();
@@ -167,7 +167,7 @@ public class RegionFailoverITCase extends TestLogger {
         assertEquals(NUM_ELEMENTS / 2, keyCount);
     }
 
-    private JobGraph createJobGraph() {
+    private StreamGraph createStreamGraph() {
 
         StreamExecutionEnvironment env = StreamExecutionEnvironment.getExecutionEnvironment();
         env.setParallelism(NUM_OF_REGIONS);
@@ -202,7 +202,7 @@ public class RegionFailoverITCase extends TestLogger {
                 .map((MapFunction<Tuple2<Integer, Integer>, Object>) value -> value)
                 .setParallelism(1);
 
-        return env.getStreamGraph().getJobGraph();
+        return env.getStreamGraph();
     }
 
     private static class StringGeneratingSourceFunction

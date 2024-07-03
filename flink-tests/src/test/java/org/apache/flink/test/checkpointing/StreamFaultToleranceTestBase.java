@@ -22,7 +22,6 @@ import org.apache.flink.api.common.restartstrategy.RestartStrategies;
 import org.apache.flink.changelog.fs.FsStateChangelogStorageFactory;
 import org.apache.flink.configuration.Configuration;
 import org.apache.flink.configuration.JobManagerOptions;
-import org.apache.flink.runtime.jobgraph.JobGraph;
 import org.apache.flink.runtime.testutils.MiniClusterResourceConfiguration;
 import org.apache.flink.streaming.api.environment.StreamExecutionEnvironment;
 import org.apache.flink.test.util.MiniClusterWithClientResource;
@@ -131,10 +130,11 @@ public abstract class StreamFaultToleranceTestBase extends TestLogger {
 
             testProgram(env);
 
-            JobGraph jobGraph = env.getStreamGraph().getJobGraph();
             try {
                 submitJobAndWaitForResult(
-                        cluster.getClusterClient(), jobGraph, getClass().getClassLoader());
+                        cluster.getClusterClient(),
+                        env.getStreamGraph(),
+                        getClass().getClassLoader());
             } catch (Exception e) {
                 Assert.assertTrue(
                         ExceptionUtils.findThrowable(e, SuccessException.class).isPresent());

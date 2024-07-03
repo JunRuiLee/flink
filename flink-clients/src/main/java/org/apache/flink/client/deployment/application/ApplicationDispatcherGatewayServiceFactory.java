@@ -30,10 +30,10 @@ import org.apache.flink.runtime.dispatcher.PartialDispatcherServicesWithJobPersi
 import org.apache.flink.runtime.dispatcher.runner.AbstractDispatcherLeaderProcess;
 import org.apache.flink.runtime.dispatcher.runner.DefaultDispatcherGatewayService;
 import org.apache.flink.runtime.highavailability.JobResultStore;
-import org.apache.flink.runtime.jobgraph.JobGraph;
-import org.apache.flink.runtime.jobmanager.JobGraphWriter;
+import org.apache.flink.runtime.jobmanager.StreamGraphWriter;
 import org.apache.flink.runtime.jobmaster.JobResult;
 import org.apache.flink.runtime.rpc.RpcService;
+import org.apache.flink.streaming.api.graph.StreamGraph;
 import org.apache.flink.util.FlinkRuntimeException;
 
 import java.util.Collection;
@@ -84,9 +84,9 @@ public class ApplicationDispatcherGatewayServiceFactory
     @Override
     public AbstractDispatcherLeaderProcess.DispatcherGatewayService create(
             DispatcherId fencingToken,
-            Collection<JobGraph> recoveredJobs,
+            Collection<StreamGraph> recoveredJobs,
             Collection<JobResult> recoveredDirtyJobResults,
-            JobGraphWriter jobGraphWriter,
+            StreamGraphWriter streamGraphWriter,
             JobResultStore jobResultStore) {
 
         final List<JobID> recoveredJobIds = getRecoveredJobIds(recoveredJobs);
@@ -108,7 +108,7 @@ public class ApplicationDispatcherGatewayServiceFactory
                                             scheduledExecutor,
                                             errorHandler),
                             PartialDispatcherServicesWithJobPersistenceComponents.from(
-                                    partialDispatcherServices, jobGraphWriter, jobResultStore));
+                                    partialDispatcherServices, streamGraphWriter, jobResultStore));
         } catch (Exception e) {
             throw new FlinkRuntimeException("Could not create the Dispatcher rpc endpoint.", e);
         }
@@ -118,7 +118,7 @@ public class ApplicationDispatcherGatewayServiceFactory
         return DefaultDispatcherGatewayService.from(dispatcher);
     }
 
-    private List<JobID> getRecoveredJobIds(final Collection<JobGraph> recoveredJobs) {
-        return recoveredJobs.stream().map(JobGraph::getJobID).collect(Collectors.toList());
+    private List<JobID> getRecoveredJobIds(final Collection<StreamGraph> recoveredJobs) {
+        return recoveredJobs.stream().map(StreamGraph::getJobId).collect(Collectors.toList());
     }
 }

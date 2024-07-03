@@ -16,29 +16,25 @@
  * limitations under the License.
  */
 
-package org.apache.flink.runtime.jobmanager;
+package org.apache.flink.runtime.dispatcher;
 
 import org.apache.flink.api.common.JobID;
+import org.apache.flink.runtime.jobgraph.JobResourceRequirements;
+import org.apache.flink.runtime.jobmanager.StreamGraphWriter;
+import org.apache.flink.streaming.api.graph.StreamGraph;
 
-/**
- * JobGraphStore utility interfaces. For example, convert a name(e.g. ZooKeeper path, key name in
- * Kubernetes ConfigMap) to {@link JobID}, or vice versa.
- */
-public interface JobGraphStoreUtil {
+/** Testing implementation of {@link StreamGraphWriter} which does nothing. */
+public enum NoOpStreamGraphWriter implements StreamGraphWriter {
+    INSTANCE;
 
-    /**
-     * Get the name in external storage from job id.
-     *
-     * @param jobId job id
-     * @return Key name in ConfigMap or child path name in ZooKeeper
-     */
-    String jobIDToName(JobID jobId);
+    @Override
+    public void putStreamGraph(StreamGraph streamGraph) {
+        // No-op.
+    }
 
-    /**
-     * Get the job id from name.
-     *
-     * @param name Key name in ConfigMap or child path name in ZooKeeper
-     * @return parsed job id.
-     */
-    JobID nameToJobID(String name);
+    @Override
+    public void putJobResourceRequirements(
+            JobID jobId, JobResourceRequirements jobResourceRequirements) {
+        // No-op.
+    }
 }

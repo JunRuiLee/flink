@@ -28,8 +28,8 @@ import org.apache.flink.configuration.Configuration;
 import org.apache.flink.configuration.CoreOptions;
 import org.apache.flink.configuration.PipelineOptions;
 import org.apache.flink.configuration.PipelineOptionsInternal;
-import org.apache.flink.runtime.jobgraph.JobGraph;
 import org.apache.flink.runtime.jobgraph.SavepointRestoreSettings;
+import org.apache.flink.streaming.api.graph.StreamGraph;
 import org.apache.flink.util.ChildFirstClassLoader;
 import org.apache.flink.util.FileUtils;
 import org.apache.flink.util.FlinkException;
@@ -187,7 +187,7 @@ class DefaultPackagedProgramRetrieverITCase {
     }
 
     @Test
-    void testJobGraphRetrieval() throws IOException, FlinkException, ProgramInvocationException {
+    void testStreamGraphRetrieval() throws Exception {
         final int parallelism = 42;
         final JobID jobId = new JobID();
 
@@ -203,22 +203,21 @@ class DefaultPackagedProgramRetrieverITCase {
                         ClasspathProviderExtension.parametersForTestJob(expectedSuffix),
                         new Configuration());
 
-        final JobGraph jobGraph = retrieveJobGraph(retriever, configuration);
+        final StreamGraph streamGraph = retrieveStreamGraph(retriever, configuration);
 
-        assertThat(jobGraph.getName())
+        assertThat(streamGraph.getJobName())
                 .isEqualTo(
                         testJobEntryClassClasspathProvider.getJobClassName()
                                 + "-"
                                 + expectedSuffix);
-        assertThat(jobGraph.getSavepointRestoreSettings())
+        assertThat(streamGraph.getSavepointRestoreSettings())
                 .isEqualTo(SavepointRestoreSettings.none());
-        assertThat(jobGraph.getMaximumParallelism()).isEqualTo(parallelism);
-        assertThat(jobGraph.getJobID()).isEqualTo(jobId);
+        assertThat(streamGraph.getMaximumParallelism()).isEqualTo(parallelism);
+        assertThat(streamGraph.getJobId()).isEqualTo(jobId);
     }
 
     @Test
-    void testJobGraphRetrievalFromJar()
-            throws IOException, FlinkException, ProgramInvocationException {
+    void testStreamGraphRetrievalFromJar() throws Exception {
         final String expectedSuffix = "suffix";
         final PackagedProgramRetriever retrieverUnderTest =
                 DefaultPackagedProgramRetriever.create(
@@ -228,9 +227,10 @@ class DefaultPackagedProgramRetrieverITCase {
                         ClasspathProviderExtension.parametersForTestJob(expectedSuffix),
                         new Configuration());
 
-        final JobGraph jobGraph = retrieveJobGraph(retrieverUnderTest, new Configuration());
+        final StreamGraph streamGraph =
+                retrieveStreamGraph(retrieverUnderTest, new Configuration());
 
-        assertThat(jobGraph.getName())
+        assertThat(streamGraph.getJobName())
                 .isEqualTo(
                         testJobEntryClassClasspathProvider.getJobClassName()
                                 + "-"
@@ -238,8 +238,7 @@ class DefaultPackagedProgramRetrieverITCase {
     }
 
     @Test
-    void testParameterConsiderationForMultipleJobsOnSystemClasspath()
-            throws IOException, FlinkException, ProgramInvocationException {
+    void testParameterConsiderationForMultipleJobsOnSystemClasspath() throws Exception {
         final String expectedSuffix = "suffix";
         final PackagedProgramRetriever retrieverUnderTest =
                 // Both a class name is specified and a JAR "is" on the class path
@@ -250,15 +249,15 @@ class DefaultPackagedProgramRetrieverITCase {
                         ClasspathProviderExtension.parametersForTestJob(expectedSuffix),
                         new Configuration());
 
-        final JobGraph jobGraph = retrieveJobGraph(retrieverUnderTest, new Configuration());
+        final StreamGraph streamGraph =
+                retrieveStreamGraph(retrieverUnderTest, new Configuration());
 
-        assertThat(jobGraph.getName())
+        assertThat(streamGraph.getJobName())
                 .isEqualTo(testJobEntryClassClasspathProvider.getJobClassName() + "-suffix");
     }
 
     @Test
-    void testSavepointRestoreSettings()
-            throws FlinkException, IOException, ProgramInvocationException {
+    void testSavepointRestoreSettings() throws Exception {
         final Configuration configuration = new Configuration();
         final SavepointRestoreSettings savepointRestoreSettings =
                 SavepointRestoreSettings.forPath("foobar", true);
@@ -275,10 +274,10 @@ class DefaultPackagedProgramRetrieverITCase {
                         ClasspathProviderExtension.parametersForTestJob(expectedSuffix),
                         new Configuration());
 
-        final JobGraph jobGraph = retrieveJobGraph(retrieverUnderTest, configuration);
+        final StreamGraph streamGraph = retrieveStreamGraph(retrieverUnderTest, configuration);
 
-        assertThat(jobGraph.getSavepointRestoreSettings()).isEqualTo(savepointRestoreSettings);
-        assertThat(jobGraph.getJobID()).isEqualTo(jobId);
+        assertThat(streamGraph.getSavepointRestoreSettings()).isEqualTo(savepointRestoreSettings);
+        assertThat(streamGraph.getJobId()).isEqualTo(jobId);
     }
 
     @Test
@@ -390,17 +389,19 @@ class DefaultPackagedProgramRetrieverITCase {
     }
 
     @Test
-    void testRetrieveCorrectUserClasspathsWithoutSpecifiedEntryClass()
-            throws IOException, FlinkException, ProgramInvocationException {
+    void testRetrieveCorrectUserClasspathsWithoutSpecifiedEntryClass() throws Exception {
         final PackagedProgramRetriever retrieverUnderTest =
                 DefaultPackagedProgramRetriever.create(
                         singleEntryClassClasspathProvider.getDirectory(),
                         null,
                         ClasspathProviderExtension.parametersForTestJob("suffix"),
                         new Configuration());
-        final JobGraph jobGraph = retrieveJobGraph(retrieverUnderTest, new Configuration());
+        final StreamGraph streamGraph =
+                retrieveStreamGraph(retrieverUnderTest, new Configuration());
         final List<String> actualClasspath =
-                jobGraph.getClasspaths().stream().map(URL::toString).collect(Collectors.toList());
+                streamGraph.getClasspaths().stream()
+                        .map(URL::toString)
+                        .collect(Collectors.toList());
 
         final List<String> expectedClasspath =
                 extractRelativizedURLsForJarsFromDirectory(
@@ -410,17 +411,19 @@ class DefaultPackagedProgramRetrieverITCase {
     }
 
     @Test
-    void testRetrieveCorrectUserClasspathsWithSpecifiedEntryClass()
-            throws IOException, FlinkException, ProgramInvocationException {
+    void testRetrieveCorrectUserClasspathsWithSpecifiedEntryClass() throws Exception {
         final PackagedProgramRetriever retrieverUnderTest =
                 DefaultPackagedProgramRetriever.create(
                         singleEntryClassClasspathProvider.getDirectory(),
                         singleEntryClassClasspathProvider.getJobClassName(),
                         ClasspathProviderExtension.parametersForTestJob("suffix"),
                         new Configuration());
-        final JobGraph jobGraph = retrieveJobGraph(retrieverUnderTest, new Configuration());
+        final StreamGraph streamGraph =
+                retrieveStreamGraph(retrieverUnderTest, new Configuration());
         final List<String> actualClasspath =
-                jobGraph.getClasspaths().stream().map(URL::toString).collect(Collectors.toList());
+                streamGraph.getClasspaths().stream()
+                        .map(URL::toString)
+                        .collect(Collectors.toList());
 
         final List<String> expectedClasspath =
                 extractRelativizedURLsForJarsFromDirectory(
@@ -446,13 +449,13 @@ class DefaultPackagedProgramRetrieverITCase {
                         singleEntryClassClasspathProvider.getJobClassName(),
                         ClasspathProviderExtension.parametersForTestJob("suffix"),
                         configuration);
-        final JobGraph jobGraph = retrieveJobGraph(retrieverUnderTest, new Configuration());
-        assertThat(jobGraph.getClasspaths()).isEqualTo(expectedMergedURLs);
+        final StreamGraph streamGraph =
+                retrieveStreamGraph(retrieverUnderTest, new Configuration());
+        assertThat(streamGraph.getClasspaths()).isEqualTo(expectedMergedURLs);
     }
 
     @Test
-    void testRetrieveFromJarFileWithoutUserLib()
-            throws IOException, FlinkException, ProgramInvocationException {
+    void testRetrieveFromJarFileWithoutUserLib() throws Exception {
         final PackagedProgramRetriever retrieverUnderTest =
                 DefaultPackagedProgramRetriever.create(
                         null,
@@ -460,18 +463,18 @@ class DefaultPackagedProgramRetrieverITCase {
                         null,
                         ClasspathProviderExtension.parametersForTestJob("suffix"),
                         new Configuration());
-        final JobGraph jobGraph = retrieveJobGraph(retrieverUnderTest, new Configuration());
+        final StreamGraph streamGraph =
+                retrieveStreamGraph(retrieverUnderTest, new Configuration());
 
-        assertThat(jobGraph.getUserJars())
+        assertThat(streamGraph.getUserJars())
                 .contains(
                         new org.apache.flink.core.fs.Path(
                                 testJobEntryClassClasspathProvider.getJobJar().toURI()));
-        assertThat(jobGraph.getClasspaths()).isEmpty();
+        assertThat(streamGraph.getClasspaths()).isEmpty();
     }
 
     @Test
-    void testRetrieveFromJarFileWithUserLib()
-            throws IOException, FlinkException, ProgramInvocationException {
+    void testRetrieveFromJarFileWithUserLib() throws Exception {
         final PackagedProgramRetriever retrieverUnderTest =
                 DefaultPackagedProgramRetriever.create(
                         singleEntryClassClasspathProvider.getDirectory(),
@@ -480,14 +483,17 @@ class DefaultPackagedProgramRetrieverITCase {
                         null,
                         ClasspathProviderExtension.parametersForTestJob("suffix"),
                         new Configuration());
-        final JobGraph jobGraph = retrieveJobGraph(retrieverUnderTest, new Configuration());
+        final StreamGraph streamGraph =
+                retrieveStreamGraph(retrieverUnderTest, new Configuration());
 
-        assertThat(jobGraph.getUserJars())
+        assertThat(streamGraph.getUserJars())
                 .contains(
                         new org.apache.flink.core.fs.Path(
                                 testJobEntryClassClasspathProvider.getJobJar().toURI()));
         final List<String> actualClasspath =
-                jobGraph.getClasspaths().stream().map(URL::toString).collect(Collectors.toList());
+                streamGraph.getClasspaths().stream()
+                        .map(URL::toString)
+                        .collect(Collectors.toList());
         final List<String> expectedClasspath =
                 extractRelativizedURLsForJarsFromDirectory(
                         singleEntryClassClasspathProvider.getDirectory());
@@ -496,8 +502,7 @@ class DefaultPackagedProgramRetrieverITCase {
     }
 
     @Test
-    void testRetrieveFromJarFileWithNonRootUserLib()
-            throws IOException, FlinkException, ProgramInvocationException {
+    void testRetrieveFromJarFileWithNonRootUserLib() throws Exception {
         final PackagedProgramRetriever retrieverUnderTest =
                 DefaultPackagedProgramRetriever.create(
                         singleEntryClassClasspathProvider.getDirectory().getParentFile(),
@@ -507,14 +512,17 @@ class DefaultPackagedProgramRetrieverITCase {
                         null,
                         ClasspathProviderExtension.parametersForTestJob("suffix"),
                         new Configuration());
-        final JobGraph jobGraph = retrieveJobGraph(retrieverUnderTest, new Configuration());
+        final StreamGraph streamGraph =
+                retrieveStreamGraph(retrieverUnderTest, new Configuration());
 
-        assertThat(jobGraph.getUserJars())
+        assertThat(streamGraph.getUserJars())
                 .contains(
                         new org.apache.flink.core.fs.Path(
                                 testJobEntryClassClasspathProvider.getJobJar().toURI()));
         final List<String> actualClasspath =
-                jobGraph.getClasspaths().stream().map(URL::toString).collect(Collectors.toList());
+                streamGraph.getClasspaths().stream()
+                        .map(URL::toString)
+                        .collect(Collectors.toList());
         final List<String> expectedClasspath =
                 extractRelativizedURLsForJarsFromDirectory(
                         singleEntryClassClasspathProvider.getDirectory());
@@ -523,8 +531,7 @@ class DefaultPackagedProgramRetrieverITCase {
     }
 
     @Test
-    void testRetrieveFromJarFileWithArtifacts()
-            throws IOException, FlinkException, ProgramInvocationException {
+    void testRetrieveFromJarFileWithArtifacts() throws Exception {
         final PackagedProgramRetriever retrieverUnderTest =
                 DefaultPackagedProgramRetriever.create(
                         null,
@@ -535,14 +542,17 @@ class DefaultPackagedProgramRetrieverITCase {
                         null,
                         ClasspathProviderExtension.parametersForTestJob("suffix"),
                         new Configuration());
-        final JobGraph jobGraph = retrieveJobGraph(retrieverUnderTest, new Configuration());
+        final StreamGraph streamGraph =
+                retrieveStreamGraph(retrieverUnderTest, new Configuration());
 
-        assertThat(jobGraph.getUserJars())
+        assertThat(streamGraph.getUserJars())
                 .contains(
                         new org.apache.flink.core.fs.Path(
                                 testJobEntryClassClasspathProvider.getJobJar().toURI()));
         final List<String> actualClasspath =
-                jobGraph.getClasspaths().stream().map(URL::toString).collect(Collectors.toList());
+                streamGraph.getClasspaths().stream()
+                        .map(URL::toString)
+                        .collect(Collectors.toList());
         final List<String> expectedClasspath =
                 extractRelativizedURLsForJarsFromDirectory(
                         additionalArtifactClasspathProvider.getDirectory());
@@ -551,8 +561,7 @@ class DefaultPackagedProgramRetrieverITCase {
     }
 
     @Test
-    void testRetrieveFromJarFileWithUserAndArtifactLib()
-            throws IOException, FlinkException, ProgramInvocationException {
+    void testRetrieveFromJarFileWithUserAndArtifactLib() throws Exception {
         final PackagedProgramRetriever retrieverUnderTest =
                 DefaultPackagedProgramRetriever.create(
                         singleEntryClassClasspathProvider.getDirectory(),
@@ -563,14 +572,17 @@ class DefaultPackagedProgramRetrieverITCase {
                         null,
                         ClasspathProviderExtension.parametersForTestJob("suffix"),
                         new Configuration());
-        final JobGraph jobGraph = retrieveJobGraph(retrieverUnderTest, new Configuration());
+        final StreamGraph streamGraph =
+                retrieveStreamGraph(retrieverUnderTest, new Configuration());
 
-        assertThat(jobGraph.getUserJars())
+        assertThat(streamGraph.getUserJars())
                 .contains(
                         new org.apache.flink.core.fs.Path(
                                 testJobEntryClassClasspathProvider.getJobJar().toURI()));
         final List<String> actualClasspath =
-                jobGraph.getClasspaths().stream().map(URL::toString).collect(Collectors.toList());
+                streamGraph.getClasspaths().stream()
+                        .map(URL::toString)
+                        .collect(Collectors.toList());
         final List<String> expectedClasspath = new ArrayList<>();
         expectedClasspath.addAll(
                 extractRelativizedURLsForJarsFromDirectory(
@@ -583,8 +595,7 @@ class DefaultPackagedProgramRetrieverITCase {
     }
 
     @Test
-    void testRetrieveFromArtifactLibWithoutJarFile()
-            throws IOException, FlinkException, ProgramInvocationException {
+    void testRetrieveFromArtifactLibWithoutJarFile() throws Exception {
         final PackagedProgramRetriever retrieverUnderTest =
                 DefaultPackagedProgramRetriever.create(
                         null,
@@ -594,10 +605,13 @@ class DefaultPackagedProgramRetrieverITCase {
                         multipleEntryClassesClasspathProvider.getJobClassName(),
                         ClasspathProviderExtension.parametersForTestJob("suffix"),
                         new Configuration());
-        final JobGraph jobGraph = retrieveJobGraph(retrieverUnderTest, new Configuration());
+        final StreamGraph streamGraph =
+                retrieveStreamGraph(retrieverUnderTest, new Configuration());
 
         final List<String> actualClasspath =
-                jobGraph.getClasspaths().stream().map(URL::toString).collect(Collectors.toList());
+                streamGraph.getClasspaths().stream()
+                        .map(URL::toString)
+                        .collect(Collectors.toList());
         final List<String> expectedClasspath =
                 extractRelativizedURLsForJarsFromDirectory(
                         multipleEntryClassesClasspathProvider.getDirectory());
@@ -650,9 +664,9 @@ class DefaultPackagedProgramRetrieverITCase {
                 .isInstanceOf(FlinkUserCodeClassLoaders.ParentFirstClassLoader.class);
     }
 
-    private JobGraph retrieveJobGraph(
+    private StreamGraph retrieveStreamGraph(
             PackagedProgramRetriever retrieverUnderTest, Configuration configuration)
-            throws FlinkException, ProgramInvocationException, MalformedURLException {
+            throws Exception {
         final PackagedProgram packagedProgram = retrieverUnderTest.getPackagedProgram();
 
         final int defaultParallelism = configuration.get(CoreOptions.DEFAULT_PARALLELISM);
@@ -670,8 +684,7 @@ class DefaultPackagedProgramRetrieverITCase {
         final Pipeline pipeline =
                 PackagedProgramUtils.getPipelineFromProgram(
                         packagedProgram, configuration, defaultParallelism, false);
-        return PipelineExecutorUtils.getJobGraph(
-                pipeline, configuration, packagedProgram.getUserCodeClassLoader());
+        return PipelineExecutorUtils.getStreamGraph(pipeline, configuration);
     }
 
     private static List<String> extractRelativizedURLsForJarsFromDirectory(File directory)

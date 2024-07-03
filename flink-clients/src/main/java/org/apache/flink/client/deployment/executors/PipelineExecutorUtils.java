@@ -20,19 +20,23 @@ package org.apache.flink.client.deployment.executors;
 
 import org.apache.flink.api.common.JobID;
 import org.apache.flink.api.dag.Pipeline;
-import org.apache.flink.client.FlinkPipelineTranslationUtil;
 import org.apache.flink.client.cli.ClientOptions;
 import org.apache.flink.client.cli.ExecutionConfigAccessor;
 import org.apache.flink.configuration.Configuration;
 import org.apache.flink.configuration.DeploymentOptions;
 import org.apache.flink.configuration.PipelineOptionsInternal;
 import org.apache.flink.runtime.jobgraph.JobGraph;
+import org.apache.flink.runtime.util.Hardware;
+import org.apache.flink.streaming.api.graph.StreamGraph;
+import org.apache.flink.util.concurrent.ExecutorThreadFactory;
 
 import javax.annotation.Nonnull;
 
-import java.net.MalformedURLException;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
 
 import static org.apache.flink.util.Preconditions.checkNotNull;
+import static org.apache.flink.util.Preconditions.checkState;
 
 /** Utility class with method related to job execution. */
 public class PipelineExecutorUtils {
@@ -44,40 +48,48 @@ public class PipelineExecutorUtils {
      * @param configuration the configuration with the necessary information such as jars and
      *     classpaths to be included, the parallelism of the job and potential savepoint settings
      *     used to bootstrap its state.
-     * @param userClassloader the classloader which can load user classes.
      * @return the corresponding {@link JobGraph}.
      */
-    public static JobGraph getJobGraph(
-            @Nonnull final Pipeline pipeline,
-            @Nonnull final Configuration configuration,
-            @Nonnull ClassLoader userClassloader)
-            throws MalformedURLException {
+    public static StreamGraph getStreamGraph(
+            @Nonnull final Pipeline pipeline, @Nonnull final Configuration configuration)
+            throws Exception {
         checkNotNull(pipeline);
         checkNotNull(configuration);
+        checkState(pipeline instanceof StreamGraph);
+
+        StreamGraph streamGraph = (StreamGraph) pipeline;
 
         final ExecutionConfigAccessor executionConfigAccessor =
                 ExecutionConfigAccessor.fromConfiguration(configuration);
-        final JobGraph jobGraph =
-                FlinkPipelineTranslationUtil.getJobGraph(
-                        userClassloader,
-                        pipeline,
-                        configuration,
-                        executionConfigAccessor.getParallelism());
 
         configuration
                 .getOptional(PipelineOptionsInternal.PIPELINE_FIXED_JOB_ID)
-                .ifPresent(strJobID -> jobGraph.setJobID(JobID.fromHexString(strJobID)));
+                .ifPresent(strJobID -> streamGraph.setJobId(JobID.fromHexString(strJobID)));
 
         if (configuration.get(DeploymentOptions.ATTACHED)
                 && configuration.get(DeploymentOptions.SHUTDOWN_IF_ATTACHED)) {
-            jobGraph.setInitialClientHeartbeatTimeout(
+            streamGraph.setInitialClientHeartbeatTimeout(
                     configuration.get(ClientOptions.CLIENT_HEARTBEAT_TIMEOUT).toMillis());
         }
 
-        jobGraph.addJars(executionConfigAccessor.getJars());
-        jobGraph.setClasspaths(executionConfigAccessor.getClasspaths());
-        jobGraph.setSavepointRestoreSettings(executionConfigAccessor.getSavepointRestoreSettings());
+        streamGraph.addJars(executionConfigAccessor.getJars());
+        streamGraph.setClasspaths(executionConfigAccessor.getClasspaths());
+        streamGraph.setSavepointRestoreSettings(
+                executionConfigAccessor.getSavepointRestoreSettings());
 
-        return jobGraph;
+        final ExecutorService serializationExecutor =
+                Executors.newFixedThreadPool(
+                        Math.max(
+                                1,
+                                Math.min(
+                                        Hardware.getNumberCPUCores(),
+                                        streamGraph.getExecutionConfig().getParallelism())),
+                        new ExecutorThreadFactory("flink-operator-serialization-io"));
+        try {
+            streamGraph.serializeAllNodesToConfig(serializationExecutor);
+            return streamGraph;
+        } finally {
+            serializationExecutor.shutdown();
+        }
     }
 }

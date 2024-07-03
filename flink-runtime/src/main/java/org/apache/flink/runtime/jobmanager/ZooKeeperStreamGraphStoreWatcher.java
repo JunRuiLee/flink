@@ -32,7 +32,7 @@ import org.slf4j.LoggerFactory;
 import static org.apache.flink.util.Preconditions.checkNotNull;
 
 /**
- * {@link JobGraphStoreWatcher} implementation for ZooKeeper.
+ * {@link StreamGraphStoreWatcher} implementation for ZooKeeper.
  *
  * <p>Each job graph creates ZNode:
  *
@@ -46,11 +46,12 @@ import static org.apache.flink.util.Preconditions.checkNotNull;
  *
  * <p>The root path is watched to detect concurrent modifications in corner situations where
  * multiple instances operate concurrently. The job manager acts as a {@link
- * JobGraphStore.JobGraphListener} to react to such situations.
+ * StreamGraphStore.StreamGraphListener} to react to such situations.
  */
-public class ZooKeeperJobGraphStoreWatcher implements JobGraphStoreWatcher {
+public class ZooKeeperStreamGraphStoreWatcher implements StreamGraphStoreWatcher {
 
-    private static final Logger LOG = LoggerFactory.getLogger(ZooKeeperJobGraphStoreWatcher.class);
+    private static final Logger LOG =
+            LoggerFactory.getLogger(ZooKeeperStreamGraphStoreWatcher.class);
 
     /**
      * Cache to monitor all children. This is used to detect races with other instances working on
@@ -58,19 +59,19 @@ public class ZooKeeperJobGraphStoreWatcher implements JobGraphStoreWatcher {
      */
     private final PathChildrenCache pathCache;
 
-    private JobGraphStore.JobGraphListener jobGraphListener;
+    private StreamGraphStore.StreamGraphListener streamGraphListener;
 
     private volatile boolean running;
 
-    public ZooKeeperJobGraphStoreWatcher(PathChildrenCache pathCache) {
+    public ZooKeeperStreamGraphStoreWatcher(PathChildrenCache pathCache) {
         this.pathCache = checkNotNull(pathCache);
         this.pathCache.getListenable().addListener(new JobGraphsPathCacheListener());
         running = false;
     }
 
     @Override
-    public void start(JobGraphStore.JobGraphListener jobGraphListener) throws Exception {
-        this.jobGraphListener = checkNotNull(jobGraphListener);
+    public void start(StreamGraphStore.StreamGraphListener streamGraphListener) throws Exception {
+        this.streamGraphListener = checkNotNull(streamGraphListener);
         running = true;
         pathCache.start();
     }
@@ -82,7 +83,7 @@ public class ZooKeeperJobGraphStoreWatcher implements JobGraphStoreWatcher {
         }
         running = false;
 
-        LOG.info("Stopping ZooKeeperJobGraphStoreWatcher ");
+        LOG.info("Stopping ZooKeeperStreamGraphStoreWatcher ");
         pathCache.close();
     }
 
@@ -115,7 +116,7 @@ public class ZooKeeperJobGraphStoreWatcher implements JobGraphStoreWatcher {
 
                         LOG.debug("Received CHILD_ADDED event notification for job {}", jobId);
 
-                        jobGraphListener.onAddedJobGraph(jobId);
+                        streamGraphListener.onAddedStreamGraph(jobId);
                     }
                     break;
 
@@ -131,7 +132,7 @@ public class ZooKeeperJobGraphStoreWatcher implements JobGraphStoreWatcher {
 
                         LOG.debug("Received CHILD_REMOVED event notification for job {}", jobId);
 
-                        jobGraphListener.onRemovedJobGraph(jobId);
+                        streamGraphListener.onRemovedStreamGraph(jobId);
                     }
                     break;
 

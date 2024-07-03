@@ -23,7 +23,7 @@ import org.apache.flink.runtime.blob.BlobStore;
 import org.apache.flink.runtime.blob.VoidBlobStore;
 import org.apache.flink.runtime.checkpoint.CheckpointRecoveryFactory;
 import org.apache.flink.runtime.highavailability.nonha.embedded.EmbeddedJobResultStore;
-import org.apache.flink.runtime.jobmanager.JobGraphStore;
+import org.apache.flink.runtime.jobmanager.StreamGraphStore;
 import org.apache.flink.runtime.leaderelection.LeaderElection;
 import org.apache.flink.runtime.leaderretrieval.LeaderRetrievalService;
 import org.apache.flink.util.concurrent.FutureUtils;
@@ -66,7 +66,7 @@ public class TestingHighAvailabilityServices implements HighAvailabilityServices
 
     private volatile CheckpointRecoveryFactory checkpointRecoveryFactory;
 
-    private volatile JobGraphStore jobGraphStore;
+    private volatile StreamGraphStore streamGraphStore;
 
     private volatile JobResultStore jobResultStore = new EmbeddedJobResultStore();
 
@@ -120,8 +120,8 @@ public class TestingHighAvailabilityServices implements HighAvailabilityServices
         this.checkpointRecoveryFactory = checkpointRecoveryFactory;
     }
 
-    public void setJobGraphStore(JobGraphStore jobGraphStore) {
-        this.jobGraphStore = jobGraphStore;
+    public void setStreamGraphStore(StreamGraphStore streamGraphStore) {
+        this.streamGraphStore = streamGraphStore;
     }
 
     public void setJobResultStore(JobResultStore jobResultStore) {
@@ -249,13 +249,13 @@ public class TestingHighAvailabilityServices implements HighAvailabilityServices
     }
 
     @Override
-    public JobGraphStore getJobGraphStore() {
-        JobGraphStore store = jobGraphStore;
+    public StreamGraphStore getStreamGraphStore() {
+        StreamGraphStore store = streamGraphStore;
 
         if (store != null) {
             return store;
         } else {
-            throw new IllegalStateException("JobGraphStore has not been set");
+            throw new IllegalStateException("StreamGraphStore has not been set");
         }
     }
 

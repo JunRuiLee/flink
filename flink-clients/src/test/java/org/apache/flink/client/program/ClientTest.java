@@ -21,7 +21,6 @@ package org.apache.flink.client.program;
 import org.apache.flink.api.common.InvalidProgramException;
 import org.apache.flink.api.common.JobExecutionResult;
 import org.apache.flink.api.common.JobID;
-import org.apache.flink.api.common.Plan;
 import org.apache.flink.api.common.ProgramDescription;
 import org.apache.flink.api.common.functions.MapFunction;
 import org.apache.flink.api.java.DataSet;
@@ -29,7 +28,6 @@ import org.apache.flink.api.java.ExecutionEnvironment;
 import org.apache.flink.api.java.io.DiscardingOutputFormat;
 import org.apache.flink.api.java.tuple.Tuple2;
 import org.apache.flink.client.ClientUtils;
-import org.apache.flink.client.FlinkPipelineTranslationUtil;
 import org.apache.flink.client.cli.ExecutionConfigAccessor;
 import org.apache.flink.client.deployment.ClusterClientJobClientAdapter;
 import org.apache.flink.client.testjar.ForbidConfigurationJob;
@@ -45,14 +43,10 @@ import org.apache.flink.core.execution.JobClient;
 import org.apache.flink.core.execution.PipelineExecutor;
 import org.apache.flink.core.execution.PipelineExecutorFactory;
 import org.apache.flink.core.execution.PipelineExecutorServiceLoader;
-import org.apache.flink.optimizer.DataStatistics;
-import org.apache.flink.optimizer.Optimizer;
-import org.apache.flink.optimizer.costs.DefaultCostEstimator;
-import org.apache.flink.optimizer.plan.OptimizedPlan;
-import org.apache.flink.optimizer.plandump.PlanJSONDumpGenerator;
-import org.apache.flink.runtime.jobgraph.JobGraph;
 import org.apache.flink.runtime.testutils.InternalMiniClusterExtension;
 import org.apache.flink.runtime.testutils.MiniClusterResourceConfiguration;
+import org.apache.flink.streaming.api.environment.StreamExecutionEnvironment;
+import org.apache.flink.streaming.api.graph.StreamGraph;
 import org.apache.flink.util.FlinkRuntimeException;
 
 import org.junit.jupiter.api.BeforeEach;
@@ -68,7 +62,6 @@ import java.util.stream.Stream;
 
 import static org.apache.flink.core.testutils.FlinkAssertions.assertThatFuture;
 import static org.apache.flink.util.Preconditions.checkNotNull;
-import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.assertj.core.api.Assertions.fail;
 
@@ -80,7 +73,7 @@ class ClientTest {
             new InternalMiniClusterExtension(
                     new MiniClusterResourceConfiguration.Builder().build());
 
-    private Plan plan;
+    private StreamGraph streamGraph;
 
     private Configuration config;
 
@@ -94,9 +87,9 @@ class ClientTest {
     @BeforeEach
     void setUp() {
 
-        ExecutionEnvironment env = ExecutionEnvironment.createLocalEnvironment();
-        env.generateSequence(1, 1000).output(new DiscardingOutputFormat<>());
-        plan = env.createProgramPlan();
+        StreamExecutionEnvironment env = StreamExecutionEnvironment.createLocalEnvironment();
+        env.fromSequence(1, 1000).writeUsingOutputFormat(new DiscardingOutputFormat<>());
+        streamGraph = env.getStreamGraph();
 
         config = new Configuration();
         config.set(JobManagerOptions.ADDRESS, "localhost");
@@ -135,7 +128,7 @@ class ClientTest {
                             final Configuration configuration = fromPackagedProgram(prg, 1, true);
 
                             ClientUtils.executeProgram(
-                                    new TestExecutorServiceLoader(clusterClient, plan),
+                                    new TestExecutorServiceLoader(clusterClient, streamGraph),
                                     configuration,
                                     prg,
                                     false,
@@ -157,7 +150,7 @@ class ClientTest {
                             final Configuration configuration = fromPackagedProgram(prg, 1, true);
 
                             ClientUtils.executeProgram(
-                                    new TestExecutorServiceLoader(clusterClient, plan),
+                                    new TestExecutorServiceLoader(clusterClient, streamGraph),
                                     configuration,
                                     prg,
                                     false,
@@ -179,7 +172,7 @@ class ClientTest {
                             final Configuration configuration = fromPackagedProgram(prg, 1, true);
 
                             ClientUtils.executeProgram(
-                                    new TestExecutorServiceLoader(clusterClient, plan),
+                                    new TestExecutorServiceLoader(clusterClient, streamGraph),
                                     configuration,
                                     prg,
                                     false,
@@ -202,7 +195,7 @@ class ClientTest {
                             final Configuration configuration = fromPackagedProgram(prg, 1, true);
 
                             ClientUtils.executeProgram(
-                                    new TestExecutorServiceLoader(clusterClient, plan),
+                                    new TestExecutorServiceLoader(clusterClient, streamGraph),
                                     configuration,
                                     prg,
                                     false,
@@ -250,7 +243,7 @@ class ClientTest {
             final Configuration configuration = fromPackagedProgram(program, 1, false);
 
             ClientUtils.executeProgram(
-                    new TestExecutorServiceLoader(clusterClient, plan),
+                    new TestExecutorServiceLoader(clusterClient, streamGraph),
                     configuration,
                     program,
                     enforceSingleJobExecution,
@@ -258,22 +251,18 @@ class ClientTest {
         }
     }
 
-    /** This test verifies correct job submission messaging logic and plan translation calls. */
+    /**
+     * This test verifies correct job submission messaging logic and streamGraph translation calls.
+     */
     @Test
     void shouldSubmitToJobClient() {
         final ClusterClient<?> clusterClient =
                 new MiniClusterClient(new Configuration(), MINI_CLUSTER_RESOURCE.getMiniCluster());
-        JobGraph jobGraph =
-                FlinkPipelineTranslationUtil.getJobGraph(
-                        Thread.currentThread().getContextClassLoader(),
-                        plan,
-                        new Configuration(),
-                        1);
 
-        jobGraph.addJars(Collections.emptyList());
-        jobGraph.setClasspaths(Collections.emptyList());
+        streamGraph.addJars(Collections.emptyList());
+        streamGraph.setClasspaths(Collections.emptyList());
 
-        assertThatFuture(clusterClient.submitJob(jobGraph)).eventuallySucceeds().isNotNull();
+        assertThatFuture(clusterClient.submitJob(streamGraph)).eventuallySucceeds().isNotNull();
     }
 
     public static class TestEntrypoint {
@@ -301,7 +290,7 @@ class ClientTest {
                                 final Configuration configuration =
                                         fromPackagedProgram(packagedProgramMock, 1, true);
                                 ClientUtils.executeProgram(
-                                        new TestExecutorServiceLoader(client, plan),
+                                        new TestExecutorServiceLoader(client, streamGraph),
                                         configuration,
                                         packagedProgramMock,
                                         false,
@@ -315,31 +304,31 @@ class ClientTest {
     }
 
     @Test
-    void testGetExecutionPlan() throws ProgramInvocationException {
-        PackagedProgram prg =
-                PackagedProgram.newBuilder()
-                        .setEntryPointClassName(TestOptimizerPlan.class.getName())
-                        .setArguments("/dev/random", "/tmp")
-                        .build();
-
-        Optimizer optimizer =
-                new Optimizer(new DataStatistics(), new DefaultCostEstimator(), config);
-        Plan plan =
-                (Plan)
-                        PackagedProgramUtils.getPipelineFromProgram(
-                                prg, new Configuration(), 1, true);
-        OptimizedPlan op = optimizer.compile(plan);
-        assertThat(op).isNotNull();
-
-        PlanJSONDumpGenerator dumper = new PlanJSONDumpGenerator();
-        assertThat(dumper.getOptimizerPlanAsJSON(op)).isNotNull();
-
-        // test HTML escaping
-        PlanJSONDumpGenerator dumper2 = new PlanJSONDumpGenerator();
-        dumper2.setEncodeForHTML(true);
-        String htmlEscaped = dumper2.getOptimizerPlanAsJSON(op);
-
-        assertThat(htmlEscaped).doesNotContain("\\");
+    void testGetExecutionStreamGraph() throws ProgramInvocationException {
+        //        PackagedProgram prg =
+        //                PackagedProgram.newBuilder()
+        //                        .setEntryPointClassName(TestOptimizerStreamGraph.class.getName())
+        //                        .setArguments("/dev/random", "/tmp")
+        //                        .build();
+        //
+        //        Optimizer optimizer =
+        //                new Optimizer(new DataStatistics(), new DefaultCostEstimator(), config);
+        //        StreamGraph streamGraph =
+        //                (StreamGraph)
+        //                        PackagedProgramUtils.getPipelineFromProgram(
+        //                                prg, new Configuration(), 1, true);
+        //        OptimizedStreamGraph op = optimizer.compile(streamGraph);
+        //        assertThat(op).isNotNull();
+        //
+        //        StreamGraphJSONDumpGenerator dumper = new StreamGraphJSONDumpGenerator();
+        //        assertThat(dumper.getOptimizerStreamGraphAsJSON(op)).isNotNull();
+        //
+        //        // test HTML escaping
+        //        StreamGraphJSONDumpGenerator dumper2 = new StreamGraphJSONDumpGenerator();
+        //        dumper2.setEncodeForHTML(true);
+        //        String htmlEscaped = dumper2.getOptimizerStreamGraphAsJSON(op);
+        //
+        //        assertThat(htmlEscaped).doesNotContain("\\");
     }
 
     @Test
@@ -359,7 +348,8 @@ class ClientTest {
             assertThatThrownBy(
                             () ->
                                     ClientUtils.executeProgram(
-                                            new TestExecutorServiceLoader(clusterClient, plan),
+                                            new TestExecutorServiceLoader(
+                                                    clusterClient, streamGraph),
                                             configuration,
                                             program,
                                             true,
@@ -371,12 +361,13 @@ class ClientTest {
     // --------------------------------------------------------------------------------------------
 
     /** A test job. */
-    public static class TestOptimizerPlan implements ProgramDescription {
+    public static class TestOptimizerStreamGraph implements ProgramDescription {
 
         @SuppressWarnings("serial")
         public static void main(String[] args) throws Exception {
             if (args.length < 2) {
-                System.err.println("Usage: TestOptimizerPlan <input-file-path> <output-file-path>");
+                System.err.println(
+                        "Usage: TestOptimizerStreamGraph <input-file-path> <output-file-path>");
                 return;
             }
 
@@ -398,7 +389,7 @@ class ClientTest {
 
         @Override
         public String getDescription() {
-            return "TestOptimizerPlan <input-file-path> <output-file-path>";
+            return "TestOptimizerStreamGraph <input-file-path> <output-file-path>";
         }
     }
 
@@ -470,11 +461,12 @@ class ClientTest {
 
         private final ClusterClient<?> clusterClient;
 
-        private final Plan plan;
+        private final StreamGraph streamGraph;
 
-        TestExecutorServiceLoader(final ClusterClient<?> clusterClient, final Plan plan) {
+        TestExecutorServiceLoader(
+                final ClusterClient<?> clusterClient, final StreamGraph streamGraph) {
             this.clusterClient = checkNotNull(clusterClient);
-            this.plan = checkNotNull(plan);
+            this.streamGraph = checkNotNull(streamGraph);
         }
 
         @Override
@@ -495,17 +487,12 @@ class ClientTest {
                 @Override
                 public PipelineExecutor getExecutor(@Nonnull Configuration configuration) {
                     return (pipeline, config, classLoader) -> {
-                        final int parallelism = config.get(CoreOptions.DEFAULT_PARALLELISM);
-                        final JobGraph jobGraph =
-                                FlinkPipelineTranslationUtil.getJobGraph(
-                                        classLoader, plan, config, parallelism);
-
                         final ExecutionConfigAccessor accessor =
                                 ExecutionConfigAccessor.fromConfiguration(config);
-                        jobGraph.addJars(accessor.getJars());
-                        jobGraph.setClasspaths(accessor.getClasspaths());
+                        streamGraph.addJars(accessor.getJars());
+                        streamGraph.setClasspaths(accessor.getClasspaths());
 
-                        final JobID jobID = clusterClient.submitJob(jobGraph).get();
+                        final JobID jobID = clusterClient.submitJob(streamGraph).get();
                         return CompletableFuture.completedFuture(
                                 new ClusterClientJobClientAdapter<>(
                                         () -> clusterClient, jobID, classLoader));

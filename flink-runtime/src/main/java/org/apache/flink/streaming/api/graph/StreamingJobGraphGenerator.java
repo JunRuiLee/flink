@@ -22,22 +22,16 @@ import org.apache.flink.annotation.VisibleForTesting;
 import org.apache.flink.api.common.ExecutionConfig;
 import org.apache.flink.api.common.JobID;
 import org.apache.flink.api.common.RuntimeExecutionMode;
-import org.apache.flink.api.common.cache.DistributedCache;
-import org.apache.flink.api.common.functions.Function;
 import org.apache.flink.api.common.operators.ResourceSpec;
 import org.apache.flink.api.common.typeutils.TypeSerializer;
 import org.apache.flink.api.java.tuple.Tuple2;
 import org.apache.flink.configuration.CheckpointingOptions;
 import org.apache.flink.configuration.Configuration;
 import org.apache.flink.configuration.ExecutionOptions;
-import org.apache.flink.configuration.ExternalizedCheckpointRetention;
 import org.apache.flink.configuration.IllegalConfigurationException;
-import org.apache.flink.configuration.StateChangelogOptions;
 import org.apache.flink.core.execution.CheckpointingMode;
 import org.apache.flink.core.memory.ManagedMemoryUseCase;
 import org.apache.flink.runtime.OperatorIDPair;
-import org.apache.flink.runtime.checkpoint.CheckpointRetentionPolicy;
-import org.apache.flink.runtime.checkpoint.MasterTriggerRestoreHook;
 import org.apache.flink.runtime.io.network.partition.ResultPartitionType;
 import org.apache.flink.runtime.jobgraph.DistributionPattern;
 import org.apache.flink.runtime.jobgraph.InputOutputFormatContainer;
@@ -45,15 +39,12 @@ import org.apache.flink.runtime.jobgraph.InputOutputFormatVertex;
 import org.apache.flink.runtime.jobgraph.IntermediateDataSetID;
 import org.apache.flink.runtime.jobgraph.JobEdge;
 import org.apache.flink.runtime.jobgraph.JobGraph;
-import org.apache.flink.runtime.jobgraph.JobGraphUtils;
 import org.apache.flink.runtime.jobgraph.JobType;
 import org.apache.flink.runtime.jobgraph.JobVertex;
 import org.apache.flink.runtime.jobgraph.JobVertexID;
 import org.apache.flink.runtime.jobgraph.OperatorID;
 import org.apache.flink.runtime.jobgraph.forwardgroup.ForwardGroup;
 import org.apache.flink.runtime.jobgraph.forwardgroup.ForwardGroupComputeUtil;
-import org.apache.flink.runtime.jobgraph.tasks.CheckpointCoordinatorConfiguration;
-import org.apache.flink.runtime.jobgraph.tasks.JobCheckpointingSettings;
 import org.apache.flink.runtime.jobgraph.tasks.TaskInvokable;
 import org.apache.flink.runtime.jobgraph.topology.DefaultLogicalPipelinedRegion;
 import org.apache.flink.runtime.jobgraph.topology.DefaultLogicalTopology;
@@ -62,17 +53,13 @@ import org.apache.flink.runtime.jobmanager.scheduler.CoLocationGroupImpl;
 import org.apache.flink.runtime.jobmanager.scheduler.SlotSharingGroup;
 import org.apache.flink.runtime.operators.coordination.OperatorCoordinator;
 import org.apache.flink.runtime.operators.util.TaskConfig;
-import org.apache.flink.runtime.state.CheckpointStorage;
-import org.apache.flink.runtime.state.StateBackend;
 import org.apache.flink.runtime.util.Hardware;
 import org.apache.flink.runtime.util.config.memory.ManagedMemoryUtils;
-import org.apache.flink.streaming.api.checkpoint.WithMasterCheckpointHook;
 import org.apache.flink.streaming.api.environment.CheckpointConfig;
 import org.apache.flink.streaming.api.operators.ChainingStrategy;
 import org.apache.flink.streaming.api.operators.InputSelectable;
 import org.apache.flink.streaming.api.operators.SourceOperatorFactory;
 import org.apache.flink.streaming.api.operators.StreamOperatorFactory;
-import org.apache.flink.streaming.api.operators.UdfStreamOperatorFactory;
 import org.apache.flink.streaming.api.operators.YieldingOperatorFactory;
 import org.apache.flink.streaming.api.transformations.StreamExchangeMode;
 import org.apache.flink.streaming.runtime.partitioner.CustomPartitionerWrapper;
@@ -87,7 +74,6 @@ import org.apache.flink.util.FlinkRuntimeException;
 import org.apache.flink.util.IterableUtils;
 import org.apache.flink.util.Preconditions;
 import org.apache.flink.util.SerializedValue;
-import org.apache.flink.util.TernaryBoolean;
 import org.apache.flink.util.concurrent.ExecutorThreadFactory;
 import org.apache.flink.util.concurrent.FutureUtils;
 
@@ -122,7 +108,6 @@ import java.util.concurrent.Executors;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.stream.Collectors;
 
-import static org.apache.flink.runtime.jobgraph.tasks.CheckpointCoordinatorConfiguration.MINIMAL_CHECKPOINT_TIME;
 import static org.apache.flink.util.Preconditions.checkArgument;
 import static org.apache.flink.util.Preconditions.checkNotNull;
 import static org.apache.flink.util.Preconditions.checkState;
@@ -158,12 +143,20 @@ public class StreamingJobGraphGenerator {
                                         streamGraph.getExecutionConfig().getParallelism())),
                         new ExecutorThreadFactory("flink-operator-serialization-io"));
         try {
-            return new StreamingJobGraphGenerator(
-                            userClassLoader, streamGraph, jobID, serializationExecutor)
-                    .createJobGraph();
+            return createJobGraph(userClassLoader, streamGraph, jobID, serializationExecutor);
         } finally {
             serializationExecutor.shutdown();
         }
+    }
+
+    static JobGraph createJobGraph(
+            ClassLoader userClassLoader,
+            StreamGraph streamGraph,
+            @Nullable JobID jobId,
+            ExecutorService serializationExecutor) {
+        return new StreamingJobGraphGenerator(
+                        userClassLoader, streamGraph, jobId, serializationExecutor)
+                .createJobGraph();
     }
 
     // ------------------------------------------------------------------------
@@ -237,6 +230,7 @@ public class StreamingJobGraphGenerator {
         this.opNonChainableOutputsCache = new LinkedHashMap<>();
 
         jobGraph = new JobGraph(jobID, streamGraph.getJobName());
+        streamGraph.getUserArtifacts().forEach(jobGraph::addUserArtifact);
     }
 
     private JobGraph createJobGraph() {
@@ -290,17 +284,6 @@ public class StreamingJobGraphGenerator {
         configureCheckpointing();
 
         jobGraph.setSavepointRestoreSettings(streamGraph.getSavepointRestoreSettings());
-
-        final Map<String, DistributedCache.DistributedCacheEntry> distributedCacheEntries =
-                JobGraphUtils.prepareUserArtifactEntries(
-                        streamGraph.getUserArtifacts().stream()
-                                .collect(Collectors.toMap(e -> e.f0, e -> e.f1)),
-                        jobGraph.getJobID());
-
-        for (Map.Entry<String, DistributedCache.DistributedCacheEntry> entry :
-                distributedCacheEntries.entrySet()) {
-            jobGraph.addUserArtifact(entry.getKey(), entry.getValue());
-        }
 
         // set the ExecutionConfig last when it has been finalized
         try {
@@ -1121,20 +1104,31 @@ public class StreamingJobGraphGenerator {
             inputConfigs[0] = new StreamConfig.NetworkInputConfig(inputSerializers[0], 0);
         }
 
+        // vertex.getTypeSerializersIn()
         config.setInputs(inputConfigs);
 
+        // vertex.getTypeSerializerOut()
         config.setTypeSerializerOut(vertex.getTypeSerializerOut());
 
+        // vertex.getOperatorFactory()
         config.setStreamOperatorFactory(vertex.getOperatorFactory());
 
         config.setTimeCharacteristic(streamGraph.getTimeCharacteristic());
 
         final CheckpointConfig checkpointCfg = streamGraph.getCheckpointConfig();
 
-        config.setStateBackend(streamGraph.getStateBackend());
-        config.setCheckpointStorage(streamGraph.getCheckpointStorage());
+        if (streamGraph.isSerialized()) {
+            config.setStateBackend(
+                    streamGraph.getSerializedStateBackend(), streamGraph.isUseManageMemory());
+            config.setCheckpointStorage(streamGraph.getSerializedCheckpointStorage());
+            config.setTimerServiceProvider(streamGraph.getSerializedTimeServiceProvider());
+        } else {
+            config.setStateBackend(streamGraph.getStateBackend());
+            config.setCheckpointStorage(streamGraph.getCheckpointStorage());
+            config.setTimerServiceProvider(streamGraph.getTimerServiceProvider());
+        }
+
         config.setGraphContainingLoops(streamGraph.isIterative());
-        config.setTimerServiceProvider(streamGraph.getTimerServiceProvider());
         config.setCheckpointingEnabled(checkpointCfg.isCheckpointingEnabled());
         config.getConfiguration()
                 .set(
@@ -1396,7 +1390,7 @@ public class StreamingJobGraphGenerator {
         }
     }
 
-    private CheckpointingMode getCheckpointingMode(CheckpointConfig checkpointConfig) {
+    static CheckpointingMode getCheckpointingMode(CheckpointConfig checkpointConfig) {
         CheckpointingMode checkpointingMode = checkpointConfig.getCheckpointingConsistencyMode();
 
         checkArgument(
@@ -1948,126 +1942,7 @@ public class StreamingJobGraphGenerator {
     }
 
     private void configureCheckpointing() {
-        CheckpointConfig cfg = streamGraph.getCheckpointConfig();
-
-        long interval = cfg.getCheckpointInterval();
-        if (interval < MINIMAL_CHECKPOINT_TIME) {
-            interval = CheckpointCoordinatorConfiguration.DISABLED_CHECKPOINT_INTERVAL;
-        }
-
-        //  --- configure options ---
-
-        CheckpointRetentionPolicy retentionAfterTermination;
-        if (cfg.isExternalizedCheckpointsEnabled()) {
-            ExternalizedCheckpointRetention cleanup = cfg.getExternalizedCheckpointRetention();
-            // Sanity check
-            if (cleanup == null) {
-                throw new IllegalStateException(
-                        "Externalized checkpoints enabled, but no cleanup mode configured.");
-            }
-            retentionAfterTermination =
-                    cleanup.deleteOnCancellation()
-                            ? CheckpointRetentionPolicy.RETAIN_ON_FAILURE
-                            : CheckpointRetentionPolicy.RETAIN_ON_CANCELLATION;
-        } else {
-            retentionAfterTermination = CheckpointRetentionPolicy.NEVER_RETAIN_AFTER_TERMINATION;
-        }
-
-        //  --- configure the master-side checkpoint hooks ---
-
-        final ArrayList<MasterTriggerRestoreHook.Factory> hooks = new ArrayList<>();
-
-        for (StreamNode node : streamGraph.getStreamNodes()) {
-            if (node.getOperatorFactory() != null
-                    && node.getOperatorFactory() instanceof UdfStreamOperatorFactory) {
-                Function f =
-                        ((UdfStreamOperatorFactory) node.getOperatorFactory()).getUserFunction();
-
-                if (f instanceof WithMasterCheckpointHook) {
-                    hooks.add(
-                            new FunctionMasterCheckpointHookFactory(
-                                    (WithMasterCheckpointHook<?>) f));
-                }
-            }
-        }
-
-        // because the hooks can have user-defined code, they need to be stored as
-        // eagerly serialized values
-        final SerializedValue<MasterTriggerRestoreHook.Factory[]> serializedHooks;
-        if (hooks.isEmpty()) {
-            serializedHooks = null;
-        } else {
-            try {
-                MasterTriggerRestoreHook.Factory[] asArray =
-                        hooks.toArray(new MasterTriggerRestoreHook.Factory[hooks.size()]);
-                serializedHooks = new SerializedValue<>(asArray);
-            } catch (IOException e) {
-                throw new FlinkRuntimeException("Trigger/restore hook is not serializable", e);
-            }
-        }
-
-        // because the state backend can have user-defined code, it needs to be stored as
-        // eagerly serialized value
-        final SerializedValue<StateBackend> serializedStateBackend;
-        if (streamGraph.getStateBackend() == null) {
-            serializedStateBackend = null;
-        } else {
-            try {
-                serializedStateBackend =
-                        new SerializedValue<StateBackend>(streamGraph.getStateBackend());
-            } catch (IOException e) {
-                throw new FlinkRuntimeException("State backend is not serializable", e);
-            }
-        }
-
-        // because the checkpoint storage can have user-defined code, it needs to be stored as
-        // eagerly serialized value
-        final SerializedValue<CheckpointStorage> serializedCheckpointStorage;
-        if (streamGraph.getCheckpointStorage() == null) {
-            serializedCheckpointStorage = null;
-        } else {
-            try {
-                serializedCheckpointStorage =
-                        new SerializedValue<>(streamGraph.getCheckpointStorage());
-            } catch (IOException e) {
-                throw new FlinkRuntimeException("Checkpoint storage is not serializable", e);
-            }
-        }
-
-        //  --- done, put it all together ---
-
-        JobCheckpointingSettings settings =
-                new JobCheckpointingSettings(
-                        CheckpointCoordinatorConfiguration.builder()
-                                .setCheckpointInterval(interval)
-                                .setCheckpointIntervalDuringBacklog(
-                                        cfg.getCheckpointIntervalDuringBacklog())
-                                .setCheckpointTimeout(cfg.getCheckpointTimeout())
-                                .setMinPauseBetweenCheckpoints(cfg.getMinPauseBetweenCheckpoints())
-                                .setMaxConcurrentCheckpoints(cfg.getMaxConcurrentCheckpoints())
-                                .setCheckpointRetentionPolicy(retentionAfterTermination)
-                                .setExactlyOnce(
-                                        getCheckpointingMode(cfg) == CheckpointingMode.EXACTLY_ONCE)
-                                .setTolerableCheckpointFailureNumber(
-                                        cfg.getTolerableCheckpointFailureNumber())
-                                .setUnalignedCheckpointsEnabled(cfg.isUnalignedCheckpointsEnabled())
-                                .setCheckpointIdOfIgnoredInFlightData(
-                                        cfg.getCheckpointIdOfIgnoredInFlightData())
-                                .setAlignedCheckpointTimeout(
-                                        cfg.getAlignedCheckpointTimeout().toMillis())
-                                .setEnableCheckpointsAfterTasksFinish(
-                                        streamGraph.isEnableCheckpointsAfterTasksFinish())
-                                .build(),
-                        serializedStateBackend,
-                        streamGraph
-                                .getJobConfiguration()
-                                .getOptional(StateChangelogOptions.ENABLE_STATE_CHANGE_LOG)
-                                .map(TernaryBoolean::fromBoolean)
-                                .orElse(TernaryBoolean.UNDEFINED),
-                        serializedCheckpointStorage,
-                        serializedHooks);
-
-        jobGraph.setSnapshotSettings(settings);
+        jobGraph.setSnapshotSettings(streamGraph.getJobCheckpointingSettings());
     }
 
     private static String nameWithChainedSourcesInfo(

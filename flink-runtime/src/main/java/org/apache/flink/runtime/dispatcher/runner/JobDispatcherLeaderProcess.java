@@ -18,13 +18,10 @@
 
 package org.apache.flink.runtime.dispatcher.runner;
 
-import org.apache.flink.runtime.dispatcher.DispatcherId;
 import org.apache.flink.runtime.highavailability.JobResultStore;
 import org.apache.flink.runtime.jobgraph.JobGraph;
-import org.apache.flink.runtime.jobmanager.ThrowingJobGraphWriter;
 import org.apache.flink.runtime.jobmaster.JobResult;
 import org.apache.flink.runtime.rpc.FatalErrorHandler;
-import org.apache.flink.util.CollectionUtil;
 import org.apache.flink.util.Preconditions;
 
 import javax.annotation.Nullable;
@@ -57,14 +54,15 @@ public class JobDispatcherLeaderProcess extends AbstractDispatcherLeaderProcess 
 
     @Override
     protected void onStart() {
-        final DispatcherGatewayService dispatcherService =
-                dispatcherGatewayServiceFactory.create(
-                        DispatcherId.fromUuid(getLeaderSessionId()),
-                        CollectionUtil.ofNullable(jobGraph),
-                        CollectionUtil.ofNullable(recoveredDirtyJobResult),
-                        ThrowingJobGraphWriter.INSTANCE,
-                        jobResultStore);
+        throw new UnsupportedOperationException("Per-job mode will be removed");
+        //        final DispatcherGatewayService dispatcherService =
+        //                dispatcherGatewayServiceFactory.create(
+        //                        DispatcherId.fromUuid(getLeaderSessionId()),
+        //                        CollectionUtil.ofNullable(jobGraph),
+        //                        CollectionUtil.ofNullable(recoveredDirtyJobResult),
+        //                        ThrowingStreamGraphWriter.INSTANCE,
+        //                        jobResultStore);
 
-        completeDispatcherSetup(dispatcherService);
+        //  completeDispatcherSetup(dispatcherService);
     }
 }

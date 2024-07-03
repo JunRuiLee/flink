@@ -41,8 +41,6 @@ import org.apache.flink.runtime.execution.ExecutionState;
 import org.apache.flink.runtime.instance.SlotSharingGroupId;
 import org.apache.flink.runtime.io.network.partition.DataSetMetaInfo;
 import org.apache.flink.runtime.jobgraph.IntermediateDataSetID;
-import org.apache.flink.runtime.jobgraph.JobGraph;
-import org.apache.flink.runtime.jobgraph.JobGraphTestUtils;
 import org.apache.flink.runtime.jobgraph.JobType;
 import org.apache.flink.runtime.jobgraph.JobVertexID;
 import org.apache.flink.runtime.jobgraph.OperatorID;
@@ -113,6 +111,8 @@ import org.apache.flink.runtime.rest.util.TestRestServerEndpoint;
 import org.apache.flink.runtime.rpc.RpcUtils;
 import org.apache.flink.runtime.webmonitor.TestingDispatcherGateway;
 import org.apache.flink.runtime.webmonitor.retriever.GatewayRetriever;
+import org.apache.flink.streaming.api.graph.StreamGraph;
+import org.apache.flink.streaming.util.StreamGraphTestUtils;
 import org.apache.flink.util.AbstractID;
 import org.apache.flink.util.ConfigurationException;
 import org.apache.flink.util.ExceptionUtils;
@@ -190,7 +190,7 @@ class RestClusterClientTest {
 
     private ExecutorService executor;
 
-    private JobGraph jobGraph;
+    private StreamGraph streamGraph;
     private JobID jobId;
 
     private static final Configuration restConfig;
@@ -213,8 +213,8 @@ class RestClusterClientTest {
                 Executors.newSingleThreadExecutor(
                         new ExecutorThreadFactory(RestClusterClientTest.class.getSimpleName()));
 
-        jobGraph = JobGraphTestUtils.emptyJobGraph();
-        jobId = jobGraph.getJobID();
+        streamGraph = StreamGraphTestUtils.emptyStreamGraph();
+        jobId = streamGraph.getJobId();
     }
 
     @AfterEach
@@ -282,7 +282,7 @@ class RestClusterClientTest {
             try (RestClusterClient<?> restClusterClient =
                     createRestClusterClient(restServerEndpoint.getServerAddress().getPort())) {
                 assertThat(submitHandler.jobSubmitted).isFalse();
-                restClusterClient.submitJob(jobGraph).get();
+                restClusterClient.submitJob(streamGraph).get();
                 assertThat(submitHandler.jobSubmitted).isTrue();
 
                 assertThat(terminationHandler.jobCanceled).isFalse();
@@ -860,7 +860,7 @@ class RestClusterClientTest {
                     Objects.requireNonNull(restServerEndpoint.getServerAddress());
             try (RestClusterClient<?> restClusterClient =
                     createRestClusterClient(serverAddress.getPort(), clientConfig)) {
-                assertThatThrownBy(() -> restClusterClient.submitJob(jobGraph).get())
+                assertThatThrownBy(() -> restClusterClient.submitJob(streamGraph).get())
                         .isInstanceOf(ExecutionException.class)
                         .cause()
                         .cause()
@@ -941,7 +941,7 @@ class RestClusterClientTest {
                     createRestClusterClient(restServerEndpoint.getServerAddress().getPort())) {
                 final JobExecutionResult jobExecutionResult =
                         restClusterClient
-                                .submitJob(jobGraph)
+                                .submitJob(streamGraph)
                                 .thenCompose(restClusterClient::requestJobResult)
                                 .get()
                                 .toJobExecutionResult(ClassLoader.getSystemClassLoader());
@@ -955,7 +955,7 @@ class RestClusterClientTest {
 
                 try {
                     restClusterClient
-                            .submitJob(jobGraph)
+                            .submitJob(streamGraph)
                             .thenCompose(restClusterClient::requestJobResult)
                             .get()
                             .toJobExecutionResult(ClassLoader.getSystemClassLoader());
@@ -978,7 +978,7 @@ class RestClusterClientTest {
             try (RestClusterClient<?> restClusterClient =
                     createRestClusterClient(restServerEndpoint.getServerAddress().getPort())) {
 
-                restClusterClient.submitJob(jobGraph).get();
+                restClusterClient.submitJob(streamGraph).get();
             }
         }
     }
@@ -996,16 +996,16 @@ class RestClusterClientTest {
                 Files.write(file.toPath(), "hello world".getBytes(ConfigConstants.DEFAULT_CHARSET));
 
                 // Add file path with scheme
-                jobGraph.addUserArtifact(
+                streamGraph.addUserArtifact(
                         "file",
                         new DistributedCache.DistributedCacheEntry(file.toURI().toString(), false));
 
                 // Add file path without scheme
-                jobGraph.addUserArtifact(
+                streamGraph.addUserArtifact(
                         "file2",
                         new DistributedCache.DistributedCacheEntry(file.toURI().getPath(), false));
 
-                restClusterClient.submitJob(jobGraph).get();
+                restClusterClient.submitJob(streamGraph).get();
             }
         }
     }
@@ -1017,7 +1017,7 @@ class RestClusterClientTest {
             try (RestClusterClient<?> restClusterClient =
                     createRestClusterClient(restServerEndpoint.getServerAddress().getPort())) {
                 restClusterClient
-                        .submitJob(jobGraph)
+                        .submitJob(streamGraph)
                         .thenCompose(restClusterClient::requestJobResult)
                         .get()
                         .toJobExecutionResult(ClassLoader.getSystemClassLoader());
@@ -1033,20 +1033,20 @@ class RestClusterClientTest {
     }
 
     @Test
-    void testJobGraphFileCleanedUpOnJobSubmissionFailure() throws Exception {
-        final Path jobGraphFileDir = getTempDir();
+    void testStreamGraphFileCleanedUpOnJobSubmissionFailure() throws Exception {
+        final Path streamGraphFileDir = getTempDir();
         try (final TestRestServerEndpoint restServerEndpoint =
                 createRestServerEndpoint(new SubmissionFailingHandler())) {
             try (RestClusterClient<?> restClusterClient =
                     createRestClusterClient(restServerEndpoint.getServerAddress().getPort())) {
-                assertThatThrownBy(() -> restClusterClient.submitJob(jobGraph).join())
+                assertThatThrownBy(() -> restClusterClient.submitJob(streamGraph).join())
                         .hasCauseInstanceOf(JobSubmissionException.class);
-                try (Stream<Path> files = Files.list(jobGraphFileDir)) {
+                try (Stream<Path> files = Files.list(streamGraphFileDir)) {
                     assertThat(files)
                             .noneMatch(
                                     path ->
                                             path.toString()
-                                                    .contains(jobGraph.getJobID().toString()));
+                                                    .contains(streamGraph.getJobId().toString()));
                 }
             }
         }

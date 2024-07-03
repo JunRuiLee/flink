@@ -19,27 +19,27 @@
 package org.apache.flink.runtime.jobmanager;
 
 import org.apache.flink.api.common.JobID;
-import org.apache.flink.runtime.jobgraph.JobGraph;
+import org.apache.flink.streaming.api.graph.StreamGraph;
 
 import javax.annotation.Nullable;
 
 import java.util.Collection;
 
-/** {@link JobGraph} instances for recovery. */
-public interface JobGraphStore extends JobGraphWriter {
+/** {@link StreamGraph} instances for recovery. */
+public interface StreamGraphStore extends StreamGraphWriter {
 
-    /** Starts the {@link JobGraphStore} service. */
-    void start(JobGraphListener jobGraphListener) throws Exception;
+    /** Starts the {@link StreamGraphStore} service. */
+    void start(StreamGraphListener streamGraphListener) throws Exception;
 
-    /** Stops the {@link JobGraphStore} service. */
+    /** Stops the {@link StreamGraphStore} service. */
     void stop() throws Exception;
 
     /**
-     * Returns the {@link JobGraph} with the given {@link JobID} or {@code null} if no job was
+     * Returns the {@link StreamGraph} with the given {@link JobID} or {@code null} if no job was
      * registered.
      */
     @Nullable
-    JobGraph recoverJobGraph(JobID jobId) throws Exception;
+    StreamGraph recoverStreamGraph(JobID jobId) throws Exception;
 
     /**
      * Get all job ids of submitted job graphs to the submitted job graph store.
@@ -50,13 +50,13 @@ public interface JobGraphStore extends JobGraphWriter {
     Collection<JobID> getJobIds() throws Exception;
 
     /**
-     * A listener for {@link JobGraph} instances. This is used to react to races between multiple
-     * running {@link JobGraphStore} instances (on multiple job managers).
+     * A listener for {@link StreamGraph} instances. This is used to react to races between multiple
+     * running {@link StreamGraphStore} instances (on multiple job managers).
      */
-    interface JobGraphListener {
+    interface StreamGraphListener {
 
         /**
-         * Callback for {@link JobGraph} instances added by a different {@link JobGraphStore}
+         * Callback for {@link StreamGraph} instances added by a different {@link StreamGraphStore}
          * instance.
          *
          * <p><strong>Important:</strong> It is possible to get false positives and be notified
@@ -64,14 +64,14 @@ public interface JobGraphStore extends JobGraphWriter {
          *
          * @param jobId The {@link JobID} of the added job graph
          */
-        void onAddedJobGraph(JobID jobId);
+        void onAddedStreamGraph(JobID jobId);
 
         /**
-         * Callback for {@link JobGraph} instances removed by a different {@link JobGraphStore}
-         * instance.
+         * Callback for {@link StreamGraph} instances removed by a different {@link
+         * StreamGraphStore} instance.
          *
          * @param jobId The {@link JobID} of the removed job graph
          */
-        void onRemovedJobGraph(JobID jobId);
+        void onRemovedStreamGraph(JobID jobId);
     }
 }

@@ -19,7 +19,6 @@
 package org.apache.flink.test.util;
 
 import org.apache.flink.api.dag.Pipeline;
-import org.apache.flink.client.deployment.executors.PipelineExecutorUtils;
 import org.apache.flink.configuration.ConfigOption;
 import org.apache.flink.configuration.ConfigUtils;
 import org.apache.flink.configuration.Configuration;
@@ -32,8 +31,6 @@ import org.apache.flink.core.execution.PipelineExecutorFactory;
 import org.apache.flink.core.execution.PipelineExecutorServiceLoader;
 import org.apache.flink.core.fs.FileSystem;
 import org.apache.flink.core.fs.Path;
-import org.apache.flink.runtime.jobgraph.JobGraph;
-import org.apache.flink.runtime.jobgraph.SavepointRestoreSettings;
 import org.apache.flink.runtime.minicluster.MiniCluster;
 import org.apache.flink.runtime.minicluster.MiniClusterJobClient;
 import org.apache.flink.streaming.api.graph.StreamGraph;
@@ -156,15 +153,9 @@ public class MiniClusterPipelineExecutorServiceLoader implements PipelineExecuto
         public CompletableFuture<JobClient> execute(
                 Pipeline pipeline, Configuration configuration, ClassLoader userCodeClassLoader)
                 throws Exception {
-            final JobGraph jobGraph =
-                    PipelineExecutorUtils.getJobGraph(pipeline, configuration, userCodeClassLoader);
-            if (jobGraph.getSavepointRestoreSettings() == SavepointRestoreSettings.none()
-                    && pipeline instanceof StreamGraph) {
-                jobGraph.setSavepointRestoreSettings(
-                        ((StreamGraph) pipeline).getSavepointRestoreSettings());
-            }
+            StreamGraph streamGraph = (StreamGraph) pipeline;
             return miniCluster
-                    .submitJob(jobGraph)
+                    .submitJob(streamGraph)
                     .thenApply(
                             result ->
                                     new MiniClusterJobClient(

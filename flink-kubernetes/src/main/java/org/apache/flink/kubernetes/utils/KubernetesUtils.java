@@ -26,8 +26,8 @@ import org.apache.flink.configuration.PipelineOptions;
 import org.apache.flink.core.execution.RestoreMode;
 import org.apache.flink.kubernetes.configuration.KubernetesConfigOptions;
 import org.apache.flink.kubernetes.highavailability.KubernetesCheckpointStoreUtil;
-import org.apache.flink.kubernetes.highavailability.KubernetesJobGraphStoreUtil;
 import org.apache.flink.kubernetes.highavailability.KubernetesStateHandleStore;
+import org.apache.flink.kubernetes.highavailability.KubernetesStreamGraphStoreUtil;
 import org.apache.flink.kubernetes.kubeclient.FlinkKubeClient;
 import org.apache.flink.kubernetes.kubeclient.FlinkPod;
 import org.apache.flink.kubernetes.kubeclient.resources.KubernetesConfigMap;
@@ -37,14 +37,14 @@ import org.apache.flink.runtime.checkpoint.CompletedCheckpointStore;
 import org.apache.flink.runtime.checkpoint.DefaultCompletedCheckpointStore;
 import org.apache.flink.runtime.checkpoint.DefaultCompletedCheckpointStoreUtils;
 import org.apache.flink.runtime.highavailability.HighAvailabilityServicesUtils;
-import org.apache.flink.runtime.jobgraph.JobGraph;
-import org.apache.flink.runtime.jobmanager.DefaultJobGraphStore;
-import org.apache.flink.runtime.jobmanager.JobGraphStore;
-import org.apache.flink.runtime.jobmanager.NoOpJobGraphStoreWatcher;
+import org.apache.flink.runtime.jobmanager.DefaultStreamGraphStore;
+import org.apache.flink.runtime.jobmanager.NoOpStreamGraphStoreWatcher;
+import org.apache.flink.runtime.jobmanager.StreamGraphStore;
 import org.apache.flink.runtime.leaderelection.LeaderInformation;
 import org.apache.flink.runtime.persistence.RetrievableStateStorageHelper;
 import org.apache.flink.runtime.persistence.filesystem.FileSystemStateStorageHelper;
 import org.apache.flink.runtime.state.SharedStateRegistryFactory;
+import org.apache.flink.streaming.api.graph.StreamGraph;
 import org.apache.flink.util.ExceptionUtils;
 import org.apache.flink.util.FlinkException;
 import org.apache.flink.util.FlinkRuntimeException;
@@ -87,11 +87,11 @@ import static org.apache.flink.kubernetes.utils.Constants.CHECKPOINT_ID_KEY_PREF
 import static org.apache.flink.kubernetes.utils.Constants.COMPLETED_CHECKPOINT_FILE_SUFFIX;
 import static org.apache.flink.kubernetes.utils.Constants.DNS_POLICY_DEFAULT;
 import static org.apache.flink.kubernetes.utils.Constants.DNS_POLICY_HOSTNETWORK;
-import static org.apache.flink.kubernetes.utils.Constants.JOB_GRAPH_STORE_KEY_PREFIX;
 import static org.apache.flink.kubernetes.utils.Constants.LABEL_CONFIGMAP_TYPE_HIGH_AVAILABILITY;
 import static org.apache.flink.kubernetes.utils.Constants.LEADER_ADDRESS_KEY;
 import static org.apache.flink.kubernetes.utils.Constants.LEADER_SESSION_ID_KEY;
-import static org.apache.flink.kubernetes.utils.Constants.SUBMITTED_JOBGRAPH_FILE_PREFIX;
+import static org.apache.flink.kubernetes.utils.Constants.STREAM_GRAPH_STORE_KEY_PREFIX;
+import static org.apache.flink.kubernetes.utils.Constants.SUBMITTED_STREAM_GRAPH_FILE_PREFIX;
 import static org.apache.flink.util.Preconditions.checkNotNull;
 
 /** Common utils for Kubernetes. */
@@ -239,59 +239,59 @@ public class KubernetesUtils {
     }
 
     /**
-     * Create a {@link DefaultJobGraphStore} with {@link NoOpJobGraphStoreWatcher}.
+     * Create a {@link DefaultStreamGraphStore} with {@link NoOpStreamGraphStoreWatcher}.
      *
      * @param configuration configuration to build a RetrievableStateStorageHelper
      * @param flinkKubeClient flink kubernetes client
      * @param configMapName ConfigMap name
      * @param lockIdentity lock identity to check the leadership
-     * @return a {@link DefaultJobGraphStore} with {@link NoOpJobGraphStoreWatcher}
+     * @return a {@link DefaultStreamGraphStore} with {@link NoOpStreamGraphStoreWatcher}
      * @throws Exception when create the storage helper
      */
-    public static JobGraphStore createJobGraphStore(
+    public static StreamGraphStore createStreamGraphStore(
             Configuration configuration,
             FlinkKubeClient flinkKubeClient,
             String configMapName,
             String lockIdentity)
             throws Exception {
 
-        final KubernetesStateHandleStore<JobGraph> stateHandleStore =
-                createJobGraphStateHandleStore(
+        final KubernetesStateHandleStore<StreamGraph> stateHandleStore =
+                createStreamGraphStateHandleStore(
                         configuration, flinkKubeClient, configMapName, lockIdentity);
-        return new DefaultJobGraphStore<>(
+        return new DefaultStreamGraphStore<>(
                 stateHandleStore,
-                NoOpJobGraphStoreWatcher.INSTANCE,
-                KubernetesJobGraphStoreUtil.INSTANCE);
+                NoOpStreamGraphStoreWatcher.INSTANCE,
+                KubernetesStreamGraphStoreUtil.INSTANCE);
     }
 
     /**
-     * Create a {@link KubernetesStateHandleStore} which storing {@link JobGraph}.
+     * Create a {@link KubernetesStateHandleStore} which storing {@link StreamGraph}.
      *
      * @param configuration configuration to build a RetrievableStateStorageHelper
      * @param flinkKubeClient flink kubernetes client
      * @param configMapName ConfigMap name
      * @param lockIdentity lock identity to check the leadership
-     * @return a {@link KubernetesStateHandleStore} which storing {@link JobGraph}.
+     * @return a {@link KubernetesStateHandleStore} which storing {@link StreamGraph}.
      * @throws Exception when create the storage helper
      */
-    public static KubernetesStateHandleStore<JobGraph> createJobGraphStateHandleStore(
+    public static KubernetesStateHandleStore<StreamGraph> createStreamGraphStateHandleStore(
             Configuration configuration,
             FlinkKubeClient flinkKubeClient,
             String configMapName,
             String lockIdentity)
             throws Exception {
 
-        final RetrievableStateStorageHelper<JobGraph> stateStorage =
+        final RetrievableStateStorageHelper<StreamGraph> stateStorage =
                 new FileSystemStateStorageHelper<>(
                         HighAvailabilityServicesUtils.getClusterHighAvailableStoragePath(
                                 configuration),
-                        SUBMITTED_JOBGRAPH_FILE_PREFIX);
+                        SUBMITTED_STREAM_GRAPH_FILE_PREFIX);
 
         return new KubernetesStateHandleStore<>(
                 flinkKubeClient,
                 configMapName,
                 stateStorage,
-                k -> k.startsWith(JOB_GRAPH_STORE_KEY_PREFIX),
+                k -> k.startsWith(STREAM_GRAPH_STORE_KEY_PREFIX),
                 lockIdentity);
     }
 
