@@ -43,6 +43,7 @@ import org.apache.flink.runtime.executiongraph.IOMetrics;
 import org.apache.flink.runtime.executiongraph.IndexRange;
 import org.apache.flink.runtime.executiongraph.IntermediateResult;
 import org.apache.flink.runtime.executiongraph.JobStatusListener;
+import org.apache.flink.runtime.executiongraph.JobVertexInputInfo;
 import org.apache.flink.runtime.executiongraph.MarkPartitionFinishedStrategy;
 import org.apache.flink.runtime.executiongraph.ParallelismAndInputInfos;
 import org.apache.flink.runtime.executiongraph.ResultPartitionBytes;
@@ -650,8 +651,25 @@ public class AdaptiveBatchScheduler extends DefaultScheduler implements JobGraph
 
         adaptiveExecutionHandler.updateForwardGroupByNewlyParallelism(
                 jobVertex, parallelismAndInputInfos.getParallelism());
-
+        logInput(parallelismAndInputInfos.getJobVertexInputInfos(), jobVertex.getJobVertexId());
         return parallelismAndInputInfos;
+    }
+
+    private void logInput(
+            Map<IntermediateDataSetID, JobVertexInputInfo> jobVertexInputInfos,
+            JobVertexID jobVertexId) {
+        log.info("### DEBUG ### Log job veretx {} input info.", jobVertexId);
+        for (Map.Entry<IntermediateDataSetID, JobVertexInputInfo> entry :
+                jobVertexInputInfos.entrySet()) {
+            log.info("### DEBUG ### InputDataset {} input info.", entry.getKey());
+            for (ExecutionVertexInputInfo info : entry.getValue().getExecutionVertexInputInfos()) {
+                log.info(
+                        "### DEBUG ### Input ExecutionVertex {} input is PartitionIndexRange({}), SubpartitionIndexRange({})",
+                        info.getSubtaskIndex(),
+                        info.getPartitionIndexRange(),
+                        info.getSubpartitionIndexRange());
+            }
+        }
     }
 
     private int getDynamicSourceParallelism(ExecutionJobVertex jobVertex) {
