@@ -70,6 +70,7 @@ import org.slf4j.LoggerFactory;
 
 import javax.annotation.Nullable;
 
+import java.io.Serializable;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.HashMap;
@@ -86,7 +87,9 @@ import static org.apache.flink.util.Preconditions.checkNotNull;
  * jobgraph for the execution.
  */
 @Internal
-public class StreamGraph implements Pipeline {
+public class StreamGraph implements Pipeline, Serializable {
+
+    private static final long serialVersionUID = 1L;
 
     private static final Logger LOG = LoggerFactory.getLogger(StreamGraph.class);
 
