@@ -22,17 +22,12 @@ import org.apache.calcite.rex.RexNode;
 
 import org.apache.flink.api.dag.Transformation;
 import org.apache.flink.configuration.ReadableConfig;
-import org.apache.flink.streaming.api.operators.SimpleOperatorFactory;
 import org.apache.flink.streaming.api.operators.StreamOperatorFactory;
 import org.apache.flink.table.api.config.ExecutionConfigOptions;
 import org.apache.flink.table.data.RowData;
 import org.apache.flink.table.planner.codegen.CodeGeneratorContext;
-import org.apache.flink.table.planner.codegen.LongHashJoinGenerator;
 import org.apache.flink.table.planner.codegen.ProjectionCodeGenerator;
 import org.apache.flink.table.planner.delegation.PlannerBase;
-import org.apache.flink.table.planner.plan.fusion.OpFusionCodegenSpecGenerator;
-import org.apache.flink.table.planner.plan.fusion.generator.TwoInputOpFusionCodegenSpecGenerator;
-import org.apache.flink.table.planner.plan.fusion.spec.HashJoinFusionCodegenSpec;
 import org.apache.flink.table.planner.plan.nodes.exec.ExecEdge;
 import org.apache.flink.table.planner.plan.nodes.exec.ExecNodeBase;
 import org.apache.flink.table.planner.plan.nodes.exec.ExecNodeConfig;
@@ -45,12 +40,10 @@ import org.apache.flink.table.planner.plan.utils.JoinUtil;
 import org.apache.flink.table.planner.plan.utils.SorMergeJoinOperatorUtil;
 import org.apache.flink.table.runtime.generated.GeneratedJoinCondition;
 import org.apache.flink.table.runtime.generated.GeneratedProjection;
-import org.apache.flink.table.runtime.operators.join.AdaptiveJoinOperatorFactory;
 import org.apache.flink.table.runtime.operators.join.FlinkJoinType;
-import org.apache.flink.table.runtime.operators.join.HashJoinOperator;
 import org.apache.flink.table.runtime.operators.join.HashJoinType;
 import org.apache.flink.table.runtime.operators.join.SortMergeJoinFunction;
-import org.apache.flink.table.runtime.operators.join.SortMergeJoinOperator;
+import org.apache.flink.table.runtime.operators.join.adaptive.AdaptiveJoinOperatorFactory;
 import org.apache.flink.table.runtime.typeutils.InternalTypeInfo;
 import org.apache.flink.table.types.logical.LogicalType;
 import org.apache.flink.table.types.logical.RowType;
@@ -124,8 +117,6 @@ public class BatchExecAdaptiveJoin extends ExecNodeBase<RowData>
 
         int[] leftKeys = joinSpec.getLeftKeys();
         int[] rightKeys = joinSpec.getRightKeys();
-        RowType buildType;
-        RowType probeType;
         LogicalType[] keyFieldTypes =
                 IntStream.of(leftKeys).mapToObj(leftType::getTypeAt).toArray(LogicalType[]::new);
         RowType keyType = RowType.of(keyFieldTypes);
@@ -158,41 +149,15 @@ public class BatchExecAdaptiveJoin extends ExecNodeBase<RowData>
 
         Transformation<RowData> buildTransform;
         Transformation<RowData> probeTransform;
-        GeneratedProjection buildProj;
-        GeneratedProjection probeProj;
-        int[] buildKeys;
-        int[] probeKeys;
-        int buildRowSize;
-        long buildRowCount;
-        long probeRowCount;
-        boolean reverseJoin = !leftIsBuild;
-        if (leftIsBuild) {
-            buildTransform = leftInputTransform;
-            buildProj = leftProj;
-            buildType = leftType;
-            buildRowSize = estimatedLeftAvgRowSize;
-            buildRowCount = estimatedLeftRowCount;
-            buildKeys = leftKeys;
-
-            probeTransform = rightInputTransform;
-            probeProj = rightProj;
-            probeType = rightType;
-            probeRowCount = estimatedRightRowCount;
-            probeKeys = rightKeys;
-        } else {
-            buildTransform = rightInputTransform;
-            buildProj = rightProj;
-            buildType = rightType;
-            buildRowSize = estimatedRightAvgRowSize;
-            buildRowCount = estimatedRightRowCount;
-            buildKeys = rightKeys;
-
-            probeTransform = leftInputTransform;
-            probeProj = leftProj;
-            probeType = leftType;
-            probeRowCount = estimatedLeftRowCount;
-            probeKeys = leftKeys;
-        }
+        buildTransform = leftInputTransform;
+        probeTransform = rightInputTransform;
+//        if (leftIsBuild) {
+//            buildTransform = leftInputTransform;
+//            probeTransform = rightInputTransform;
+//        } else {
+//            buildTransform = rightInputTransform;
+//            probeTransform = leftInputTransform;
+//        }
 
         // operator
         StreamOperatorFactory<RowData> operator;
@@ -233,54 +198,6 @@ public class BatchExecAdaptiveJoin extends ExecNodeBase<RowData>
                         config.get(ExecutionConfigOptions.TABLE_EXEC_SPILL_COMPRESSION_BLOCK_SIZE)
                                 .getBytes();
 
-        StreamOperatorFactory originalFactory;
-        StreamOperatorFactory broadcastFactory;
-        if (LongHashJoinGenerator.support(hashJoinType, keyType, joinSpec.getFilterNulls())) {
-            broadcastFactory =
-                    LongHashJoinGenerator.gen(
-                            config,
-                            planner.getFlinkContext().getClassLoader(),
-                            hashJoinType,
-                            keyType,
-                            buildType,
-                            probeType,
-                            buildKeys,
-                            probeKeys,
-                            buildRowSize,
-                            buildRowCount,
-                            reverseJoin,
-                            condFunc,
-                            leftIsBuild,
-                            compressionEnabled,
-                            compressionBlockSize,
-                            sortMergeJoinFunction);
-        } else {
-            broadcastFactory = SimpleOperatorFactory.of(
-                    HashJoinOperator.newHashJoinOperator(
-                            hashJoinType,
-                            leftIsBuild,
-                            compressionEnabled,
-                            compressionBlockSize,
-                            condFunc,
-                            reverseJoin,
-                            joinSpec.getFilterNulls(),
-                            buildProj,
-                            probeProj,
-                            tryDistinctBuildRow,
-                            buildRowSize,
-                            buildRowCount,
-                            probeRowCount,
-                            keyType,
-                            sortMergeJoinFunction));
-        }
-        if (originalJobType == 0) {
-            originalFactory = broadcastFactory;
-        } else {
-            originalFactory = SimpleOperatorFactory.of(new SortMergeJoinOperator(sortMergeJoinFunction));
-            buildTransform = leftInputTransform;
-            probeTransform = rightInputTransform;
-        }
-
         int maybeBroadcastJoinSide = -1;
         switch (joinType) {
             case FULL:
@@ -300,9 +217,27 @@ public class BatchExecAdaptiveJoin extends ExecNodeBase<RowData>
         }
         operator =
                 new AdaptiveJoinOperatorFactory<>(
-                        originalFactory,
-                        broadcastFactory,
-                        maybeBroadcastJoinSide);
+                        hashJoinType,
+                        keyType,
+                        leftType,
+                        rightType,
+                        leftKeys,
+                        rightKeys,
+                        leftProj,
+                        rightProj,
+                        estimatedLeftAvgRowSize,
+                        estimatedLeftRowCount,
+                        estimatedRightAvgRowSize,
+                        estimatedRightRowCount,
+                        condFunc,
+                        leftIsBuild,
+                        compressionEnabled,
+                        compressionBlockSize,
+                        sortMergeJoinFunction,
+                        maybeBroadcastJoinSide,
+                        originalJobType,
+                        joinSpec.getFilterNulls(),
+                        tryDistinctBuildRow);
 
         return ExecNodeUtil.createTwoInputTransformation(
                 buildTransform,

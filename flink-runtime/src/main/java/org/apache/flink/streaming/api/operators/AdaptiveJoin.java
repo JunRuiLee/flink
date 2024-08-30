@@ -18,6 +18,7 @@
 package org.apache.flink.streaming.api.operators;
 
 import org.apache.flink.annotation.PublicEvolving;
+import org.apache.flink.configuration.ReadableConfig;
 
 import java.util.List;
 
@@ -38,13 +39,11 @@ public interface AdaptiveJoin {
         RIGHT
     }
 
-    /**
-     * Sets the side of the join that can be optimized as a broadcast join.
-     *
-     * @param canBeBroadcastSide the side of the join that can be optimized; must not be {@code
-     *     null}.
-     */
-    void markAsBroadcastJoin(PotentialBroadcastSide canBeBroadcastSide);
+    void genOperatorFactory(ClassLoader classLoader, ReadableConfig config);
+
+    int getStaticBuildSide();
+
+    void markRealBuildSide(int side);
 
     /**
      * Returns the side of the join that can be optimized as a broadcast join.

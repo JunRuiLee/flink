@@ -29,6 +29,7 @@ import org.apache.flink.table.planner.plan.nodes.exec.InputProperty;
 import org.apache.flink.table.planner.plan.nodes.exec.InputProperty.KeepInputAsIsDistribution;
 import org.apache.flink.table.planner.plan.nodes.exec.InputProperty.DistributionType;
 import org.apache.flink.table.planner.plan.nodes.exec.batch.BatchExecAdaptiveJoin;
+import org.apache.flink.table.planner.plan.nodes.exec.batch.BatchExecExchange;
 import org.apache.flink.table.planner.plan.nodes.exec.batch.BatchExecHashJoin;
 import org.apache.flink.table.planner.plan.nodes.exec.batch.BatchExecSortMergeJoin;
 import org.apache.flink.table.planner.plan.nodes.exec.stream.StreamExecNode;
@@ -78,7 +79,7 @@ public class AdaptiveJoinNodeProcessor implements ExecNodeGraphProcessor {
                         for (int i = 0; i < node.getInputEdges().size(); ++i) {
                             ExecEdge edge = node.getInputEdges().get(i);
                             ExecNode<?> input = edge.getSource();
-                            if (!checkAllInputShuffleIsHash(input)) {
+                            if (!(checkAllInputShuffleIsHash(input) && checkNoOutputShuffleIsForward(input))) {
                                 continue;
                             }
                             if (input instanceof BatchExecHashJoin) {
@@ -107,12 +108,26 @@ public class AdaptiveJoinNodeProcessor implements ExecNodeGraphProcessor {
         return execGraph;
     }
 
-    private boolean checkAllInputShuffleIsHash(ExecNode<?> input) {
-        for (InputProperty inputProperty : input.getInputProperties()) {
+    private boolean checkAllInputShuffleIsHash(ExecNode<?> node) {
+        for (InputProperty inputProperty : node.getInputProperties()) {
             if (inputProperty.getRequiredDistribution().getType() != DistributionType.HASH) {
                 return false;
             }
         }
+        return true;
+    }
+
+    private boolean checkNoOutputShuffleIsForward(ExecNode<?> node) {
+        for (ExecEdge edge : node.getInputEdges()) {
+            if (edge.getSource() instanceof BatchExecExchange) {
+                for (InputProperty inputProperty : edge.getSource().getInputProperties()) {
+                    if (inputProperty.getRequiredDistribution() instanceof KeepInputAsIsDistribution) {
+                        return false;
+                    }
+                }
+            }
+        }
+
         return true;
     }
 

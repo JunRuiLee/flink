@@ -57,7 +57,7 @@ public class StreamEdge implements Serializable {
     private final int uniqueId;
 
     /** The type number of the input for co-tasks. */
-    private final int typeNumber;
+    private int typeNumber;
     /** The side-output tag (if any) of this {@link StreamEdge}. */
     private final OutputTag outputTag;
 
@@ -172,6 +172,10 @@ public class StreamEdge implements Serializable {
 
     public int getTypeNumber() {
         return typeNumber;
+    }
+
+    public void setTypeNumber(int typeNumber) {
+        this.typeNumber = typeNumber;
     }
 
     public OutputTag getOutputTag() {

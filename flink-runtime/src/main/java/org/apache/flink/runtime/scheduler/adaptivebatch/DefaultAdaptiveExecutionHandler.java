@@ -18,6 +18,7 @@
 
 package org.apache.flink.runtime.scheduler.adaptivebatch;
 
+import org.apache.flink.api.common.typeutils.TypeSerializer;
 import org.apache.flink.configuration.BatchExecutionOptions;
 import org.apache.flink.configuration.Configuration;
 import org.apache.flink.runtime.executiongraph.ExecutionJobVertex;
@@ -38,6 +39,8 @@ import org.apache.flink.streaming.api.operators.AdaptiveJoin;
 import org.apache.flink.streaming.runtime.partitioner.BroadcastPartitioner;
 import org.apache.flink.streaming.runtime.partitioner.ForwardPartitioner;
 
+import org.apache.flink.util.Preconditions;
+
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -48,6 +51,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.concurrent.Executor;
+import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.function.Function;
 import java.util.stream.Collectors;
 
@@ -71,6 +75,7 @@ public class DefaultAdaptiveExecutionHandler implements AdaptiveExecutionHandler
 
     private final Set<Integer> updatedStreamNodeIds = new HashSet<>();
     private final String jobName;
+    private ClassLoader userClassloader;
 
     public DefaultAdaptiveExecutionHandler(
             ClassLoader userClassloader,
@@ -87,6 +92,7 @@ public class DefaultAdaptiveExecutionHandler implements AdaptiveExecutionHandler
         this.findOperatorIdByStreamNodeId = checkNotNull(findOperatorIdByStreamNodeId);
         this.configuration = checkNotNull(configuration);
         this.jobName = String.valueOf(streamGraph.getJobName());
+        this.userClassloader = userClassloader;
     }
 
     @Override
@@ -182,32 +188,60 @@ public class DefaultAdaptiveExecutionHandler implements AdaptiveExecutionHandler
                     edge.getTypeNumber(),
                     producedBytes);
             if (canBeBroadcast(producedBytes, edge.getTypeNumber(), potentialBroadcastJoinSides)) {
+                log.info("[POC] runtime mark {} as build side.", edge.getTypeNumber());
+                adaptiveJoin.markRealBuildSide(edge.getTypeNumber());
                 List<StreamEdge> otherEdge =
                         node.getInEdges().stream()
                                 .filter(e -> e.getTypeNumber() != edge.getTypeNumber())
                                 .collect(Collectors.toList());
 
                 if (jobGraphManager.updateStreamGraph(
-                        context -> updateToBroadcastJoin(sameTypeEdges, otherEdge, context))) {
+                        context -> updateToBroadcastJoin(sameTypeEdges, otherEdge, node, context))) {
                     log.info("{} Update hash join to broadcast join successful!", jobName);
 
-                    adaptiveJoin.markAsBroadcastJoin(getBroadCastSide(edge.getTypeNumber()));
                     updatedStreamNodeIds.add(node.getId());
                 } else {
                     log.info("{} Failed to update hash join to broadcast join.", jobName);
                 }
+            } else {
+                int staticBuildSide  = adaptiveJoin.getStaticBuildSide();
+                log.info("[POC] set raw build side : " + staticBuildSide);
+                node.getInEdges()
+                        .forEach(inEdge -> {
+                            if (inEdge.getTypeNumber() == staticBuildSide) {
+                                inEdge.setTypeNumber(1);
+                            } else {
+                                inEdge.setTypeNumber(2);
+                            }
+                        });
+                if (staticBuildSide == 2) {
+                    TypeSerializer<?>[] typeSerializers = node.getTypeSerializersIn();
+                    Preconditions.checkState(typeSerializers.length == 2);
+                    TypeSerializer<?> tmpTypeSerializer = typeSerializers[0];
+                    typeSerializers[0] = typeSerializers[1];
+                    typeSerializers[1] = tmpTypeSerializer;
+                }
+                updatedStreamNodeIds.add(node.getId());
             }
+            adaptiveJoin.genOperatorFactory(userClassloader, configuration);
         }
     }
 
     private boolean updateToBroadcastJoin(
             List<StreamEdge> toBroadcastEdges,
             List<StreamEdge> toForwardEdges,
+            StreamNode node,
             StreamGraphManagerContext context) {
+        AtomicBoolean needSwitch = new AtomicBoolean(false);
         List<StreamEdgeUpdateRequestInfo> toBroadcastInfo =
                 toBroadcastEdges.stream()
                         .map(
                                 edge -> {
+                                    if (edge.getTypeNumber() != 1) {
+                                        needSwitch.set(true);
+                                        log.info("[POC] set edge {} type number to 1.", edge);
+                                        edge.setTypeNumber(1);
+                                    }
                                     StreamEdgeUpdateRequestInfo info =
                                             new StreamEdgeUpdateRequestInfo(
                                                     edge.getId(),
@@ -223,6 +257,7 @@ public class DefaultAdaptiveExecutionHandler implements AdaptiveExecutionHandler
                 toForwardEdges.stream()
                         .map(
                                 edge -> {
+                                    edge.setTypeNumber(2);
                                     StreamEdgeUpdateRequestInfo info =
                                             new StreamEdgeUpdateRequestInfo(
                                                     edge.getId(),
@@ -234,6 +269,13 @@ public class DefaultAdaptiveExecutionHandler implements AdaptiveExecutionHandler
                                 })
                         .collect(Collectors.toList());
 
+        if (needSwitch.get()) {
+            TypeSerializer<?>[] typeSerializers = node.getTypeSerializersIn();
+            Preconditions.checkState(typeSerializers.length == 2);
+            TypeSerializer<?> tmpTypeSerializer = typeSerializers[0];
+            typeSerializers[0] = typeSerializers[1];
+            typeSerializers[1] = tmpTypeSerializer;
+        }
         return context.modifyStreamEdge(toBroadcastInfo) && context.modifyStreamEdge(toForwardInfo);
     }
 
