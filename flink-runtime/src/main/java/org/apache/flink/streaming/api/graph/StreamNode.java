@@ -222,7 +222,7 @@ public class StreamNode implements Serializable {
      *
      * @return Maximum parallelism
      */
-    int getMaxParallelism() {
+    public int getMaxParallelism() {
         return maxParallelism;
     }
 
