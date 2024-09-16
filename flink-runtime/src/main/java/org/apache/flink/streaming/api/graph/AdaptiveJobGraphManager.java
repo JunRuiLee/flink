@@ -317,10 +317,10 @@ public class AdaptiveJobGraphManager implements AdaptiveJobGraphGenerator, JobVe
     }
 
     private void initializeJobGraph() {
-        List<StreamNode> sourceNodes =
-                streamGraph.getStreamNodes().stream()
-                        .filter(node -> node.getInEdges().isEmpty())
-                        .collect(Collectors.toList());
+        List<StreamNode> sourceNodes = new ArrayList<>();
+        for (Integer nodeId : streamGraph.getSourceIDs()) {
+            sourceNodes.add(streamGraph.getStreamNode(nodeId));
+        }
         if (jobGraph.isDynamic()) {
             setVertexParallelismsForDynamicGraphIfNecessary(sourceNodes);
         }
@@ -360,7 +360,8 @@ public class AdaptiveJobGraphManager implements AdaptiveJobGraphGenerator, JobVe
         Map<Integer, List<StreamEdge>> transitiveOutEdgesMap = new HashMap<>();
         Map<Integer, List<StreamNode>> chainedStreamNodesMap = new LinkedHashMap<>();
         Set<Integer> finishedChain = new HashSet<>();
-        for (StreamNode streamNode : streamNodes) {
+        List<StreamNode> enterPoints = getEnterPoints(streamNodes, chainedStreamNodesMap);
+        for (StreamNode streamNode : enterPoints) {
             traverseFullGraph(
                     streamNode.getId(),
                     streamNode.getId(),
@@ -372,6 +373,23 @@ public class AdaptiveJobGraphManager implements AdaptiveJobGraphGenerator, JobVe
         }
         computeForwardGroupAndSetNodeParallelisms(
                 transitiveOutEdgesMap, chainedStreamNodesMap, chainableOutputs);
+    }
+
+    private List<StreamNode> getEnterPoints(
+            List<StreamNode> sourceNodes, Map<Integer, List<StreamNode>> chainedStreamNodesMap) {
+        List<StreamNode> enterPoints = new ArrayList<>();
+        for (StreamNode sourceNode : sourceNodes) {
+            if (isSourceChainable(sourceNode)) {
+                StreamEdge outEdge = sourceNode.getOutEdges().get(0);
+                chainedStreamNodesMap
+                        .computeIfAbsent(outEdge.getTargetId(), k -> new ArrayList<>())
+                        .add(sourceNode);
+                enterPoints.add(outEdge.getTargetNode());
+            } else {
+                enterPoints.add(sourceNode);
+            }
+        }
+        return enterPoints;
     }
 
     private void traverseFullGraph(
