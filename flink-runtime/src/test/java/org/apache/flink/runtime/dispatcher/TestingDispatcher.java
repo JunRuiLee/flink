@@ -34,7 +34,7 @@ import org.apache.flink.runtime.highavailability.JobResultStore;
 import org.apache.flink.runtime.highavailability.TestingHighAvailabilityServices;
 import org.apache.flink.runtime.highavailability.nonha.embedded.EmbeddedJobResultStore;
 import org.apache.flink.runtime.jobgraph.JobGraph;
-import org.apache.flink.runtime.jobmanager.JobGraphWriter;
+import org.apache.flink.runtime.jobmanager.ExecutionPlanWriter;
 import org.apache.flink.runtime.jobmaster.JobResult;
 import org.apache.flink.runtime.metrics.groups.JobManagerMetricGroup;
 import org.apache.flink.runtime.metrics.groups.UnregisteredMetricGroups;
@@ -77,7 +77,7 @@ class TestingDispatcher extends Dispatcher {
             HeartbeatServices heartbeatServices,
             BlobServer blobServer,
             FatalErrorHandler fatalErrorHandler,
-            JobGraphWriter jobGraphWriter,
+            ExecutionPlanWriter executionPlanWriter,
             JobResultStore jobResultStore,
             JobManagerMetricGroup jobManagerMetricGroup,
             @Nullable String metricServiceQueryAddress,
@@ -109,7 +109,7 @@ class TestingDispatcher extends Dispatcher {
                         metricServiceQueryAddress,
                         dispatcherOperationCaches,
                         jobManagerMetricGroup,
-                        jobGraphWriter,
+                        executionPlanWriter,
                         jobResultStore,
                         jobManagerRunnerFactory,
                         cleanupRunnerFactory,
@@ -178,7 +178,7 @@ class TestingDispatcher extends Dispatcher {
                 () -> CompletableFuture.completedFuture(resourceManagerGateway);
         private HeartbeatServices heartbeatServices = new HeartbeatServicesImpl(1000L, 1000L);
 
-        private JobGraphWriter jobGraphWriter = NoOpJobGraphWriter.INSTANCE;
+        private ExecutionPlanWriter executionPlanWriter = NoOpExecutionPlanWriter.INSTANCE;
         private JobResultStore jobResultStore = new EmbeddedJobResultStore();
 
         private Configuration configuration = new Configuration();
@@ -243,8 +243,8 @@ class TestingDispatcher extends Dispatcher {
             return this;
         }
 
-        public Builder setJobGraphWriter(JobGraphWriter jobGraphWriter) {
-            this.jobGraphWriter = jobGraphWriter;
+        public Builder setExecutionPlanWriter(ExecutionPlanWriter executionPlanWriter) {
+            this.executionPlanWriter = executionPlanWriter;
             return this;
         }
 
@@ -331,7 +331,7 @@ class TestingDispatcher extends Dispatcher {
                     ioExecutor,
                     TestingRetryStrategies.NO_RETRY_STRATEGY,
                     jobManagerRunnerRegistry,
-                    jobGraphWriter,
+                    executionPlanWriter,
                     blobServer,
                     highAvailabilityServices,
                     jobManagerMetricGroup);
@@ -353,7 +353,7 @@ class TestingDispatcher extends Dispatcher {
                             blobServer,
                             "No BlobServer is specified for building the TestingDispatcher"),
                     fatalErrorHandler,
-                    jobGraphWriter,
+                    executionPlanWriter,
                     jobResultStore,
                     jobManagerMetricGroup,
                     metricServiceQueryAddress,

@@ -27,11 +27,9 @@ import org.apache.flink.configuration.DeploymentOptions;
 import org.apache.flink.configuration.TaskManagerOptions;
 import org.apache.flink.core.execution.JobClient;
 import org.apache.flink.core.execution.PipelineExecutor;
-import org.apache.flink.runtime.jobgraph.JobGraph;
 import org.apache.flink.runtime.minicluster.MiniCluster;
 import org.apache.flink.runtime.minicluster.MiniClusterConfiguration;
 
-import java.net.MalformedURLException;
 import java.util.concurrent.CompletableFuture;
 import java.util.function.Function;
 
@@ -78,15 +76,15 @@ public class LocalExecutor implements PipelineExecutor {
         // we only support attached execution with the local executor.
         checkState(configuration.get(DeploymentOptions.ATTACHED));
 
-        final JobGraph jobGraph = getJobGraph(pipeline, effectiveConfig, userCodeClassloader);
-
         return PerJobMiniClusterFactory.createWithFactory(effectiveConfig, miniClusterFactory)
-                .submitJob(jobGraph, userCodeClassloader);
+                .submitJob(
+                        getExecutionPlan(pipeline, configuration, userCodeClassloader),
+                        userCodeClassloader);
     }
 
-    private JobGraph getJobGraph(
+    private ExecutionPlan getExecutionPlan(
             Pipeline pipeline, Configuration configuration, ClassLoader userCodeClassloader)
-            throws MalformedURLException {
+            throws Exception {
         // This is a quirk in how LocalEnvironment used to work. It sets the default parallelism
         // to <num taskmanagers> * <num task slots>. Might be questionable but we keep the behaviour
         // for now.
@@ -99,8 +97,19 @@ public class LocalExecutor implements PipelineExecutor {
                     configuration.get(TaskManagerOptions.MINI_CLUSTER_NUM_TASK_MANAGERS);
 
             plan.setDefaultParallelism(slotsPerTaskManager * numTaskManagers);
-        }
 
-        return PipelineExecutorUtils.getJobGraph(pipeline, configuration, userCodeClassloader);
+            return ExecutionPlan.createExecutionPlan(
+                    PipelineExecutorUtils.getJobGraph(
+                            pipeline, configuration, userCodeClassloader));
+        } else {
+            if (configuration.get(DeploymentOptions.SUBMIT_STREAM_GRAPH_ENABLED)) {
+                return ExecutionPlan.createExecutionPlan(
+                        PipelineExecutorUtils.getStreamGraph(pipeline, configuration));
+            } else {
+                return ExecutionPlan.createExecutionPlan(
+                        PipelineExecutorUtils.getJobGraph(
+                                pipeline, configuration, userCodeClassloader));
+            }
+        }
     }
 }

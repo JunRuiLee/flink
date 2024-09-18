@@ -18,17 +18,27 @@
 
 package org.apache.flink.runtime.jobmanager;
 
-/** Singleton {@link JobGraphStoreWatcher} empty implementation. */
-public enum NoOpJobGraphStoreWatcher implements JobGraphStoreWatcher {
-    INSTANCE;
+import org.apache.flink.api.common.JobID;
 
-    @Override
-    public void start(JobGraphStore.JobGraphListener jobGraphListener) {
-        // noop
-    }
+/**
+ * ExecutionPlanStore utility interfaces. For example, convert a name(e.g. ZooKeeper path, key name in
+ * Kubernetes ConfigMap) to {@link JobID}, or vice versa.
+ */
+public interface ExecutionPlanStoreUtil {
 
-    @Override
-    public void stop() {
-        // noop
-    }
+    /**
+     * Get the name in external storage from job id.
+     *
+     * @param jobId job id
+     * @return Key name in ConfigMap or child path name in ZooKeeper
+     */
+    String jobIDToName(JobID jobId);
+
+    /**
+     * Get the job id from name.
+     *
+     * @param name Key name in ConfigMap or child path name in ZooKeeper
+     * @return parsed job id.
+     */
+    JobID nameToJobID(String name);
 }

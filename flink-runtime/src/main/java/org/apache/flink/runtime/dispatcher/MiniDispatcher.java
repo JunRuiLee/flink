@@ -27,6 +27,7 @@ import org.apache.flink.runtime.dispatcher.cleanup.ResourceCleanerFactory;
 import org.apache.flink.runtime.entrypoint.ClusterEntrypoint;
 import org.apache.flink.runtime.entrypoint.JobClusterEntrypoint;
 import org.apache.flink.runtime.jobgraph.JobGraph;
+import org.apache.flink.runtime.jobmanager.ExecutionPlan;
 import org.apache.flink.runtime.jobmaster.JobResult;
 import org.apache.flink.runtime.messages.Acknowledge;
 import org.apache.flink.runtime.rpc.RpcService;
@@ -58,7 +59,7 @@ public class MiniDispatcher extends Dispatcher {
             RpcService rpcService,
             DispatcherId fencingToken,
             DispatcherServices dispatcherServices,
-            @Nullable JobGraph jobGraph,
+            @Nullable ExecutionPlan executionPlan,
             @Nullable JobResult recoveredDirtyJob,
             DispatcherBootstrapFactory dispatcherBootstrapFactory,
             JobClusterEntrypoint.ExecutionMode executionMode)
@@ -66,7 +67,7 @@ public class MiniDispatcher extends Dispatcher {
         super(
                 rpcService,
                 fencingToken,
-                CollectionUtil.ofNullable(jobGraph),
+                CollectionUtil.ofNullable(executionPlan),
                 CollectionUtil.ofNullable(recoveredDirtyJob),
                 dispatcherBootstrapFactory,
                 dispatcherServices);
@@ -89,7 +90,7 @@ public class MiniDispatcher extends Dispatcher {
         super(
                 rpcService,
                 fencingToken,
-                CollectionUtil.ofNullable(jobGraph),
+                CollectionUtil.ofNullable(new ExecutionPlan(jobGraph)),
                 CollectionUtil.ofNullable(recoveredDirtyJob),
                 dispatcherBootstrapFactory,
                 dispatcherServices,

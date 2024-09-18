@@ -26,10 +26,11 @@ import org.apache.flink.runtime.client.JobSubmissionException;
 import org.apache.flink.runtime.highavailability.JobResultStore;
 import org.apache.flink.runtime.jobgraph.JobGraph;
 import org.apache.flink.runtime.jobgraph.JobGraphTestUtils;
-import org.apache.flink.runtime.jobmanager.JobGraphStore;
+import org.apache.flink.runtime.jobmanager.ExecutionPlanStore;
+import org.apache.flink.runtime.jobmanager.ExecutionPlan;
 import org.apache.flink.runtime.jobmaster.JobResult;
 import org.apache.flink.runtime.messages.Acknowledge;
-import org.apache.flink.runtime.testutils.TestingJobGraphStore;
+import org.apache.flink.runtime.testutils.TestingExecutionPlanStore;
 import org.apache.flink.runtime.testutils.TestingJobResultStore;
 import org.apache.flink.runtime.util.TestingFatalErrorHandler;
 import org.apache.flink.runtime.webmonitor.TestingDispatcherGateway;
@@ -70,7 +71,8 @@ import static org.assertj.core.api.Assertions.assertThatThrownBy;
 @ExtendWith(TestLoggerExtension.class)
 class SessionDispatcherLeaderProcessTest {
 
-    private static final JobGraph JOB_GRAPH = JobGraphTestUtils.emptyJobGraph();
+    private static final ExecutionPlan executionPlan =
+            new ExecutionPlan(JobGraphTestUtils.emptyJobGraph());
 
     private static ExecutorService ioExecutor;
 
@@ -78,7 +80,7 @@ class SessionDispatcherLeaderProcessTest {
 
     private TestingFatalErrorHandler fatalErrorHandler;
 
-    private JobGraphStore jobGraphStore;
+    private ExecutionPlanStore executionPlanStore;
     private JobResultStore jobResultStore;
 
     private AbstractDispatcherLeaderProcess.DispatcherGatewayServiceFactory
@@ -92,7 +94,7 @@ class SessionDispatcherLeaderProcessTest {
     @BeforeEach
     void setup() {
         fatalErrorHandler = new TestingFatalErrorHandler();
-        jobGraphStore = TestingJobGraphStore.newBuilder().build();
+        executionPlanStore = TestingExecutionPlanStore.newBuilder().build();
         jobResultStore = TestingJobResultStore.builder().build();
         dispatcherServiceFactory =
                 createFactoryBasedOnGenericSupplier(
@@ -143,10 +145,12 @@ class SessionDispatcherLeaderProcessTest {
     @Test
     void testRecoveryWithJobGraphButNoDirtyJobResult() throws Exception {
         testJobRecovery(
-                Collections.singleton(JOB_GRAPH),
+                Collections.singleton(executionPlan),
                 Collections.emptySet(),
                 actualRecoveredJobGraphs ->
-                        assertThat(actualRecoveredJobGraphs).singleElement().isEqualTo(JOB_GRAPH),
+                        assertThat(actualRecoveredJobGraphs)
+                                .singleElement()
+                                .isEqualTo(executionPlan),
                 actualRecoveredDirtyJobResults ->
                         assertThat(actualRecoveredDirtyJobResults).isEmpty());
     }
@@ -154,10 +158,10 @@ class SessionDispatcherLeaderProcessTest {
     @Test
     void testRecoveryWithJobGraphAndMatchingDirtyJobResult() throws Exception {
         final JobResult matchingDirtyJobResult =
-                TestingJobResultStore.createSuccessfulJobResult(JOB_GRAPH.getJobID());
+                TestingJobResultStore.createSuccessfulJobResult(executionPlan.getJobId());
 
         testJobRecovery(
-                Collections.singleton(JOB_GRAPH),
+                Collections.singleton(executionPlan),
                 Collections.singleton(matchingDirtyJobResult),
                 actualRecoveredJobGraphs -> assertThat(actualRecoveredJobGraphs).isEmpty(),
                 actualRecoveredDirtyJobResults ->
@@ -169,11 +173,11 @@ class SessionDispatcherLeaderProcessTest {
     @Test
     void testRecoveryWithMultipleJobGraphsAndOneMatchingDirtyJobResult() throws Exception {
         final JobResult matchingDirtyJobResult =
-                TestingJobResultStore.createSuccessfulJobResult(JOB_GRAPH.getJobID());
+                TestingJobResultStore.createSuccessfulJobResult(executionPlan.getJobId());
         final JobGraph otherJobGraph = JobGraphTestUtils.emptyJobGraph();
 
         testJobRecovery(
-                Arrays.asList(otherJobGraph, JOB_GRAPH),
+                Arrays.asList(new ExecutionPlan(otherJobGraph), executionPlan),
                 Collections.singleton(matchingDirtyJobResult),
                 actualRecoveredJobGraphs ->
                         assertThat(actualRecoveredJobGraphs)
@@ -201,20 +205,22 @@ class SessionDispatcherLeaderProcessTest {
     }
 
     private void testJobRecovery(
-            Collection<JobGraph> jobGraphsToRecover,
+            Collection<ExecutionPlan> executionPlansToRecover,
             Set<JobResult> dirtyJobResults,
-            Consumer<Collection<JobGraph>> recoveredJobGraphAssertion,
+            Consumer<Collection<ExecutionPlan>> recoveredJobGraphAssertion,
             Consumer<Collection<JobResult>> recoveredDirtyJobResultAssertion)
             throws Exception {
-        jobGraphStore =
-                TestingJobGraphStore.newBuilder().setInitialJobGraphs(jobGraphsToRecover).build();
+        executionPlanStore =
+                TestingExecutionPlanStore.newBuilder()
+                        .setInitialExecutionPlans(executionPlansToRecover)
+                        .build();
 
         jobResultStore =
                 TestingJobResultStore.builder()
                         .withGetDirtyResultsSupplier(() -> dirtyJobResults)
                         .build();
 
-        final CompletableFuture<Collection<JobGraph>> recoveredJobGraphsFuture =
+        final CompletableFuture<Collection<ExecutionPlan>> recoveredJobGraphsFuture =
                 new CompletableFuture<>();
         final CompletableFuture<Collection<JobResult>> recoveredDirtyJobResultsFuture =
                 new CompletableFuture<>();
@@ -222,7 +228,7 @@ class SessionDispatcherLeaderProcessTest {
                 (ignoredDispatcherId,
                         recoveredJobs,
                         recoveredDirtyJobResults,
-                        ignoredJobGraphWriter,
+                        ignoredExecutionPlanWriter,
                         ignoredJobResultStore) -> {
                     recoveredJobGraphsFuture.complete(recoveredJobs);
                     recoveredDirtyJobResultsFuture.complete(recoveredDirtyJobResults);
@@ -246,10 +252,10 @@ class SessionDispatcherLeaderProcessTest {
         OneShotLatch recoveryInitiatedLatch = new OneShotLatch();
         OneShotLatch jobGraphAddedLatch = new OneShotLatch();
 
-        jobGraphStore =
-                TestingJobGraphStore.newBuilder()
+        executionPlanStore =
+                TestingExecutionPlanStore.newBuilder()
                         // mimic behavior when recovering a JobGraph that is marked for deletion
-                        .setRecoverJobGraphFunction((jobId, jobs) -> null)
+                        .setRecoverExecutionPlanFunction((jobId, jobs) -> null)
                         .build();
 
         jobResultStore =
@@ -266,7 +272,7 @@ class SessionDispatcherLeaderProcessTest {
                                 })
                         .build();
 
-        final CompletableFuture<Collection<JobGraph>> recoveredJobGraphsFuture =
+        final CompletableFuture<Collection<ExecutionPlan>> recoveredJobGraphsFuture =
                 new CompletableFuture<>();
         final CompletableFuture<Collection<JobResult>> recoveredDirtyJobResultsFuture =
                 new CompletableFuture<>();
@@ -274,7 +280,7 @@ class SessionDispatcherLeaderProcessTest {
                 (ignoredDispatcherId,
                         recoveredJobs,
                         recoveredDirtyJobResults,
-                        ignoredJobGraphWriter,
+                        ignoredExecutionPlanWriter,
                         ignoredJobResultStore) -> {
                     recoveredJobGraphsFuture.complete(recoveredJobs);
                     recoveredDirtyJobResultsFuture.complete(recoveredDirtyJobResults);
@@ -288,7 +294,7 @@ class SessionDispatcherLeaderProcessTest {
             // start returns without the initial recovery being completed
             // mimic ZK message about an added jobgraph while the recovery is ongoing
             recoveryInitiatedLatch.await();
-            dispatcherLeaderProcess.onAddedJobGraph(dirtyJobResult.getJobId());
+            dispatcherLeaderProcess.onAddedExecutionPlan(dirtyJobResult.getJobId());
             jobGraphAddedLatch.trigger();
 
             assertThatFuture(recoveredJobGraphsFuture)
@@ -304,10 +310,10 @@ class SessionDispatcherLeaderProcessTest {
     }
 
     @Test
-    void closeAsync_stopsJobGraphStoreAndDispatcher() throws Exception {
+    void closeAsync_stopsExecutionPlanStoreAndDispatcher() throws Exception {
         final CompletableFuture<Void> jobGraphStopFuture = new CompletableFuture<>();
-        jobGraphStore =
-                TestingJobGraphStore.newBuilder()
+        executionPlanStore =
+                TestingExecutionPlanStore.newBuilder()
                         .setStopRunnable(() -> jobGraphStopFuture.complete(null))
                         .build();
 
@@ -335,7 +341,7 @@ class SessionDispatcherLeaderProcessTest {
 
             dispatcherServiceTerminationFuture.complete(null);
 
-            // verify that we shut down the JobGraphStore
+            // verify that we shut down the ExecutionPlanStore
             jobGraphStopFuture.get();
 
             // verify that we completed the dispatcher leader process shut down
@@ -433,8 +439,8 @@ class SessionDispatcherLeaderProcessTest {
         final OneShotLatch completeJobRecoveryLatch = new OneShotLatch();
         final OneShotLatch createDispatcherServiceLatch = new OneShotLatch();
 
-        this.jobGraphStore =
-                TestingJobGraphStore.newBuilder()
+        this.executionPlanStore =
+                TestingExecutionPlanStore.newBuilder()
                         .setJobIdsFunction(
                                 storedJobs -> {
                                     jobRecoveryStartedLatch.trigger();
@@ -468,10 +474,10 @@ class SessionDispatcherLeaderProcessTest {
     }
 
     @Test
-    void onRemovedJobGraph_terminatesRunningJob() throws Exception {
-        jobGraphStore =
-                TestingJobGraphStore.newBuilder()
-                        .setInitialJobGraphs(Collections.singleton(JOB_GRAPH))
+    void onRemovedExecutionPlan_terminatesRunningJob() throws Exception {
+        executionPlanStore =
+                TestingExecutionPlanStore.newBuilder()
+                        .setInitialExecutionPlans(Collections.singleton(executionPlan))
                         .build();
 
         final CompletableFuture<JobID> terminateJobFuture = new CompletableFuture<>();
@@ -495,18 +501,18 @@ class SessionDispatcherLeaderProcessTest {
             // wait for the dispatcher process to be created
             dispatcherLeaderProcess.getDispatcherGateway().get();
 
-            // now remove the Job from the JobGraphStore and notify the dispatcher service
-            jobGraphStore.globalCleanupAsync(JOB_GRAPH.getJobID(), executorService).join();
-            dispatcherLeaderProcess.onRemovedJobGraph(JOB_GRAPH.getJobID());
+            // now remove the Job from the ExecutionPlanStore and notify the dispatcher service
+            executionPlanStore.globalCleanupAsync(executionPlan.getJobId(), executorService).join();
+            dispatcherLeaderProcess.onRemovedExecutionPlan(executionPlan.getJobId());
 
-            assertThat(terminateJobFuture.get()).isEqualTo(JOB_GRAPH.getJobID());
+            assertThat(terminateJobFuture.get()).isEqualTo(executionPlan.getJobId());
         } finally {
             assertThat(executorService.shutdownNow()).isEmpty();
         }
     }
 
     @Test
-    void onRemovedJobGraph_failingRemovalCall_failsFatally() throws Exception {
+    void onRemovedExecutionPlan_failingRemovalCall_failsFatally() throws Exception {
         final FlinkException testException = new FlinkException("Test exception");
 
         final TestingDispatcherGatewayService testingDispatcherService =
@@ -526,7 +532,7 @@ class SessionDispatcherLeaderProcessTest {
             dispatcherLeaderProcess.getDispatcherGateway().get();
 
             // now notify the dispatcher service
-            dispatcherLeaderProcess.onRemovedJobGraph(JOB_GRAPH.getJobID());
+            dispatcherLeaderProcess.onRemovedExecutionPlan(executionPlan.getJobId());
 
             final Throwable fatalError = fatalErrorHandler.getErrorFuture().join();
 
@@ -537,7 +543,7 @@ class SessionDispatcherLeaderProcessTest {
     }
 
     @Test
-    void onAddedJobGraph_submitsRecoveredJob() throws Exception {
+    void onAddedExecutionPlan_submitsRecoveredJob() throws Exception {
         final CompletableFuture<JobGraph> submittedJobFuture = new CompletableFuture<>();
         final TestingDispatcherGateway testingDispatcherGateway =
                 TestingDispatcherGateway.newBuilder()
@@ -562,21 +568,21 @@ class SessionDispatcherLeaderProcessTest {
             // wait first for the dispatcher service to be created
             dispatcherLeaderProcess.getDispatcherGateway().get();
 
-            jobGraphStore.putJobGraph(JOB_GRAPH);
-            dispatcherLeaderProcess.onAddedJobGraph(JOB_GRAPH.getJobID());
+            executionPlanStore.putExecutionPlan(executionPlan);
+            dispatcherLeaderProcess.onAddedExecutionPlan(executionPlan.getJobId());
 
             final JobGraph submittedJobGraph = submittedJobFuture.get();
 
-            assertThat(submittedJobGraph.getJobID()).isEqualTo(JOB_GRAPH.getJobID());
+            assertThat(submittedJobGraph.getJobID()).isEqualTo(executionPlan.getJobId());
         }
     }
 
     @Test
-    void onAddedJobGraph_ifNotRunning_isBeingIgnored() throws Exception {
+    void onAddedExecutionPlan_ifNotRunning_isBeingIgnored() throws Exception {
         final CompletableFuture<JobID> recoveredJobFuture = new CompletableFuture<>();
-        jobGraphStore =
-                TestingJobGraphStore.newBuilder()
-                        .setRecoverJobGraphFunction(
+        executionPlanStore =
+                TestingExecutionPlanStore.newBuilder()
+                        .setRecoverExecutionPlanFunction(
                                 (jobId, jobGraphs) -> {
                                     recoveredJobFuture.complete(jobId);
                                     return jobGraphs.get(jobId);
@@ -591,25 +597,25 @@ class SessionDispatcherLeaderProcessTest {
             dispatcherLeaderProcess.getDispatcherGateway().get();
 
             // now add the job graph
-            jobGraphStore.putJobGraph(JOB_GRAPH);
+            executionPlanStore.putExecutionPlan(executionPlan);
 
             dispatcherLeaderProcess.closeAsync();
 
-            dispatcherLeaderProcess.onAddedJobGraph(JOB_GRAPH.getJobID());
+            dispatcherLeaderProcess.onAddedExecutionPlan(executionPlan.getJobId());
 
             assertThatThrownBy(
                             () -> recoveredJobFuture.get(10L, TimeUnit.MILLISECONDS),
-                            "onAddedJobGraph should be ignored if the leader process is not running.")
+                            "onAddedExecutionPlan should be ignored if the leader process is not running.")
                     .isInstanceOf(TimeoutException.class);
         }
     }
 
     @Test
-    void onAddedJobGraph_failingRecovery_propagatesTheFailure() throws Exception {
+    void onAddedExecutionPlan_failingRecovery_propagatesTheFailure() throws Exception {
         final FlinkException expectedFailure = new FlinkException("Expected failure");
-        jobGraphStore =
-                TestingJobGraphStore.newBuilder()
-                        .setRecoverJobGraphFunction(
+        executionPlanStore =
+                TestingExecutionPlanStore.newBuilder()
+                        .setRecoverExecutionPlanFunction(
                                 (ignoredA, ignoredB) -> {
                                     throw expectedFailure;
                                 })
@@ -622,8 +628,8 @@ class SessionDispatcherLeaderProcessTest {
             // wait first for the dispatcher service to be created
             dispatcherLeaderProcess.getDispatcherGateway().get();
 
-            jobGraphStore.putJobGraph(JOB_GRAPH);
-            dispatcherLeaderProcess.onAddedJobGraph(JOB_GRAPH.getJobID());
+            executionPlanStore.putExecutionPlan(executionPlan);
+            dispatcherLeaderProcess.onAddedExecutionPlan(executionPlan.getJobId());
 
             assertThatFuture(fatalErrorHandler.getErrorFuture())
                     .eventuallySucceeds()
@@ -640,13 +646,13 @@ class SessionDispatcherLeaderProcessTest {
     @Test
     void recoverJobs_withRecoveryFailure_failsFatally() throws Exception {
         final FlinkException testException = new FlinkException("Test exception");
-        jobGraphStore =
-                TestingJobGraphStore.newBuilder()
-                        .setRecoverJobGraphFunction(
+        executionPlanStore =
+                TestingExecutionPlanStore.newBuilder()
+                        .setRecoverExecutionPlanFunction(
                                 (ignoredA, ignoredB) -> {
                                     throw testException;
                                 })
-                        .setInitialJobGraphs(Collections.singleton(JOB_GRAPH))
+                        .setInitialExecutionPlans(Collections.singleton(executionPlan))
                         .build();
 
         runJobRecoveryFailureTest(testException);
@@ -655,8 +661,8 @@ class SessionDispatcherLeaderProcessTest {
     @Test
     void recoverJobs_withJobIdRecoveryFailure_failsFatally() throws Exception {
         final FlinkException testException = new FlinkException("Test exception");
-        jobGraphStore =
-                TestingJobGraphStore.newBuilder()
+        executionPlanStore =
+                TestingExecutionPlanStore.newBuilder()
                         .setJobIdsFunction(
                                 ignored -> {
                                     throw testException;
@@ -687,7 +693,7 @@ class SessionDispatcherLeaderProcessTest {
     }
 
     @Test
-    void onAddedJobGraph_failingRecoveredJobSubmission_failsFatally() throws Exception {
+    void onAddedExecutionPlan_failingRecoveredJobSubmission_failsFatally() throws Exception {
         final TestingDispatcherGateway dispatcherGateway =
                 TestingDispatcherGateway.newBuilder()
                         .setSubmitFunction(
@@ -712,7 +718,8 @@ class SessionDispatcherLeaderProcessTest {
     }
 
     @Test
-    void onAddedJobGraph_duplicateJobSubmissionDueToFalsePositive_willBeIgnored() throws Exception {
+    void onAddedExecutionPlan_duplicateJobSubmissionDueToFalsePositive_willBeIgnored()
+            throws Exception {
         final TestingDispatcherGateway dispatcherGateway =
                 TestingDispatcherGateway.newBuilder()
                         .setSubmitFunction(
@@ -729,14 +736,14 @@ class SessionDispatcherLeaderProcessTest {
             TestingDispatcherGateway dispatcherGateway,
             ThrowingConsumer<TestingFatalErrorHandler, Exception> verificationLogic)
             throws Exception {
-        jobGraphStore =
-                TestingJobGraphStore.newBuilder()
-                        .setInitialJobGraphs(Collections.singleton(JOB_GRAPH))
+        executionPlanStore =
+                TestingExecutionPlanStore.newBuilder()
+                        .setInitialExecutionPlans(Collections.singleton(executionPlan))
                         .build();
         dispatcherServiceFactory =
                 createFactoryBasedOnJobGraphs(
                         jobGraphs -> {
-                            assertThat(jobGraphs).containsExactlyInAnyOrder(JOB_GRAPH);
+                            assertThat(jobGraphs).containsExactlyInAnyOrder(executionPlan);
 
                             return TestingDispatcherGatewayService.newBuilder()
                                     .setDispatcherGateway(dispatcherGateway)
@@ -749,7 +756,7 @@ class SessionDispatcherLeaderProcessTest {
 
             dispatcherLeaderProcess.getDispatcherGateway().get();
 
-            dispatcherLeaderProcess.onAddedJobGraph(JOB_GRAPH.getJobID());
+            dispatcherLeaderProcess.onAddedExecutionPlan(executionPlan.getJobId());
 
             verificationLogic.accept(fatalErrorHandler);
         }
@@ -758,13 +765,13 @@ class SessionDispatcherLeaderProcessTest {
     private AbstractDispatcherLeaderProcess.DispatcherGatewayServiceFactory
             createFactoryBasedOnJobGraphs(
                     Function<
-                                    Collection<JobGraph>,
+                                    Collection<ExecutionPlan>,
                                     AbstractDispatcherLeaderProcess.DispatcherGatewayService>
                             createFunction) {
         return (ignoredDispatcherId,
                 recoveredJobs,
                 ignoredRecoveredDirtyJobResults,
-                ignoredJobGraphWriter,
+                ignoredExecutionPlanWriter,
                 ignoredJobResultStore) -> createFunction.apply(recoveredJobs);
     }
 
@@ -774,7 +781,7 @@ class SessionDispatcherLeaderProcessTest {
         return (ignoredDispatcherId,
                 ignoredRecoveredJobs,
                 ignoredRecoveredDirtyJobResults,
-                ignoredJobGraphWriter,
+                ignoredExecutionPlanWriter,
                 ignoredJobResultStore) -> supplier.get();
     }
 
@@ -789,7 +796,7 @@ class SessionDispatcherLeaderProcessTest {
         return SessionDispatcherLeaderProcess.create(
                 leaderSessionId,
                 dispatcherServiceFactory,
-                jobGraphStore,
+                executionPlanStore,
                 jobResultStore,
                 ioExecutor,
                 fatalErrorHandler);

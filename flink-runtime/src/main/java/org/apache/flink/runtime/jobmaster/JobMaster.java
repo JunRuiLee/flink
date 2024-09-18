@@ -60,6 +60,7 @@ import org.apache.flink.runtime.jobgraph.JobGraph;
 import org.apache.flink.runtime.jobgraph.JobResourceRequirements;
 import org.apache.flink.runtime.jobgraph.JobVertexID;
 import org.apache.flink.runtime.jobgraph.OperatorID;
+import org.apache.flink.runtime.jobmanager.ExecutionPlan;
 import org.apache.flink.runtime.jobmanager.OnCompletionActions;
 import org.apache.flink.runtime.jobmanager.PartitionProducerDisposedException;
 import org.apache.flink.runtime.jobmaster.factories.JobManagerJobMetricGroupFactory;
@@ -103,6 +104,8 @@ import org.apache.flink.runtime.taskmanager.TaskExecutionState;
 import org.apache.flink.runtime.taskmanager.TaskManagerLocation;
 import org.apache.flink.runtime.taskmanager.TaskManagerLocation.ResolutionMode;
 import org.apache.flink.runtime.taskmanager.UnresolvedTaskManagerLocation;
+import org.apache.flink.streaming.api.graph.SerializedStreamGraphWithDependencies;
+import org.apache.flink.streaming.api.graph.StreamGraph;
 import org.apache.flink.util.ExceptionUtils;
 import org.apache.flink.util.FlinkException;
 import org.apache.flink.util.FlinkRuntimeException;
@@ -164,6 +167,8 @@ public class JobMaster extends FencedRpcEndpoint<JobMasterId>
     private final ResourceID resourceId;
 
     private final JobGraph jobGraph;
+
+    @Nullable private final StreamGraph streamGraph;
 
     private final Time rpcTimeout;
 
@@ -255,7 +260,7 @@ public class JobMaster extends FencedRpcEndpoint<JobMasterId>
             JobMasterId jobMasterId,
             JobMasterConfiguration jobMasterConfiguration,
             ResourceID resourceId,
-            JobGraph jobGraph,
+            ExecutionPlan executionPlan,
             HighAvailabilityServices highAvailabilityService,
             SlotPoolServiceSchedulerFactory slotPoolServiceSchedulerFactory,
             JobManagerSharedServices jobManagerSharedServices,
@@ -277,7 +282,7 @@ public class JobMaster extends FencedRpcEndpoint<JobMasterId>
                 rpcService,
                 RpcServiceUtils.createRandomName(JOB_MANAGER_NAME),
                 jobMasterId,
-                MdcUtils.asContextData(jobGraph.getJobID()));
+                MdcUtils.asContextData(executionPlan.getJobID()));
 
         final ExecutionDeploymentReconciliationHandler executionStateReconciliationHandler =
                 new ExecutionDeploymentReconciliationHandler() {
@@ -318,8 +323,20 @@ public class JobMaster extends FencedRpcEndpoint<JobMasterId>
                         }
                     }
                 };
-        final String jobName = jobGraph.getName();
-        final JobID jid = jobGraph.getJobID();
+        final String jobName = executionPlan.getName();
+        final JobID jid = executionPlan.getJobID();
+
+        if (executionPlan instanceof JobGraph) {
+            this.streamGraph = null;
+            this.jobGraph = (JobGraph) executionPlan;
+        } else {
+            this.streamGraph =
+                    ((SerializedStreamGraphWithDependencies) executionPlan)
+                            .deserializeStreamGraph(
+                                    userCodeLoader,
+                                    jobManagerSharedServices.getSerializationExecutor());
+            this.jobGraph = streamGraph.getJobGraph();
+        }
 
         log.info("Initializing job '{}' ({}).", jobName, jid);
 
@@ -329,7 +346,6 @@ public class JobMaster extends FencedRpcEndpoint<JobMasterId>
 
         this.jobMasterConfiguration = checkNotNull(jobMasterConfiguration);
         this.resourceId = checkNotNull(resourceId);
-        this.jobGraph = checkNotNull(jobGraph);
         this.rpcTimeout = jobMasterConfiguration.getRpcTimeout();
         this.highAvailabilityServices = checkNotNull(highAvailabilityService);
         this.blobWriter = jobManagerSharedServices.getBlobWriter();

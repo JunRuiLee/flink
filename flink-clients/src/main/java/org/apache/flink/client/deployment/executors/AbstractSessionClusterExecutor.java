@@ -27,13 +27,17 @@ import org.apache.flink.client.deployment.ClusterDescriptor;
 import org.apache.flink.client.program.ClusterClient;
 import org.apache.flink.client.program.ClusterClientProvider;
 import org.apache.flink.configuration.Configuration;
+import org.apache.flink.configuration.DeploymentOptions;
 import org.apache.flink.core.execution.CacheSupportedPipelineExecutor;
 import org.apache.flink.core.execution.JobClient;
 import org.apache.flink.core.execution.PipelineExecutor;
 import org.apache.flink.runtime.jobgraph.IntermediateDataSetID;
-import org.apache.flink.runtime.jobgraph.JobGraph;
+import org.apache.flink.streaming.api.graph.StreamGraph;
 import org.apache.flink.util.AbstractID;
 import org.apache.flink.util.function.FunctionUtils;
+
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import javax.annotation.Nonnull;
 
@@ -56,6 +60,8 @@ public class AbstractSessionClusterExecutor<
                 ClusterID, ClientFactory extends ClusterClientFactory<ClusterID>>
         implements CacheSupportedPipelineExecutor {
 
+    private static Logger logger = LoggerFactory.getLogger(AbstractSessionClusterExecutor.class);
+
     private final ClientFactory clusterClientFactory;
 
     public AbstractSessionClusterExecutor(@Nonnull final ClientFactory clusterClientFactory) {
@@ -68,8 +74,20 @@ public class AbstractSessionClusterExecutor<
             @Nonnull final Configuration configuration,
             @Nonnull final ClassLoader userCodeClassloader)
             throws Exception {
-        final JobGraph jobGraph =
-                PipelineExecutorUtils.getJobGraph(pipeline, configuration, userCodeClassloader);
+        ExecutionPlan executionPlan;
+        if (configuration.get(DeploymentOptions.SUBMIT_STREAM_GRAPH_ENABLED)
+                && pipeline instanceof StreamGraph) {
+            executionPlan =
+                    ExecutionPlan.createExecutionPlan(
+                            PipelineExecutorUtils.getStreamGraph(pipeline, configuration));
+        } else {
+            logger.info("Start build job graph");
+            executionPlan =
+                    ExecutionPlan.createExecutionPlan(
+                            PipelineExecutorUtils.getJobGraph(
+                                    pipeline, configuration, userCodeClassloader));
+            logger.info("Finish build job graph");
+        }
 
         try (final ClusterDescriptor<ClusterID> clusterDescriptor =
                 clusterClientFactory.createClusterDescriptor(configuration)) {
@@ -80,7 +98,7 @@ public class AbstractSessionClusterExecutor<
                     clusterDescriptor.retrieve(clusterID);
             ClusterClient<ClusterID> clusterClient = clusterClientProvider.getClusterClient();
             return clusterClient
-                    .submitJob(jobGraph)
+                    .submitJob(executionPlan)
                     .thenApplyAsync(
                             FunctionUtils.uncheckedFunction(
                                     jobId -> {

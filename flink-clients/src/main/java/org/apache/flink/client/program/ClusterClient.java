@@ -96,6 +96,10 @@ public interface ClusterClient<T> extends AutoCloseable {
      */
     CompletableFuture<JobID> submitJob(JobGraph jobGraph);
 
+    default CompletableFuture<JobID> submitJob(ExecutionPlan executionPlan) {
+        throw new UnsupportedOperationException();
+    }
+
     /** Requests the {@link JobStatus} of the job with the given {@link JobID}. */
     CompletableFuture<JobStatus> getJobStatus(JobID jobId);
 
@@ -232,6 +236,9 @@ public interface ClusterClient<T> extends AutoCloseable {
      */
     CompletableFuture<CoordinationResponse> sendCoordinationRequest(
             JobID jobId, OperatorID operatorId, CoordinationRequest request);
+
+    CompletableFuture<CoordinationResponse> sendCoordinationRequest(
+            JobID jobId, int streamNodeId, CoordinationRequest request);
 
     /**
      * Return a set of ids of the completed cluster datasets.

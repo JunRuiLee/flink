@@ -70,13 +70,18 @@ public final class PerJobMiniClusterFactory {
     /** Starts a {@link MiniCluster} and submits a job. */
     public CompletableFuture<JobClient> submitJob(
             JobGraph jobGraph, ClassLoader userCodeClassloader) throws Exception {
+        return submitJob(ExecutionPlan.createExecutionPlan(jobGraph), userCodeClassloader);
+    }
+
+    public CompletableFuture<JobClient> submitJob(
+            ExecutionPlan executionPlan, ClassLoader userCodeClassloader) throws Exception {
         MiniClusterConfiguration miniClusterConfig =
-                getMiniClusterConfig(jobGraph.getMaximumParallelism());
+                getMiniClusterConfig(executionPlan.getMaximumParallelism());
         MiniCluster miniCluster = miniClusterFactory.apply(miniClusterConfig);
         miniCluster.start();
 
         return miniCluster
-                .submitJob(jobGraph)
+                .submitJob(executionPlan)
                 .thenApplyAsync(
                         FunctionUtils.uncheckedFunction(
                                 submissionResult -> {

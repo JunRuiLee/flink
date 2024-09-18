@@ -22,11 +22,13 @@ import org.apache.flink.api.common.ExecutionConfig;
 import org.apache.flink.api.common.InvalidProgramException;
 import org.apache.flink.api.common.JobID;
 import org.apache.flink.api.common.cache.DistributedCache;
+import org.apache.flink.api.common.operators.ResourceSpec;
 import org.apache.flink.configuration.Configuration;
 import org.apache.flink.core.execution.JobStatusHook;
 import org.apache.flink.core.fs.Path;
 import org.apache.flink.runtime.blob.PermanentBlobKey;
 import org.apache.flink.runtime.jobgraph.tasks.JobCheckpointingSettings;
+import org.apache.flink.runtime.jobmanager.ExecutionPlan;
 import org.apache.flink.runtime.jobmanager.scheduler.CoLocationGroup;
 import org.apache.flink.runtime.jobmanager.scheduler.SlotSharingGroup;
 import org.apache.flink.util.InstantiationUtil;
@@ -36,7 +38,6 @@ import org.apache.flink.util.SerializedValue;
 import javax.annotation.Nullable;
 
 import java.io.IOException;
-import java.io.Serializable;
 import java.net.URISyntaxException;
 import java.net.URL;
 import java.util.ArrayList;
@@ -64,9 +65,7 @@ import static org.apache.flink.util.Preconditions.checkNotNull;
  * <p>The JobGraph defines the job-wide configuration settings, while each vertex and intermediate
  * result define the characteristics of the concrete operation and intermediate data.
  */
-public class JobGraph implements Serializable {
-
-    private static final long serialVersionUID = 1L;
+public class JobGraph implements ExecutionPlan {
 
     private static final String INITIAL_CLIENT_HEARTBEAT_TIMEOUT = "initialClientHeartbeatTimeout";
 
@@ -75,6 +74,10 @@ public class JobGraph implements Serializable {
     /** List of task vertices included in this job graph. */
     private final Map<JobVertexID, JobVertex> taskVertices =
             new LinkedHashMap<JobVertexID, JobVertex>();
+
+    public Map<JobVertexID, JobVertex> getTaskVertices() {
+        return taskVertices;
+    }
 
     /** The job configuration attached to this job. */
     private Configuration jobConfiguration = new Configuration();
@@ -198,6 +201,31 @@ public class JobGraph implements Serializable {
         return this.jobName;
     }
 
+    @Override
+    public boolean isPartialResourceConfigured() {
+        boolean hasVerticesWithUnknownResource = false;
+        boolean hasVerticesWithConfiguredResource = false;
+
+        for (JobVertex jobVertex : getVertices()) {
+            if (jobVertex.getMinResources() == ResourceSpec.UNKNOWN) {
+                hasVerticesWithUnknownResource = true;
+            } else {
+                hasVerticesWithConfiguredResource = true;
+            }
+
+            if (hasVerticesWithUnknownResource && hasVerticesWithConfiguredResource) {
+                return true;
+            }
+        }
+
+        return false;
+    }
+
+    @Override
+    public boolean isEmptyGraph() {
+        return getNumberOfVertices() == 0;
+    }
+
     public void setJobConfiguration(Configuration jobConfiguration) {
         this.jobConfiguration = jobConfiguration;
     }
@@ -225,6 +253,7 @@ public class JobGraph implements Serializable {
         this.jobType = type;
     }
 
+    @Override
     public JobType getJobType() {
         return jobType;
     }
@@ -233,6 +262,7 @@ public class JobGraph implements Serializable {
         this.dynamic = dynamic;
     }
 
+    @Override
     public boolean isDynamic() {
         return dynamic;
     }
@@ -366,6 +396,7 @@ public class JobGraph implements Serializable {
      *
      * @return The snapshot settings
      */
+    @Override
     public JobCheckpointingSettings getCheckpointingSettings() {
         return snapshotSettings;
     }

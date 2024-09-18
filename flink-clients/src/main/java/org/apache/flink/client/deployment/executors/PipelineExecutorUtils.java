@@ -27,15 +27,26 @@ import org.apache.flink.configuration.Configuration;
 import org.apache.flink.configuration.DeploymentOptions;
 import org.apache.flink.configuration.PipelineOptionsInternal;
 import org.apache.flink.runtime.jobgraph.JobGraph;
+import org.apache.flink.runtime.util.Hardware;
+import org.apache.flink.streaming.api.graph.StreamGraph;
+import org.apache.flink.util.concurrent.ExecutorThreadFactory;
+
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import javax.annotation.Nonnull;
 
 import java.net.MalformedURLException;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
 
 import static org.apache.flink.util.Preconditions.checkNotNull;
+import static org.apache.flink.util.Preconditions.checkState;
 
 /** Utility class with method related to job execution. */
 public class PipelineExecutorUtils {
+
+    private static final Logger log = LoggerFactory.getLogger(PipelineExecutorUtils.class);
 
     /**
      * Creates the {@link JobGraph} corresponding to the provided {@link Pipeline}.
@@ -79,5 +90,52 @@ public class PipelineExecutorUtils {
         jobGraph.setSavepointRestoreSettings(executionConfigAccessor.getSavepointRestoreSettings());
 
         return jobGraph;
+    }
+
+    public static StreamGraph getStreamGraph(
+            @Nonnull final Pipeline pipeline, @Nonnull final Configuration configuration)
+            throws Exception {
+        checkNotNull(pipeline);
+        checkNotNull(configuration);
+        checkState(pipeline instanceof StreamGraph);
+
+        StreamGraph streamGraph = (StreamGraph) pipeline;
+
+        final ExecutionConfigAccessor executionConfigAccessor =
+                ExecutionConfigAccessor.fromConfiguration(configuration);
+
+        configuration
+                .getOptional(PipelineOptionsInternal.PIPELINE_FIXED_JOB_ID)
+                .ifPresent(strJobID -> streamGraph.setJobId(JobID.fromHexString(strJobID)));
+
+        if (configuration.get(DeploymentOptions.ATTACHED)
+                && configuration.get(DeploymentOptions.SHUTDOWN_IF_ATTACHED)) {
+            streamGraph.setInitialClientHeartbeatTimeout(
+                    configuration.get(ClientOptions.CLIENT_HEARTBEAT_TIMEOUT).toMillis());
+        }
+
+        streamGraph.addJars(executionConfigAccessor.getJars());
+        streamGraph.setClasspath(executionConfigAccessor.getClasspaths());
+        streamGraph.setSavepointRestoreSettings(
+                executionConfigAccessor.getSavepointRestoreSettings());
+
+        final ExecutorService serializationExecutor =
+                Executors.newFixedThreadPool(
+                        Math.max(
+                                1,
+                                Math.min(
+                                        Hardware.getNumberCPUCores(),
+                                        streamGraph.getExecutionConfig().getParallelism())),
+                        new ExecutorThreadFactory("flink-operator-serialization-io"));
+        try {
+            long currMs = System.currentTimeMillis();
+            streamGraph.serializeAllNodesToConfig(serializationExecutor);
+            log.info(
+                    "Finished try to serialize the StreamGraph from config took {} ms",
+                    System.currentTimeMillis() - currMs);
+            return streamGraph;
+        } finally {
+            serializationExecutor.shutdown();
+        }
     }
 }

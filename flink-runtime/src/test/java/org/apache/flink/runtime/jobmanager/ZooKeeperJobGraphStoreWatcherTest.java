@@ -45,8 +45,8 @@ import java.nio.file.Path;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
-/** Tests for the {@link ZooKeeperJobGraphStoreWatcher}. */
-class ZooKeeperJobGraphStoreWatcherTest {
+/** Tests for the {@link ZooKeeperExecutionPlanStoreWatcher}. */
+class ZooKeeperExecutionPlanStoreWatcherTest {
 
     @RegisterExtension
     public EachCallbackWrapper<ZooKeeperExtension> zooKeeperExtensionWrapper =
@@ -76,8 +76,8 @@ class ZooKeeperJobGraphStoreWatcherTest {
                 ZooKeeperUtils.startCuratorFramework(
                         configuration, NoOpFatalErrorHandler.INSTANCE)) {
             final CuratorFramework client = curatorFrameworkWrapper.asCuratorFramework();
-            final JobGraphStoreWatcher jobGraphStoreWatcher =
-                    createAndStartJobGraphStoreWatcher(client);
+            final ExecutionPlanStoreWatcher executionPlanStoreWatcher =
+                    createAndStartExecutionPlanStoreWatcher(client);
 
             final ZooKeeperStateHandleStore<JobGraph> stateHandleStore =
                     createStateHandleStore(client);
@@ -97,16 +97,16 @@ class ZooKeeperJobGraphStoreWatcherTest {
                     () -> testingJobGraphListener.getRemovedJobGraphs().size() > 0);
             assertThat(testingJobGraphListener.getRemovedJobGraphs()).containsExactly(jobID);
 
-            jobGraphStoreWatcher.stop();
+            executionPlanStoreWatcher.stop();
         }
     }
 
-    private JobGraphStoreWatcher createAndStartJobGraphStoreWatcher(CuratorFramework client)
-            throws Exception {
-        final ZooKeeperJobGraphStoreWatcher jobGraphStoreWatcher =
-                new ZooKeeperJobGraphStoreWatcher(new PathChildrenCache(client, "/", false));
-        jobGraphStoreWatcher.start(testingJobGraphListener);
-        return jobGraphStoreWatcher;
+    private ExecutionPlanStoreWatcher createAndStartExecutionPlanStoreWatcher(
+            CuratorFramework client) throws Exception {
+        final ZooKeeperExecutionPlanStoreWatcher executionPlanStoreWatcher =
+                new ZooKeeperExecutionPlanStoreWatcher(new PathChildrenCache(client, "/", false));
+        executionPlanStoreWatcher.start(testingJobGraphListener);
+        return executionPlanStoreWatcher;
     }
 
     private ZooKeeperStateHandleStore<JobGraph> createStateHandleStore(CuratorFramework client)

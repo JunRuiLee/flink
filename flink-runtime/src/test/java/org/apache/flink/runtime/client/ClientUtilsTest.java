@@ -84,7 +84,7 @@ public class ClientUtilsTest {
         assertThat(jobGraph.getUserJarBlobKeys()).isEmpty();
 
         ClientUtils.extractAndUploadJobGraphFiles(
-                jobGraph,
+                ExecutionPlan.createExecutionPlan(jobGraph),
                 () ->
                         new BlobClient(
                                 new InetSocketAddress("localhost", blobServer.getPort()),
@@ -136,7 +136,7 @@ public class ClientUtilsTest {
                 .isEmpty();
 
         ClientUtils.extractAndUploadJobGraphFiles(
-                jobGraph,
+                ExecutionPlan.createExecutionPlan(jobGraph),
                 () ->
                         new BlobClient(
                                 new InetSocketAddress("localhost", blobServer.getPort()),

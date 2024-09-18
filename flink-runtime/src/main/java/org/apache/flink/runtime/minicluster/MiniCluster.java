@@ -981,6 +981,14 @@ public class MiniCluster implements AutoCloseableAsync {
                                 jobId, operatorId, serializedRequest, rpcTimeout));
     }
 
+    public CompletableFuture<CoordinationResponse> deliverCoordinationRequestToCoordinator(
+            JobID jobId, int streamNodeId, SerializedValue<CoordinationRequest> serializedRequest) {
+        return runDispatcherCommand(
+                dispatcherGateway ->
+                        dispatcherGateway.deliverCoordinationRequestToCoordinator(
+                                jobId, streamNodeId, serializedRequest, rpcTimeout));
+    }
+
     public CompletableFuture<ResourceOverview> getResourceOverview() {
         return runResourceManagerCommand(
                 resourceManagerGateway ->
@@ -1064,40 +1072,60 @@ public class MiniCluster implements AutoCloseableAsync {
     }
 
     public CompletableFuture<JobSubmissionResult> submitJob(JobGraph jobGraph) {
-        // When MiniCluster uses the local RPC, the provided JobGraph is passed directly to the
-        // Dispatcher. This means that any mutations to the JG can affect the Dispatcher behaviour,
-        // so we rather clone it to guard against this.
-        final JobGraph clonedJobGraph = InstantiationUtil.cloneUnchecked(jobGraph);
-        checkRestoreModeForChangelogStateBackend(clonedJobGraph);
+        return submitJob(ExecutionPlan.createExecutionPlan(jobGraph));
+    }
+
+    public CompletableFuture<JobSubmissionResult> submitJob(ExecutionPlan executionPlan) {
+        // When MiniCluster uses the local RPC, the provided logical graph is passed directly to the
+        // Dispatcher. This means that any mutations to the graph can affect the Dispatcher
+        // behaviour, so we rather clone it to guard against this.
+        final ExecutionPlan clonedExecutionPlan = cloneExecutionPlan(executionPlan);
+        checkRestoreModeForChangelogStateBackend(clonedExecutionPlan);
         final CompletableFuture<DispatcherGateway> dispatcherGatewayFuture =
                 getDispatcherGatewayFuture();
         final CompletableFuture<InetSocketAddress> blobServerAddressFuture =
                 createBlobServerAddress(dispatcherGatewayFuture);
         final CompletableFuture<Void> jarUploadFuture =
-                uploadAndSetJobFiles(blobServerAddressFuture, clonedJobGraph);
+                uploadAndSetJobFiles(blobServerAddressFuture, clonedExecutionPlan);
         final CompletableFuture<Acknowledge> acknowledgeCompletableFuture =
                 jarUploadFuture
                         .thenCombine(
                                 dispatcherGatewayFuture,
                                 (Void ack, DispatcherGateway dispatcherGateway) ->
-                                        dispatcherGateway.submitJob(clonedJobGraph, rpcTimeout))
+                                        clonedExecutionPlan.isJobGraph()
+                                                ? dispatcherGateway.submitJob(
+                                                        clonedExecutionPlan.getJobGraph(),
+                                                        rpcTimeout)
+                                                : dispatcherGateway.submitJob(
+                                                        clonedExecutionPlan.getStreamGraph(),
+                                                        rpcTimeout))
                         .thenCompose(Function.identity());
         return acknowledgeCompletableFuture.thenApply(
-                (Acknowledge ignored) -> new JobSubmissionResult(clonedJobGraph.getJobID()));
+                (Acknowledge ignored) -> new JobSubmissionResult(clonedExecutionPlan.getJobId()));
+    }
+
+    private ExecutionPlan cloneExecutionPlan(ExecutionPlan executionPlan) {
+        if (executionPlan.isJobGraph()) {
+            return ExecutionPlan.createExecutionPlan(
+                    InstantiationUtil.cloneUnchecked(executionPlan.getJobGraph()));
+        } else {
+            return ExecutionPlan.createExecutionPlan(
+                    InstantiationUtil.cloneUnchecked(executionPlan.getStreamGraph()));
+        }
     }
 
     // HACK: temporary hack to make the randomized changelog state backend tests work with forced
     // full snapshots. This option should be removed once changelog state backend supports forced
     // full snapshots
-    private void checkRestoreModeForChangelogStateBackend(JobGraph jobGraph) {
+    private void checkRestoreModeForChangelogStateBackend(ExecutionPlan graph) {
         final SavepointRestoreSettings savepointRestoreSettings =
-                jobGraph.getSavepointRestoreSettings();
+                graph.getSavepointRestoreSettings();
         if (overrideRestoreModeForChangelogStateBackend
                 && savepointRestoreSettings.getRestoreMode() == RestoreMode.NO_CLAIM) {
             final Configuration conf = new Configuration();
             SavepointRestoreSettings.toConfiguration(savepointRestoreSettings, conf);
             conf.set(StateRecoveryOptions.RESTORE_MODE, RestoreMode.LEGACY);
-            jobGraph.setSavepointRestoreSettings(SavepointRestoreSettings.fromConfiguration(conf));
+            graph.setSavepointRestoreSettings(SavepointRestoreSettings.fromConfiguration(conf));
         }
     }
 
@@ -1130,7 +1158,7 @@ public class MiniCluster implements AutoCloseableAsync {
 
     private CompletableFuture<Void> uploadAndSetJobFiles(
             final CompletableFuture<InetSocketAddress> blobServerAddressFuture,
-            final JobGraph job) {
+            final ExecutionPlan job) {
         return blobServerAddressFuture.thenAccept(
                 blobServerAddress -> {
                     try {

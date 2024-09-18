@@ -28,12 +28,12 @@ import org.junit.Test;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNull;
 
-public class StandaloneJobGraphStoreTest {
+public class StandaloneExecutionPlanStoreTest {
 
     /** Tests that all operations work and don't change the state. */
     @Test
     public void testNoOps() throws Exception {
-        StandaloneJobGraphStore jobGraphs = new StandaloneJobGraphStore();
+        StandaloneExecutionPlanStore jobGraphs = new StandaloneExecutionPlanStore();
 
         JobGraph jobGraph = JobGraphTestUtils.emptyJobGraph();
 

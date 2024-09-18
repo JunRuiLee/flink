@@ -23,8 +23,8 @@ import org.apache.flink.api.common.JobID;
 import java.util.ArrayList;
 import java.util.List;
 
-/** {@link JobGraphStore.JobGraphListener} implementation for testing purposes. */
-public class TestingJobGraphListener implements JobGraphStore.JobGraphListener {
+/** {@link ExecutionPlanStore.JobGraphListener} implementation for testing purposes. */
+public class TestingJobGraphListener implements ExecutionPlanStore.JobGraphListener {
 
     private final List<JobID> addedJobGraphs = new ArrayList<>();
 
@@ -36,7 +36,7 @@ public class TestingJobGraphListener implements JobGraphStore.JobGraphListener {
     }
 
     @Override
-    public void onRemovedJobGraph(JobID jobId) {
+    public void onRemovedExecutionPlan(JobID jobId) {
         removedJobGraphs.add(jobId);
     }
 

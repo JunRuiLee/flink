@@ -63,31 +63,31 @@ import static org.junit.Assert.assertThrows;
 import static org.junit.Assert.fail;
 
 /**
- * Tests for {@link DefaultJobGraphStore} with {@link TestingJobGraphStoreWatcher}, {@link
+ * Tests for {@link DefaultExecutionPlanStore} with {@link TestingExecutionPlanStoreWatcher}, {@link
  * TestingStateHandleStore}, and {@link TestingJobGraphListener}.
  */
-public class DefaultJobGraphStoreTest extends TestLogger {
+public class DefaultExecutionPlanStoreTest extends TestLogger {
 
     private final JobGraph testingJobGraph = JobGraphTestUtils.emptyJobGraph();
     private final long timeout = 100L;
 
     private TestingStateHandleStore.Builder<JobGraph> builder;
     private TestingRetrievableStateStorageHelper<JobGraph> jobGraphStorageHelper;
-    private TestingJobGraphStoreWatcher testingJobGraphStoreWatcher;
+    private TestingExecutionPlanStoreWatcher testingExecutionPlanStoreWatcher;
     private TestingJobGraphListener testingJobGraphListener;
 
     @Before
     public void setup() {
         builder = TestingStateHandleStore.newBuilder();
-        testingJobGraphStoreWatcher = new TestingJobGraphStoreWatcher();
+        testingExecutionPlanStoreWatcher = new TestingExecutionPlanStoreWatcher();
         testingJobGraphListener = new TestingJobGraphListener();
         jobGraphStorageHelper = new TestingRetrievableStateStorageHelper<>();
     }
 
     @After
     public void teardown() {
-        if (testingJobGraphStoreWatcher != null) {
-            testingJobGraphStoreWatcher.stop();
+        if (testingExecutionPlanStoreWatcher != null) {
+            testingExecutionPlanStoreWatcher.stop();
         }
     }
 
@@ -98,10 +98,11 @@ public class DefaultJobGraphStoreTest extends TestLogger {
         final TestingStateHandleStore<JobGraph> stateHandleStore =
                 builder.setGetFunction(ignore -> stateHandle).build();
 
-        final JobGraphStore jobGraphStore = createAndStartJobGraphStore(stateHandleStore);
+        final ExecutionPlanStore executionPlanStore =
+                createAndStartExecutionPlanStore(stateHandleStore);
 
         final JobGraph recoveredJobGraph =
-                jobGraphStore.recoverJobGraph(testingJobGraph.getJobID());
+                executionPlanStore.recoverJobGraph(testingJobGraph.getJobID());
         assertThat(recoveredJobGraph, is(notNullValue()));
         assertThat(recoveredJobGraph.getJobID(), is(testingJobGraph.getJobID()));
     }
@@ -116,10 +117,11 @@ public class DefaultJobGraphStoreTest extends TestLogger {
                                 })
                         .build();
 
-        final JobGraphStore jobGraphStore = createAndStartJobGraphStore(stateHandleStore);
+        final ExecutionPlanStore executionPlanStore =
+                createAndStartExecutionPlanStore(stateHandleStore);
 
         final JobGraph recoveredJobGraph =
-                jobGraphStore.recoverJobGraph(testingJobGraph.getJobID());
+                executionPlanStore.recoverJobGraph(testingJobGraph.getJobID());
         assertThat(recoveredJobGraph, is(nullValue()));
     }
 
@@ -135,10 +137,11 @@ public class DefaultJobGraphStoreTest extends TestLogger {
                         .setReleaseConsumer(releaseFuture::complete)
                         .build();
 
-        final JobGraphStore jobGraphStore = createAndStartJobGraphStore(stateHandleStore);
+        final ExecutionPlanStore executionPlanStore =
+                createAndStartExecutionPlanStore(stateHandleStore);
 
         try {
-            jobGraphStore.recoverJobGraph(testingJobGraph.getJobID());
+            executionPlanStore.recoverJobGraph(testingJobGraph.getJobID());
             fail(
                     "recoverJobGraph should fail when there is exception in getting the state handle.");
         } catch (Exception ex) {
@@ -160,8 +163,9 @@ public class DefaultJobGraphStoreTest extends TestLogger {
                                 })
                         .build();
 
-        final JobGraphStore jobGraphStore = createAndStartJobGraphStore(stateHandleStore);
-        jobGraphStore.putJobGraph(testingJobGraph);
+        final ExecutionPlanStore executionPlanStore =
+                createAndStartExecutionPlanStore(stateHandleStore);
+        executionPlanStore.putJobGraph(testingJobGraph);
 
         final JobGraph actual = addFuture.get(timeout, TimeUnit.MILLISECONDS);
         assertThat(actual.getJobID(), is(testingJobGraph.getJobID()));
@@ -187,10 +191,11 @@ public class DefaultJobGraphStoreTest extends TestLogger {
                         .setReplaceConsumer(replaceFuture::complete)
                         .build();
 
-        final JobGraphStore jobGraphStore = createAndStartJobGraphStore(stateHandleStore);
-        jobGraphStore.putJobGraph(testingJobGraph);
+        final ExecutionPlanStore executionPlanStore =
+                createAndStartExecutionPlanStore(stateHandleStore);
+        executionPlanStore.putJobGraph(testingJobGraph);
         // Replace
-        jobGraphStore.putJobGraph(testingJobGraph);
+        executionPlanStore.putJobGraph(testingJobGraph);
 
         final Tuple3<String, IntegerResourceVersion, JobGraph> actual =
                 replaceFuture.get(timeout, TimeUnit.MILLISECONDS);
@@ -207,10 +212,11 @@ public class DefaultJobGraphStoreTest extends TestLogger {
                         .setRemoveFunction(name -> removeFuture.complete(JobID.fromHexString(name)))
                         .build();
 
-        final JobGraphStore jobGraphStore = createAndStartJobGraphStore(stateHandleStore);
+        final ExecutionPlanStore executionPlanStore =
+                createAndStartExecutionPlanStore(stateHandleStore);
 
-        jobGraphStore.putJobGraph(testingJobGraph);
-        jobGraphStore
+        executionPlanStore.putJobGraph(testingJobGraph);
+        executionPlanStore
                 .globalCleanupAsync(testingJobGraph.getJobID(), Executors.directExecutor())
                 .join();
         final JobID actual = removeFuture.get(timeout, TimeUnit.MILLISECONDS);
@@ -224,8 +230,9 @@ public class DefaultJobGraphStoreTest extends TestLogger {
                 builder.setRemoveFunction(name -> removeFuture.complete(JobID.fromHexString(name)))
                         .build();
 
-        final JobGraphStore jobGraphStore = createAndStartJobGraphStore(stateHandleStore);
-        jobGraphStore
+        final ExecutionPlanStore executionPlanStore =
+                createAndStartExecutionPlanStore(stateHandleStore);
+        executionPlanStore
                 .globalCleanupAsync(testingJobGraph.getJobID(), Executors.directExecutor())
                 .join();
 
@@ -237,11 +244,12 @@ public class DefaultJobGraphStoreTest extends TestLogger {
         final TestingStateHandleStore<JobGraph> stateHandleStore =
                 builder.setRemoveFunction(name -> false).build();
 
-        final JobGraphStore jobGraphStore = createAndStartJobGraphStore(stateHandleStore);
+        final ExecutionPlanStore executionPlanStore =
+                createAndStartExecutionPlanStore(stateHandleStore);
         assertThrows(
                 ExecutionException.class,
                 () ->
-                        jobGraphStore
+                        executionPlanStore
                                 .globalCleanupAsync(
                                         testingJobGraph.getJobID(), Executors.directExecutor())
                                 .get());
@@ -258,8 +266,9 @@ public class DefaultJobGraphStoreTest extends TestLogger {
                                                 .collect(Collectors.toList()))
                         .build();
 
-        final JobGraphStore jobGraphStore = createAndStartJobGraphStore(stateHandleStore);
-        final Collection<JobID> jobIds = jobGraphStore.getJobIds();
+        final ExecutionPlanStore executionPlanStore =
+                createAndStartExecutionPlanStore(stateHandleStore);
+        final Collection<JobID> jobIds = executionPlanStore.getJobIds();
         assertThat(jobIds, contains(existingJobIds.toArray()));
     }
 
@@ -268,10 +277,11 @@ public class DefaultJobGraphStoreTest extends TestLogger {
         final TestingStateHandleStore<JobGraph> stateHandleStore =
                 builder.setAddFunction((ignore, state) -> jobGraphStorageHelper.store(state))
                         .build();
-        final JobGraphStore jobGraphStore = createAndStartJobGraphStore(stateHandleStore);
-        jobGraphStore.putJobGraph(testingJobGraph);
+        final ExecutionPlanStore executionPlanStore =
+                createAndStartExecutionPlanStore(stateHandleStore);
+        executionPlanStore.putJobGraph(testingJobGraph);
 
-        testingJobGraphStoreWatcher.addJobGraph(testingJobGraph.getJobID());
+        testingExecutionPlanStoreWatcher.addJobGraph(testingJobGraph.getJobID());
         assertThat(testingJobGraphListener.getAddedJobGraphs().size(), is(0));
     }
 
@@ -283,14 +293,15 @@ public class DefaultJobGraphStoreTest extends TestLogger {
                 builder.setGetFunction(ignore -> stateHandle)
                         .setAddFunction((ignore, state) -> jobGraphStorageHelper.store(state))
                         .build();
-        final JobGraphStore jobGraphStore = createAndStartJobGraphStore(stateHandleStore);
-        jobGraphStore.recoverJobGraph(testingJobGraph.getJobID());
+        final ExecutionPlanStore executionPlanStore =
+                createAndStartExecutionPlanStore(stateHandleStore);
+        executionPlanStore.recoverJobGraph(testingJobGraph.getJobID());
 
         // Known recovered job
-        testingJobGraphStoreWatcher.addJobGraph(testingJobGraph.getJobID());
+        testingExecutionPlanStoreWatcher.addJobGraph(testingJobGraph.getJobID());
         // Unknown job
         final JobID unknownJobId = JobID.generate();
-        testingJobGraphStoreWatcher.addJobGraph(unknownJobId);
+        testingExecutionPlanStoreWatcher.addJobGraph(unknownJobId);
         assertThat(testingJobGraphListener.getAddedJobGraphs().size(), is(1));
         assertThat(testingJobGraphListener.getAddedJobGraphs(), contains(unknownJobId));
     }
@@ -300,13 +311,14 @@ public class DefaultJobGraphStoreTest extends TestLogger {
         final TestingStateHandleStore<JobGraph> stateHandleStore =
                 builder.setAddFunction((ignore, state) -> jobGraphStorageHelper.store(state))
                         .build();
-        final JobGraphStore jobGraphStore = createAndStartJobGraphStore(stateHandleStore);
-        jobGraphStore.putJobGraph(testingJobGraph);
+        final ExecutionPlanStore executionPlanStore =
+                createAndStartExecutionPlanStore(stateHandleStore);
+        executionPlanStore.putJobGraph(testingJobGraph);
 
         // Unknown job
-        testingJobGraphStoreWatcher.removeJobGraph(JobID.generate());
+        testingExecutionPlanStoreWatcher.removeJobGraph(JobID.generate());
         // Known job
-        testingJobGraphStoreWatcher.removeJobGraph(testingJobGraph.getJobID());
+        testingExecutionPlanStoreWatcher.removeJobGraph(testingJobGraph.getJobID());
         assertThat(testingJobGraphListener.getRemovedJobGraphs().size(), is(1));
         assertThat(
                 testingJobGraphListener.getRemovedJobGraphs(),
@@ -318,9 +330,9 @@ public class DefaultJobGraphStoreTest extends TestLogger {
         final TestingStateHandleStore<JobGraph> stateHandleStore =
                 builder.setAddFunction((ignore, state) -> jobGraphStorageHelper.store(state))
                         .build();
-        createAndStartJobGraphStore(stateHandleStore);
+        createAndStartExecutionPlanStore(stateHandleStore);
 
-        testingJobGraphStoreWatcher.removeJobGraph(testingJobGraph.getJobID());
+        testingExecutionPlanStoreWatcher.removeJobGraph(testingJobGraph.getJobID());
         assertThat(testingJobGraphListener.getRemovedJobGraphs().size(), is(0));
     }
 
@@ -329,10 +341,11 @@ public class DefaultJobGraphStoreTest extends TestLogger {
         final TestingStateHandleStore<JobGraph> stateHandleStore =
                 builder.setAddFunction((ignore, state) -> jobGraphStorageHelper.store(state))
                         .build();
-        final JobGraphStore jobGraphStore = createAndStartJobGraphStore(stateHandleStore);
-        jobGraphStore.stop();
+        final ExecutionPlanStore executionPlanStore =
+                createAndStartExecutionPlanStore(stateHandleStore);
+        executionPlanStore.stop();
 
-        testingJobGraphStoreWatcher.addJobGraph(testingJobGraph.getJobID());
+        testingExecutionPlanStoreWatcher.addJobGraph(testingJobGraph.getJobID());
         assertThat(testingJobGraphListener.getAddedJobGraphs().size(), is(0));
     }
 
@@ -341,22 +354,24 @@ public class DefaultJobGraphStoreTest extends TestLogger {
         final TestingStateHandleStore<JobGraph> stateHandleStore =
                 builder.setAddFunction((ignore, state) -> jobGraphStorageHelper.store(state))
                         .build();
-        final JobGraphStore jobGraphStore = createAndStartJobGraphStore(stateHandleStore);
-        jobGraphStore.putJobGraph(testingJobGraph);
-        jobGraphStore.stop();
+        final ExecutionPlanStore executionPlanStore =
+                createAndStartExecutionPlanStore(stateHandleStore);
+        executionPlanStore.putJobGraph(testingJobGraph);
+        executionPlanStore.stop();
 
-        testingJobGraphStoreWatcher.removeJobGraph(testingJobGraph.getJobID());
+        testingExecutionPlanStoreWatcher.removeJobGraph(testingJobGraph.getJobID());
         assertThat(testingJobGraphListener.getRemovedJobGraphs().size(), is(0));
     }
 
     @Test
-    public void testStoppingJobGraphStoreShouldReleaseAllHandles() throws Exception {
+    public void testStoppingExecutionPlanStoreShouldReleaseAllHandles() throws Exception {
         final CompletableFuture<Void> completableFuture = new CompletableFuture<>();
         final TestingStateHandleStore<JobGraph> stateHandleStore =
                 builder.setReleaseAllHandlesRunnable(() -> completableFuture.complete(null))
                         .build();
-        final JobGraphStore jobGraphStore = createAndStartJobGraphStore(stateHandleStore);
-        jobGraphStore.stop();
+        final ExecutionPlanStore executionPlanStore =
+                createAndStartExecutionPlanStore(stateHandleStore);
+        executionPlanStore.stop();
 
         assertThat(completableFuture.isDone(), is(true));
     }
@@ -366,9 +381,10 @@ public class DefaultJobGraphStoreTest extends TestLogger {
         final CompletableFuture<String> releaseFuture = new CompletableFuture<>();
         final TestingStateHandleStore<JobGraph> stateHandleStore =
                 builder.setReleaseConsumer(releaseFuture::complete).build();
-        final JobGraphStore jobGraphStore = createAndStartJobGraphStore(stateHandleStore);
-        jobGraphStore.putJobGraph(testingJobGraph);
-        jobGraphStore
+        final ExecutionPlanStore executionPlanStore =
+                createAndStartExecutionPlanStore(stateHandleStore);
+        executionPlanStore.putJobGraph(testingJobGraph);
+        executionPlanStore
                 .localCleanupAsync(testingJobGraph.getJobID(), Executors.directExecutor())
                 .join();
 
@@ -403,32 +419,33 @@ public class DefaultJobGraphStoreTest extends TestLogger {
                         .setParallelismForJobVertex(new JobVertexID(), 1, 1)
                         .build();
 
-        final JobGraphStore jobGraphStore = createAndStartJobGraphStore(stateHandleStore);
-        jobGraphStore.putJobGraph(testingJobGraph);
-        jobGraphStore.putJobResourceRequirements(
+        final ExecutionPlanStore executionPlanStore =
+                createAndStartExecutionPlanStore(stateHandleStore);
+        executionPlanStore.putJobGraph(testingJobGraph);
+        executionPlanStore.putJobResourceRequirements(
                 testingJobGraph.getJobID(), jobResourceRequirements);
 
         assertStoredRequirementsAre(
-                jobGraphStore, testingJobGraph.getJobID(), jobResourceRequirements);
+                executionPlanStore, testingJobGraph.getJobID(), jobResourceRequirements);
 
         final JobResourceRequirements updatedJobResourceRequirements =
                 JobResourceRequirements.newBuilder()
                         .setParallelismForJobVertex(new JobVertexID(), 1, 1)
                         .build();
 
-        jobGraphStore.putJobResourceRequirements(
+        executionPlanStore.putJobResourceRequirements(
                 testingJobGraph.getJobID(), updatedJobResourceRequirements);
 
         assertStoredRequirementsAre(
-                jobGraphStore, testingJobGraph.getJobID(), updatedJobResourceRequirements);
+                executionPlanStore, testingJobGraph.getJobID(), updatedJobResourceRequirements);
     }
 
     private static void assertStoredRequirementsAre(
-            JobGraphStore jobGraphStore, JobID jobId, JobResourceRequirements expected)
+            ExecutionPlanStore executionPlanStore, JobID jobId, JobResourceRequirements expected)
             throws Exception {
         final Optional<JobResourceRequirements> maybeRecovered =
                 JobResourceRequirements.readFromJobGraph(
-                        Objects.requireNonNull(jobGraphStore.recoverJobGraph(jobId)));
+                        Objects.requireNonNull(executionPlanStore.recoverJobGraph(jobId)));
         Assertions.assertThat(maybeRecovered).get().isEqualTo(expected);
     }
 
@@ -440,21 +457,22 @@ public class DefaultJobGraphStoreTest extends TestLogger {
                                     throw new StateHandleStore.NotExistException("Does not exist.");
                                 })
                         .build();
-        final JobGraphStore jobGraphStore = createAndStartJobGraphStore(stateHandleStore);
+        final ExecutionPlanStore executionPlanStore =
+                createAndStartExecutionPlanStore(stateHandleStore);
         assertThrows(
                 NoSuchElementException.class,
                 () ->
-                        jobGraphStore.putJobResourceRequirements(
+                        executionPlanStore.putJobResourceRequirements(
                                 new JobID(), JobResourceRequirements.empty()));
     }
 
-    private JobGraphStore createAndStartJobGraphStore(
+    private ExecutionPlanStore createAndStartExecutionPlanStore(
             TestingStateHandleStore<JobGraph> stateHandleStore) throws Exception {
-        final JobGraphStore jobGraphStore =
-                new DefaultJobGraphStore<>(
+        final ExecutionPlanStore executionPlanStore =
+                new DefaultExecutionPlanStore<>(
                         stateHandleStore,
-                        testingJobGraphStoreWatcher,
-                        new JobGraphStoreUtil() {
+                        testingExecutionPlanStoreWatcher,
+                        new ExecutionPlanStoreUtil() {
                             @Override
                             public String jobIDToName(JobID jobId) {
                                 return jobId.toString();
@@ -465,7 +483,7 @@ public class DefaultJobGraphStoreTest extends TestLogger {
                                 return JobID.fromHexString(name);
                             }
                         });
-        jobGraphStore.start(testingJobGraphListener);
-        return jobGraphStore;
+        executionPlanStore.start(testingJobGraphListener);
+        return executionPlanStore;
     }
 }

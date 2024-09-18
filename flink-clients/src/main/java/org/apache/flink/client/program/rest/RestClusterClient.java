@@ -47,6 +47,7 @@ import org.apache.flink.runtime.jobgraph.IntermediateDataSetID;
 import org.apache.flink.runtime.jobgraph.JobGraph;
 import org.apache.flink.runtime.jobgraph.JobResourceRequirements;
 import org.apache.flink.runtime.jobgraph.OperatorID;
+import org.apache.flink.runtime.jobmanager.ExecutionPlan;
 import org.apache.flink.runtime.jobmaster.JobResult;
 import org.apache.flink.runtime.leaderretrieval.LeaderRetrievalService;
 import org.apache.flink.runtime.messages.Acknowledge;
@@ -488,6 +489,142 @@ public class RestClusterClient<T> implements ClusterClient<T> {
     }
 
     @Override
+    public CompletableFuture<JobID> submitJob(ExecutionPlan executionPlan) {
+        CompletableFuture<java.nio.file.Path> jobGraphFileFuture =
+                CompletableFuture.supplyAsync(
+                        () -> {
+                            try {
+                                final java.nio.file.Path jobGraphFile =
+                                        Files.createTempFile(
+                                                "flink-graph-" + executionPlan.getJobId(), ".bin");
+                                try (ObjectOutputStream objectOut =
+                                        new ObjectOutputStream(
+                                                Files.newOutputStream(jobGraphFile))) {
+                                    objectOut.writeObject(
+                                            executionPlan.isJobGraph()
+                                                    ? executionPlan.getJobGraph()
+                                                    : executionPlan.getStreamGraph());
+                                }
+                                return jobGraphFile;
+                            } catch (IOException e) {
+                                throw new CompletionException(
+                                        new FlinkException("Failed to serialize JobGraph.", e));
+                            }
+                        },
+                        executorService);
+
+        CompletableFuture<Tuple2<JobSubmitRequestBody, Collection<FileUpload>>> requestFuture =
+                jobGraphFileFuture.thenApply(
+                        jobGraphFile -> {
+                            List<String> jarFileNames = new ArrayList<>(8);
+                            List<JobSubmitRequestBody.DistributedCacheFile> artifactFileNames =
+                                    new ArrayList<>(8);
+                            Collection<FileUpload> filesToUpload = new ArrayList<>(8);
+
+                            filesToUpload.add(
+                                    new FileUpload(
+                                            jobGraphFile, RestConstants.CONTENT_TYPE_BINARY));
+
+                            for (Path jar : executionPlan.getUserJars()) {
+                                jarFileNames.add(jar.getName());
+                                filesToUpload.add(
+                                        new FileUpload(
+                                                Paths.get(jar.toUri()),
+                                                RestConstants.CONTENT_TYPE_JAR));
+                            }
+
+                            for (Map.Entry<String, DistributedCache.DistributedCacheEntry>
+                                    artifacts : executionPlan.getUserArtifacts().entrySet()) {
+                                final Path artifactFilePath =
+                                        new Path(artifacts.getValue().filePath);
+                                try {
+                                    // Only local artifacts need to be uploaded.
+                                    if (!artifactFilePath.getFileSystem().isDistributedFS()) {
+                                        artifactFileNames.add(
+                                                new JobSubmitRequestBody.DistributedCacheFile(
+                                                        artifacts.getKey(),
+                                                        artifactFilePath.getName()));
+                                        filesToUpload.add(
+                                                new FileUpload(
+                                                        Paths.get(artifactFilePath.getPath()),
+                                                        RestConstants.CONTENT_TYPE_BINARY));
+                                    }
+                                } catch (IOException e) {
+                                    throw new CompletionException(
+                                            new FlinkException(
+                                                    "Failed to get the FileSystem of artifact "
+                                                            + artifactFilePath
+                                                            + ".",
+                                                    e));
+                                }
+                            }
+
+                            final JobSubmitRequestBody requestBody =
+                                    new JobSubmitRequestBody(
+                                            jobGraphFile.getFileName().toString(),
+                                            jarFileNames,
+                                            artifactFileNames);
+
+                            return Tuple2.of(
+                                    requestBody, Collections.unmodifiableCollection(filesToUpload));
+                        });
+
+        final CompletableFuture<JobSubmitResponseBody> submissionFuture =
+                requestFuture.thenCompose(
+                        requestAndFileUploads -> {
+                            LOG.info(
+                                    "Submitting job '{}' ({}).",
+                                    executionPlan.getJobName(),
+                                    executionPlan.getJobId());
+                            return sendRetriableRequest(
+                                    JobSubmitHeaders.getInstance(),
+                                    EmptyMessageParameters.getInstance(),
+                                    requestAndFileUploads.f0,
+                                    requestAndFileUploads.f1,
+                                    isConnectionProblemOrServiceUnavailable(),
+                                    (receiver, error) -> {
+                                        if (error != null) {
+                                            LOG.warn(
+                                                    "Attempt to submit job '{}' ({}) to '{}' has failed.",
+                                                    executionPlan.getJobName(),
+                                                    executionPlan.getJobId(),
+                                                    receiver,
+                                                    error);
+                                        } else {
+                                            LOG.info(
+                                                    "Successfully submitted job '{}' ({}) to '{}'.",
+                                                    executionPlan.getJobName(),
+                                                    executionPlan.getJobId(),
+                                                    receiver);
+                                        }
+                                    });
+                        });
+
+        submissionFuture
+                .exceptionally(ignored -> null) // ignore errors
+                .thenCompose(ignored -> jobGraphFileFuture)
+                .thenAccept(
+                        jobGraphFile -> {
+                            try {
+                                Files.delete(jobGraphFile);
+                            } catch (IOException e) {
+                                LOG.warn("Could not delete temporary file {}.", jobGraphFile, e);
+                            }
+                        });
+
+        return submissionFuture
+                .thenApply(ignore -> executionPlan.getJobId())
+                .exceptionally(
+                        (Throwable throwable) -> {
+                            throw new CompletionException(
+                                    new JobSubmissionException(
+                                            executionPlan.getJobId(),
+                                            "Failed to submit JobGraph.",
+                                            ExceptionUtils.stripCompletionException(throwable)));
+                        });
+    }
+
+    @Override
     public CompletableFuture<Acknowledge> cancel(JobID jobID) {
         JobCancellationMessageParameters params =
                 new JobCancellationMessageParameters()
@@ -575,7 +712,38 @@ public class RestClusterClient<T> implements ClusterClient<T> {
         ClientCoordinationHeaders headers = ClientCoordinationHeaders.getInstance();
         ClientCoordinationMessageParameters params = new ClientCoordinationMessageParameters();
         params.jobPathParameter.resolve(jobId);
-        params.operatorPathParameter.resolve(operatorId);
+        params.operatorIdFilterQueryParameter.resolve(Collections.singletonList(operatorId));
+
+        SerializedValue<CoordinationRequest> serializedRequest;
+        try {
+            serializedRequest = new SerializedValue<>(request);
+        } catch (IOException e) {
+            return FutureUtils.completedExceptionally(e);
+        }
+
+        ClientCoordinationRequestBody requestBody =
+                new ClientCoordinationRequestBody(serializedRequest);
+        return sendRequest(headers, params, requestBody)
+                .thenApply(
+                        responseBody -> {
+                            try {
+                                return responseBody
+                                        .getSerializedCoordinationResponse()
+                                        .deserializeValue(getClass().getClassLoader());
+                            } catch (IOException | ClassNotFoundException e) {
+                                throw new CompletionException(
+                                        "Failed to deserialize coordination response", e);
+                            }
+                        });
+    }
+
+    @Override
+    public CompletableFuture<CoordinationResponse> sendCoordinationRequest(
+            JobID jobId, int streamNodeId, CoordinationRequest request) {
+        ClientCoordinationHeaders headers = ClientCoordinationHeaders.getInstance();
+        ClientCoordinationMessageParameters params = new ClientCoordinationMessageParameters();
+        params.jobPathParameter.resolve(jobId);
+        params.streamNodeIdFilterQueryParameter.resolve(Collections.singletonList(streamNodeId));
 
         SerializedValue<CoordinationRequest> serializedRequest;
         try {

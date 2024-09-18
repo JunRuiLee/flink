@@ -50,6 +50,7 @@ import org.apache.flink.runtime.scheduler.ExecutionGraphInfo;
 import org.apache.flink.runtime.shuffle.ShuffleMaster;
 import org.apache.flink.runtime.shuffle.ShuffleTestUtils;
 
+
 import java.util.Collection;
 import java.util.Collections;
 import java.util.concurrent.CompletableFuture;
@@ -197,7 +198,7 @@ public class JobMasterBuilder {
                 jobMasterId,
                 jobMasterConfiguration,
                 jmResourceId,
-                jobGraph,
+                ExecutionPlan.createExecutionPlan(jobGraph),
                 highAvailabilityServices,
                 slotPoolServiceSchedulerFactory != null
                         ? slotPoolServiceSchedulerFactory
