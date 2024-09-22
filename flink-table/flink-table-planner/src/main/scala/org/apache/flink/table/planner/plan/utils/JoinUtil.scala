@@ -23,6 +23,7 @@ import org.apache.flink.table.data.RowData
 import org.apache.flink.table.planner.JDouble
 import org.apache.flink.table.planner.calcite.FlinkTypeFactory
 import org.apache.flink.table.planner.codegen.{CodeGeneratorContext, ExprCodeGenerator, FunctionCodeGenerator}
+import org.apache.flink.table.planner.hint.JoinStrategy
 import org.apache.flink.table.planner.plan.nodes.exec.spec.JoinSpec
 import org.apache.flink.table.planner.plan.nodes.logical.{FlinkLogicalJoin, FlinkLogicalSnapshot}
 import org.apache.flink.table.planner.plan.utils.IntervalJoinUtil.satisfyIntervalJoin
@@ -34,10 +35,12 @@ import org.apache.flink.table.runtime.types.PlannerTypeUtils
 import org.apache.flink.table.runtime.typeutils.InternalTypeInfo
 import org.apache.flink.table.types.logical.{LogicalType, RowType}
 
+import com.google.common.collect.ImmutableList
 import org.apache.calcite.plan.RelOptUtil
 import org.apache.calcite.rel.`type`.{RelDataType, RelDataTypeField}
 import org.apache.calcite.rel.RelNode
 import org.apache.calcite.rel.core.{Join, JoinInfo, JoinRelType}
+import org.apache.calcite.rel.hint.RelHint
 import org.apache.calcite.rex.{RexCall, RexInputRef, RexNode, RexUtil}
 import org.apache.calcite.sql.validate.SqlValidatorUtil
 import org.apache.calcite.util.ImmutableIntList
@@ -274,5 +277,16 @@ object JoinUtil {
     } else {
       rowCount * FlinkRelMdUtil.binaryRowAverageSize(relNode)
     }
+  }
+
+  def getJoinStrategyHint(relHints: ImmutableList[RelHint], joinStrategy: JoinStrategy): Boolean = {
+    relHints.forEach(
+      relHint => {
+        if (JoinStrategy.isJoinStrategy(relHint.hintName)) {
+          JoinStrategy.valueOf(relHint.hintName) == joinStrategy
+        }
+      })
+
+    false
   }
 }

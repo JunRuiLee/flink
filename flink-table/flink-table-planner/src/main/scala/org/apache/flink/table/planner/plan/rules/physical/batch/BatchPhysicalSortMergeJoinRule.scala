@@ -25,7 +25,7 @@ import org.apache.flink.table.planner.plan.`trait`.FlinkRelDistribution
 import org.apache.flink.table.planner.plan.nodes.FlinkConventions
 import org.apache.flink.table.planner.plan.nodes.logical.FlinkLogicalJoin
 import org.apache.flink.table.planner.plan.nodes.physical.batch.BatchPhysicalSortMergeJoin
-import org.apache.flink.table.planner.plan.utils.FlinkRelOptUtil
+import org.apache.flink.table.planner.plan.utils.{FlinkRelOptUtil, JoinUtil}
 import org.apache.flink.table.planner.utils.ShortcutUtils.unwrapTableConfig
 
 import org.apache.calcite.plan.{RelOptRule, RelOptRuleCall, RelTraitSet}
@@ -89,7 +89,7 @@ class BatchPhysicalSortMergeJoinRule
 
       val newLeft = RelOptRule.convert(left, leftRequiredTrait)
       val newRight = RelOptRule.convert(right, rightRequiredTrait)
-
+      val isJoinHint = JoinUtil.getJoinStrategyHint(join.getHints, JoinStrategy.SHUFFLE_MERGE)
       val providedTraitSet = call.getPlanner
         .emptyTraitSet()
         .replace(FlinkConventions.BATCH_PHYSICAL)
@@ -101,7 +101,8 @@ class BatchPhysicalSortMergeJoinRule
         join.getCondition,
         join.getJoinType,
         requireLeftSorted,
-        requireRightSorted)
+        requireRightSorted,
+        isJoinHint)
       call.transformTo(newJoin)
     }
 

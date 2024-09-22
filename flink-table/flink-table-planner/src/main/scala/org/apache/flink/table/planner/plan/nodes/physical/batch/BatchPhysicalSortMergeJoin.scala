@@ -45,7 +45,8 @@ class BatchPhysicalSortMergeJoin(
     // true if LHS is sorted by left join keys, else false
     val leftSorted: Boolean,
     // true if RHS is sorted by right join key, else false
-    val rightSorted: Boolean)
+    val rightSorted: Boolean,
+    val isJoinHint: Boolean)
   extends BatchPhysicalJoinBase(cluster, traitSet, leftRel, rightRel, condition, joinType) {
 
   protected def isMergeJoinSupportedType(joinRelType: FlinkJoinType): Boolean = {
@@ -70,7 +71,8 @@ class BatchPhysicalSortMergeJoin(
       conditionExpr,
       joinType,
       leftSorted,
-      rightSorted)
+      rightSorted,
+      isJoinHint)
   }
 
   override def explainTerms(pw: RelWriter): RelWriter =
@@ -191,6 +193,7 @@ class BatchPhysicalSortMergeJoin(
         .damBehavior(InputProperty.DamBehavior.END_INPUT)
         .build(),
       FlinkTypeFactory.toLogicalRowType(getRowType),
+      isJoinHint,
       getRelDetailedDescription)
   }
 

@@ -18,8 +18,6 @@
 
 package org.apache.flink.table.planner.plan.nodes.exec.batch;
 
-import org.apache.calcite.rex.RexNode;
-
 import org.apache.flink.api.dag.Transformation;
 import org.apache.flink.configuration.ReadableConfig;
 import org.apache.flink.streaming.api.operators.StreamOperatorFactory;
@@ -47,6 +45,8 @@ import org.apache.flink.table.runtime.operators.join.adaptive.AdaptiveJoinOperat
 import org.apache.flink.table.runtime.typeutils.InternalTypeInfo;
 import org.apache.flink.table.types.logical.LogicalType;
 import org.apache.flink.table.types.logical.RowType;
+
+import org.apache.calcite.rex.RexNode;
 
 import java.util.Arrays;
 import java.util.stream.IntStream;
@@ -151,13 +151,13 @@ public class BatchExecAdaptiveJoin extends ExecNodeBase<RowData>
         Transformation<RowData> probeTransform;
         buildTransform = leftInputTransform;
         probeTransform = rightInputTransform;
-//        if (leftIsBuild) {
-//            buildTransform = leftInputTransform;
-//            probeTransform = rightInputTransform;
-//        } else {
-//            buildTransform = rightInputTransform;
-//            probeTransform = leftInputTransform;
-//        }
+        //        if (leftIsBuild) {
+        //            buildTransform = leftInputTransform;
+        //            probeTransform = rightInputTransform;
+        //        } else {
+        //            buildTransform = rightInputTransform;
+        //            probeTransform = leftInputTransform;
+        //        }
 
         // operator
         StreamOperatorFactory<RowData> operator;

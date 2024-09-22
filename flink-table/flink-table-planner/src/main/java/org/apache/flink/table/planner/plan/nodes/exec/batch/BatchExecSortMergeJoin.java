@@ -24,6 +24,7 @@ import org.apache.flink.streaming.api.operators.SimpleOperatorFactory;
 import org.apache.flink.table.api.config.ExecutionConfigOptions;
 import org.apache.flink.table.data.RowData;
 import org.apache.flink.table.planner.delegation.PlannerBase;
+import org.apache.flink.table.planner.plan.nodes.exec.AdaptiveBroadcastJoinExecNode;
 import org.apache.flink.table.planner.plan.nodes.exec.ExecEdge;
 import org.apache.flink.table.planner.plan.nodes.exec.ExecNodeBase;
 import org.apache.flink.table.planner.plan.nodes.exec.ExecNodeConfig;
@@ -54,7 +55,7 @@ import static org.apache.flink.util.Preconditions.checkNotNull;
 
 /** {@link BatchExecNode} for Sort Merge Join. */
 public class BatchExecSortMergeJoin extends ExecNodeBase<RowData>
-        implements BatchExecNode<RowData>, SingleTransformationTranslator<RowData> {
+        implements BatchExecNode<RowData>, SingleTransformationTranslator<RowData>, AdaptiveBroadcastJoinExecNode {
 
     private final ReadableConfig tableConfig;
     private final JoinSpec joinSpec;
@@ -67,6 +68,7 @@ public class BatchExecSortMergeJoin extends ExecNodeBase<RowData>
     private final InputProperty leftInputProperty;
     private final InputProperty rightInputProperty;
     private final RowType outputType;
+    private final boolean isJoinHint;
     private final String description;
 
     public BatchExecSortMergeJoin(
@@ -77,6 +79,7 @@ public class BatchExecSortMergeJoin extends ExecNodeBase<RowData>
             InputProperty leftInputProperty,
             InputProperty rightInputProperty,
             RowType outputType,
+            boolean isJoinHint,
             String description) {
         super(
                 ExecNodeContext.newNodeId(),
@@ -99,6 +102,7 @@ public class BatchExecSortMergeJoin extends ExecNodeBase<RowData>
         this.leftInputProperty = leftInputProperty;
         this.rightInputProperty = rightInputProperty;
         this.outputType = outputType;
+        this.isJoinHint = isJoinHint;
         this.description = description;
     }
 
@@ -168,7 +172,13 @@ public class BatchExecSortMergeJoin extends ExecNodeBase<RowData>
                 false);
     }
 
-    public BatchExecAdaptiveJoin toAdaptiveJoin() {
+    @Override
+    public boolean isSpecifiedByJoinHint() {
+        return isJoinHint;
+    }
+
+    @Override
+    public BatchExecAdaptiveJoin toAdaptiveBroadcastJoinNode() {
         return new BatchExecAdaptiveJoin(
                 tableConfig,
                 joinSpec,
@@ -181,7 +191,7 @@ public class BatchExecSortMergeJoin extends ExecNodeBase<RowData>
                 leftInputProperty,
                 rightInputProperty,
                 outputType,
-                description.replace("SortMergeJoin(", "AdaptiveJoin(originalJoin=[SortMergeJoin], "),
+                ExecNodeUtil.getAdaptiveBroadcastJoinDescription(getSimplifiedName(), description),
                 joinSpec.getNonEquiCondition().orElse(null),
                 1);
     }

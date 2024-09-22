@@ -390,4 +390,10 @@ public class ExecNodeUtil {
         }
         transformation.getInputs().forEach(ExecNodeUtil::makeLegacySourceTransformationsBounded);
     }
+
+    public static String getAdaptiveBroadcastJoinDescription(String simplifiedName, String originalDescription) {
+        return "AdaptiveBroadcastJoin("
+                + "originalJoin=[" + simplifiedName + "], "
+                + originalDescription.substring(simplifiedName.length() + 1);
+    }
 }

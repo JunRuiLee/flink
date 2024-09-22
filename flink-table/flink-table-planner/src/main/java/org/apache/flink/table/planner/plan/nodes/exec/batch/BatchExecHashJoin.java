@@ -31,6 +31,7 @@ import org.apache.flink.table.planner.delegation.PlannerBase;
 import org.apache.flink.table.planner.plan.fusion.OpFusionCodegenSpecGenerator;
 import org.apache.flink.table.planner.plan.fusion.generator.TwoInputOpFusionCodegenSpecGenerator;
 import org.apache.flink.table.planner.plan.fusion.spec.HashJoinFusionCodegenSpec;
+import org.apache.flink.table.planner.plan.nodes.exec.AdaptiveBroadcastJoinExecNode;
 import org.apache.flink.table.planner.plan.nodes.exec.ExecEdge;
 import org.apache.flink.table.planner.plan.nodes.exec.ExecNodeBase;
 import org.apache.flink.table.planner.plan.nodes.exec.ExecNodeConfig;
@@ -56,7 +57,7 @@ import java.util.stream.IntStream;
 
 /** {@link BatchExecNode} for Hash Join. */
 public class BatchExecHashJoin extends ExecNodeBase<RowData>
-        implements BatchExecNode<RowData>, SingleTransformationTranslator<RowData> {
+        implements BatchExecNode<RowData>, SingleTransformationTranslator<RowData>, AdaptiveBroadcastJoinExecNode {
 
     private final ReadableConfig tableConfig;
     private final JoinSpec joinSpec;
@@ -70,6 +71,7 @@ public class BatchExecHashJoin extends ExecNodeBase<RowData>
     private final InputProperty leftInputProperty;
     private final InputProperty rightInputProperty;
     private final RowType outputType;
+    private final boolean isJoinHint;
     private final String description;
 
     public BatchExecHashJoin(
@@ -85,6 +87,7 @@ public class BatchExecHashJoin extends ExecNodeBase<RowData>
             InputProperty leftInputProperty,
             InputProperty rightInputProperty,
             RowType outputType,
+            boolean isJoinHint,
             String description) {
         super(
                 ExecNodeContext.newNodeId(),
@@ -105,6 +108,7 @@ public class BatchExecHashJoin extends ExecNodeBase<RowData>
         this.leftInputProperty = leftInputProperty;
         this.rightInputProperty = rightInputProperty;
         this.outputType = outputType;
+        this.isJoinHint = isJoinHint;
         this.description = description;
     }
 
@@ -369,7 +373,13 @@ public class BatchExecHashJoin extends ExecNodeBase<RowData>
         return hashJoinGenerator;
     }
 
-    public BatchExecAdaptiveJoin toAdaptiveJoin() {
+    @Override
+    public boolean isSpecifiedByJoinHint() {
+        return isJoinHint;
+    }
+
+    @Override
+    public BatchExecAdaptiveJoin toAdaptiveBroadcastJoinNode() {
         return new BatchExecAdaptiveJoin(
                 tableConfig,
                 joinSpec,
@@ -382,7 +392,7 @@ public class BatchExecHashJoin extends ExecNodeBase<RowData>
                 leftInputProperty,
                 rightInputProperty,
                 outputType,
-                description.replace("HashJoin(", "AdaptiveJoin(originalJoin=[HashJoin], "),
+                ExecNodeUtil.getAdaptiveBroadcastJoinDescription(getSimplifiedName(), description),
                 joinSpec.getNonEquiCondition().orElse(null),
                 0);
     }
