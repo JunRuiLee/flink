@@ -215,7 +215,7 @@ public class BatchExecHashJoin extends ExecNodeBase<RowData>
         long externalBufferMemory =
                 config.get(ExecutionConfigOptions.TABLE_EXEC_RESOURCE_EXTERNAL_BUFFER_MEMORY)
                         .getBytes();
-        long managedMemory = getLargeManagedMemory(joinType, config);
+        long managedMemory = JoinUtil.getLargeManagedMemory(joinType, config);
 
         // sort merge join function
         SortMergeJoinFunction sortMergeJoinFunction =
@@ -291,29 +291,6 @@ public class BatchExecHashJoin extends ExecNodeBase<RowData>
                 false);
     }
 
-    private long getLargeManagedMemory(FlinkJoinType joinType, ExecNodeConfig config) {
-        long hashJoinManagedMemory =
-                config.get(ExecutionConfigOptions.TABLE_EXEC_RESOURCE_HASH_JOIN_MEMORY).getBytes();
-
-        // The memory used by SortMergeJoinIterator that buffer the matched rows, each side needs
-        // this memory if it is full outer join
-        long externalBufferMemory =
-                config.get(ExecutionConfigOptions.TABLE_EXEC_RESOURCE_EXTERNAL_BUFFER_MEMORY)
-                        .getBytes();
-        // The memory used by BinaryExternalSorter for sort, the left and right side both need it
-        long sortMemory =
-                config.get(ExecutionConfigOptions.TABLE_EXEC_RESOURCE_SORT_MEMORY).getBytes();
-        int externalBufferNum = 1;
-        if (joinType == FlinkJoinType.FULL) {
-            externalBufferNum = 2;
-        }
-        long sortMergeJoinManagedMemory = externalBufferMemory * externalBufferNum + sortMemory * 2;
-
-        // Due to hash join maybe fallback to sort merge join, so here managed memory choose the
-        // large one
-        return Math.max(hashJoinManagedMemory, sortMergeJoinManagedMemory);
-    }
-
     @Override
     public boolean supportFusionCodegen() {
         RowType leftType = (RowType) getInputEdges().get(0).getOutputType();
@@ -347,7 +324,7 @@ public class BatchExecHashJoin extends ExecNodeBase<RowData>
                 (int)
                         config.get(ExecutionConfigOptions.TABLE_EXEC_SPILL_COMPRESSION_BLOCK_SIZE)
                                 .getBytes();
-        long managedMemory = getLargeManagedMemory(joinSpec.getJoinType(), config);
+        long managedMemory = JoinUtil.getLargeManagedMemory(joinSpec.getJoinType(), config);
         OpFusionCodegenSpecGenerator hashJoinGenerator =
                 new TwoInputOpFusionCodegenSpecGenerator(
                         leftInput,

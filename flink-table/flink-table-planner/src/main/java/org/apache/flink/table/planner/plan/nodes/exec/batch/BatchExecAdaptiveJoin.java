@@ -51,7 +51,7 @@ import org.apache.calcite.rex.RexNode;
 import java.util.Arrays;
 import java.util.stream.IntStream;
 
-/** {@link BatchExecNode} for Adaptive Join. */
+/** {@link BatchExecNode} for Adaptive Broadcast Join. */
 public class BatchExecAdaptiveJoin extends ExecNodeBase<RowData>
         implements BatchExecNode<RowData>, SingleTransformationTranslator<RowData> {
 
@@ -113,8 +113,6 @@ public class BatchExecAdaptiveJoin extends ExecNodeBase<RowData>
         RowType leftType = (RowType) leftInputEdge.getOutputType();
         RowType rightType = (RowType) rightInputEdge.getOutputType();
 
-        JoinUtil.validateJoinSpec(joinSpec, leftType, rightType, false);
-
         int[] leftKeys = joinSpec.getLeftKeys();
         int[] rightKeys = joinSpec.getRightKeys();
         LogicalType[] keyFieldTypes =
@@ -147,18 +145,6 @@ public class BatchExecAdaptiveJoin extends ExecNodeBase<RowData>
                         keyType,
                         rightKeys);
 
-        Transformation<RowData> buildTransform;
-        Transformation<RowData> probeTransform;
-        buildTransform = leftInputTransform;
-        probeTransform = rightInputTransform;
-        //        if (leftIsBuild) {
-        //            buildTransform = leftInputTransform;
-        //            probeTransform = rightInputTransform;
-        //        } else {
-        //            buildTransform = rightInputTransform;
-        //            probeTransform = leftInputTransform;
-        //        }
-
         // operator
         StreamOperatorFactory<RowData> operator;
         FlinkJoinType joinType = joinSpec.getJoinType();
@@ -173,7 +159,7 @@ public class BatchExecAdaptiveJoin extends ExecNodeBase<RowData>
         long externalBufferMemory =
                 config.get(ExecutionConfigOptions.TABLE_EXEC_RESOURCE_EXTERNAL_BUFFER_MEMORY)
                         .getBytes();
-        long managedMemory = getLargeManagedMemory(joinType, config);
+        long managedMemory = JoinUtil.getLargeManagedMemory(joinType, config);
 
         // sort merge join function
         SortMergeJoinFunction sortMergeJoinFunction =
@@ -197,24 +183,6 @@ public class BatchExecAdaptiveJoin extends ExecNodeBase<RowData>
                 (int)
                         config.get(ExecutionConfigOptions.TABLE_EXEC_SPILL_COMPRESSION_BLOCK_SIZE)
                                 .getBytes();
-
-        int maybeBroadcastJoinSide = -1;
-        switch (joinType) {
-            case FULL:
-                break;
-            case RIGHT:
-                maybeBroadcastJoinSide = 0;
-                break;
-            case LEFT:
-            case ANTI:
-            case SEMI:
-                maybeBroadcastJoinSide = 1;
-                break;
-            case INNER:
-                maybeBroadcastJoinSide = 2;
-                break;
-            default:
-        }
         operator =
                 new AdaptiveJoinOperatorFactory<>(
                         hashJoinType,
@@ -234,43 +202,36 @@ public class BatchExecAdaptiveJoin extends ExecNodeBase<RowData>
                         compressionEnabled,
                         compressionBlockSize,
                         sortMergeJoinFunction,
-                        maybeBroadcastJoinSide,
+                        getMaybeBroadcastJoinSide(joinType),
                         originalJobType,
                         joinSpec.getFilterNulls(),
                         tryDistinctBuildRow);
 
         return ExecNodeUtil.createTwoInputTransformation(
-                buildTransform,
-                probeTransform,
+                leftInputTransform,
+                rightInputTransform,
                 createTransformationName(config),
                 createTransformationDescription(config),
                 operator,
                 InternalTypeInfo.of(getOutputType()),
-                probeTransform.getParallelism(),
+                rightInputTransform.getParallelism(),
                 managedMemory,
                 false);
     }
 
-    private long getLargeManagedMemory(FlinkJoinType joinType, ExecNodeConfig config) {
-        long hashJoinManagedMemory =
-                config.get(ExecutionConfigOptions.TABLE_EXEC_RESOURCE_HASH_JOIN_MEMORY).getBytes();
-
-        // The memory used by SortMergeJoinIterator that buffer the matched rows, each side needs
-        // this memory if it is full outer join
-        long externalBufferMemory =
-                config.get(ExecutionConfigOptions.TABLE_EXEC_RESOURCE_EXTERNAL_BUFFER_MEMORY)
-                        .getBytes();
-        // The memory used by BinaryExternalSorter for sort, the left and right side both need it
-        long sortMemory =
-                config.get(ExecutionConfigOptions.TABLE_EXEC_RESOURCE_SORT_MEMORY).getBytes();
-        int externalBufferNum = 1;
-        if (joinType == FlinkJoinType.FULL) {
-            externalBufferNum = 2;
+    private int getMaybeBroadcastJoinSide(FlinkJoinType joinType) {
+        switch (joinType) {
+            case FULL:
+            case RIGHT:
+                return 0;
+            case LEFT:
+            case ANTI:
+            case SEMI:
+                return 1;
+            case INNER:
+                return 2;
+            default:
+                return -1;
         }
-        long sortMergeJoinManagedMemory = externalBufferMemory * externalBufferNum + sortMemory * 2;
-
-        // Due to hash join maybe fallback to sort merge join, so here managed memory choose the
-        // large one
-        return Math.max(hashJoinManagedMemory, sortMergeJoinManagedMemory);
     }
 }
