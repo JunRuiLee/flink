@@ -1132,7 +1132,7 @@ public class MiniCluster implements AutoCloseableAsync {
         return blobServerAddressFuture.thenAccept(
                 blobServerAddress -> {
                     try {
-                        ClientUtils.extractAndUploadJobGraphFiles(
+                        ClientUtils.extractAndUploadExecutionPlanFiles(
                                 job,
                                 () ->
                                         new BlobClient(

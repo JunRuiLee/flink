@@ -204,7 +204,7 @@ public class EmbeddedExecutor implements PipelineExecutor {
                 .thenCompose(
                         blobServerAddress -> {
                             try {
-                                ClientUtils.extractAndUploadJobGraphFiles(
+                                ClientUtils.extractAndUploadExecutionPlanFiles(
                                         jobGraph,
                                         () -> new BlobClient(blobServerAddress, configuration));
                             } catch (FlinkException e) {
