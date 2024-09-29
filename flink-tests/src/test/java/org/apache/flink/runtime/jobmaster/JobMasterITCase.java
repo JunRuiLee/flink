@@ -60,7 +60,7 @@ public class JobMasterITCase extends TestLogger {
             miniCluster.getMiniCluster().submitJob(jobGraph).get();
             fail("Expect failure");
         } catch (Throwable t) {
-            assertThat(t, containsMessage("The given job is empty"));
+            assertThat(t, containsMessage("The given execution plan is empty"));
         } finally {
             miniCluster.after();
         }
