@@ -24,6 +24,7 @@ import org.apache.flink.streaming.api.operators.StreamOperatorFactory;
 import org.apache.flink.table.api.config.ExecutionConfigOptions;
 import org.apache.flink.table.data.RowData;
 import org.apache.flink.table.planner.codegen.CodeGeneratorContext;
+import org.apache.flink.table.planner.codegen.LongHashJoinGenerator;
 import org.apache.flink.table.planner.codegen.ProjectionCodeGenerator;
 import org.apache.flink.table.planner.delegation.PlannerBase;
 import org.apache.flink.table.planner.plan.nodes.exec.ExecEdge;
@@ -205,7 +206,8 @@ public class BatchExecAdaptiveJoin extends ExecNodeBase<RowData>
                         getMaybeBroadcastJoinSide(joinType),
                         originalJobType,
                         joinSpec.getFilterNulls(),
-                        tryDistinctBuildRow);
+                        tryDistinctBuildRow,
+                        LongHashJoinGenerator.support(hashJoinType, keyType, joinSpec.getFilterNulls()));
 
         return ExecNodeUtil.createTwoInputTransformation(
                 leftInputTransform,

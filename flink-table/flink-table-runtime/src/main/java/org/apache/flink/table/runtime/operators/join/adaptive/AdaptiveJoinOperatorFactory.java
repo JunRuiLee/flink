@@ -33,12 +33,12 @@ import org.apache.flink.table.runtime.operators.join.HashJoinOperator;
 import org.apache.flink.table.runtime.operators.join.HashJoinType;
 import org.apache.flink.table.runtime.operators.join.SortMergeJoinFunction;
 import org.apache.flink.table.runtime.operators.join.SortMergeJoinOperator;
+import org.apache.flink.table.runtime.planner.adapter.HashJoinCodegenAdapter;
 import org.apache.flink.table.types.logical.RowType;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import java.lang.reflect.Method;
 import java.util.ArrayList;
 import java.util.List;
 
@@ -50,6 +50,7 @@ import java.util.List;
 @Internal
 public class AdaptiveJoinOperatorFactory<OUT> extends AbstractStreamOperatorFactory<OUT>
         implements AdaptiveJoin {
+    private static final long serialVersionUID = 1L;
 
     private final Logger log = LoggerFactory.getLogger(AdaptiveJoinOperatorFactory.class);
 
@@ -97,9 +98,9 @@ public class AdaptiveJoinOperatorFactory<OUT> extends AbstractStreamOperatorFact
 
     private boolean[] filterNullKeys;
 
-    private boolean tryDistinctBuildRow;
+    private boolean supportCodegen;
 
-    public AdaptiveJoinOperatorFactory() {}
+    private boolean tryDistinctBuildRow;
 
     public AdaptiveJoinOperatorFactory(
             HashJoinType hashJoinType,
@@ -122,7 +123,8 @@ public class AdaptiveJoinOperatorFactory<OUT> extends AbstractStreamOperatorFact
             int maybeBroadcastJoinSide,
             int originalJobType,
             boolean[] filterNullKeys,
-            boolean tryDistinctBuildRow) {
+            boolean tryDistinctBuildRow,
+            boolean supportCodegen) {
         this.hashJoinType = hashJoinType;
         this.keyType = keyType;
         this.leftType = leftType;
@@ -143,6 +145,7 @@ public class AdaptiveJoinOperatorFactory<OUT> extends AbstractStreamOperatorFact
         this.originalJobType = originalJobType;
         this.filterNullKeys = filterNullKeys;
         this.tryDistinctBuildRow = tryDistinctBuildRow;
+        this.supportCodegen = supportCodegen;
 
         potentialBroadcastJoinSides = new ArrayList<>();
         if (maybeBroadcastJoinSide == 0) {
@@ -194,25 +197,9 @@ public class AdaptiveJoinOperatorFactory<OUT> extends AbstractStreamOperatorFact
                 probeKeys = leftKeyMapping;
             }
 
-            boolean supportCodegen = false;
-            try {
-                long startTimeMs = System.currentTimeMillis();
-                Class<?> clazz = PlannerCodeAccessor.getInstance().getClassLoader().loadClass
-                        ("org.apache.flink.table.planner.codegen.LongHashJoinGenerator");
-//                Class<?> clazz = Class.forName
-//                        ("org.apache.flink.table.planner.codegen.LongHashJoinGenerator");
-                Method supportMethod = clazz. getMethod("support", HashJoinType.class, RowType.class, boolean[].class);
-
-                Object[] parameters = new Object[]{hashJoinType, keyType, filterNullKeys};
-                supportCodegen = (boolean) supportMethod.invoke(null, parameters);
-                if (supportCodegen) {
-                    Method genMethod = clazz.getMethod("gen",
-                            ReadableConfig.class, ClassLoader.class, HashJoinType.class, RowType.class,
-                            RowType.class, RowType.class, int[].class, int[].class, int.class,
-                            long.class, boolean.class, GeneratedJoinCondition.class, boolean.class,
-                            boolean.class, int.class, SortMergeJoinFunction.class);
-
-                    Object[] parameters2 = new Object[]{
+            if (supportCodegen) {
+                try {
+                    HashJoinCodegenAdapter hashJoinCodegenAdapter = new HashJoinCodegenAdapter(
                             config,
                             classLoader,
                             hashJoinType,
@@ -228,16 +215,17 @@ public class AdaptiveJoinOperatorFactory<OUT> extends AbstractStreamOperatorFact
                             leftIsBuild,
                             compressionEnabled,
                             compressionBlockSize,
-                            sortMergeJoinFunction};
-                    operatorFactory = (StreamOperatorFactory<RowData>) genMethod.invoke(null, parameters2);
-                    log.info("[POC] codegen use time {} ms.", System.currentTimeMillis() - startTimeMs);
+                            sortMergeJoinFunction);
+
+                    long startTimeMs = System.currentTimeMillis();
+                    operatorFactory = hashJoinCodegenAdapter.gen();
+                    log.info(
+                            "[POC] codegen use time {} ms.",
+                            System.currentTimeMillis() - startTimeMs);
+                } catch (Exception e) {
+                    throw new RuntimeException(e);
                 }
-
-            } catch (Exception e) {
-                throw new RuntimeException(e);
-            }
-
-            if (!supportCodegen) {
+            } else {
                 operatorFactory = SimpleOperatorFactory.of(
                         HashJoinOperator.newHashJoinOperator(
                                 hashJoinType,
