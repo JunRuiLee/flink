@@ -20,11 +20,13 @@ package org.apache.flink.table.planner.plan.nodes.exec.batch;
 
 import org.apache.flink.api.dag.Transformation;
 import org.apache.flink.configuration.ReadableConfig;
+import org.apache.flink.streaming.api.operators.AdaptiveBroadcastJoin;
 import org.apache.flink.streaming.api.operators.StreamOperatorFactory;
+import org.apache.flink.table.api.TableException;
 import org.apache.flink.table.api.config.ExecutionConfigOptions;
 import org.apache.flink.table.data.RowData;
+import org.apache.flink.table.planner.adaptive.AdaptiveBroadcastJoinOperatorGenerator;
 import org.apache.flink.table.planner.codegen.CodeGeneratorContext;
-import org.apache.flink.table.planner.codegen.LongHashJoinGenerator;
 import org.apache.flink.table.planner.codegen.ProjectionCodeGenerator;
 import org.apache.flink.table.planner.delegation.PlannerBase;
 import org.apache.flink.table.planner.plan.nodes.exec.ExecEdge;
@@ -38,22 +40,23 @@ import org.apache.flink.table.planner.plan.nodes.exec.utils.ExecNodeUtil;
 import org.apache.flink.table.planner.plan.utils.JoinUtil;
 import org.apache.flink.table.planner.plan.utils.SorMergeJoinOperatorUtil;
 import org.apache.flink.table.runtime.generated.GeneratedJoinCondition;
-import org.apache.flink.table.runtime.generated.GeneratedProjection;
 import org.apache.flink.table.runtime.operators.join.FlinkJoinType;
-import org.apache.flink.table.runtime.operators.join.HashJoinType;
 import org.apache.flink.table.runtime.operators.join.SortMergeJoinFunction;
-import org.apache.flink.table.runtime.operators.join.adaptive.AdaptiveJoinOperatorFactory;
+import org.apache.flink.table.runtime.operators.join.adaptive.AdaptiveBroadcastJoinOperatorFactory;
 import org.apache.flink.table.runtime.typeutils.InternalTypeInfo;
 import org.apache.flink.table.types.logical.LogicalType;
 import org.apache.flink.table.types.logical.RowType;
 
 import org.apache.calcite.rex.RexNode;
 
+import org.apache.flink.util.InstantiationUtil;
+
+import java.io.IOException;
 import java.util.Arrays;
 import java.util.stream.IntStream;
 
 /** {@link BatchExecNode} for Adaptive Broadcast Join. */
-public class BatchExecAdaptiveJoin extends ExecNodeBase<RowData>
+public class BatchExecAdaptiveBroadcastJoin extends ExecNodeBase<RowData>
         implements BatchExecNode<RowData>, SingleTransformationTranslator<RowData> {
 
     private final JoinSpec joinSpec;
@@ -64,9 +67,10 @@ public class BatchExecAdaptiveJoin extends ExecNodeBase<RowData>
     private final long estimatedRightRowCount;
     private final boolean tryDistinctBuildRow;
     private final RexNode condition;
-    private final int originalJobType;
+    private final String description;
+    private final String originalJoinSimplifiedName;
 
-    public BatchExecAdaptiveJoin(
+    public BatchExecAdaptiveBroadcastJoin(
             ReadableConfig tableConfig,
             JoinSpec joinSpec,
             int estimatedLeftAvgRowSize,
@@ -80,11 +84,11 @@ public class BatchExecAdaptiveJoin extends ExecNodeBase<RowData>
             RowType outputType,
             String description,
             RexNode condition,
-            int originalJobType) {
+            String originalJoinSimplifiedName) {
         super(
                 ExecNodeContext.newNodeId(),
-                ExecNodeContext.newContext(BatchExecAdaptiveJoin.class),
-                ExecNodeContext.newPersistedConfig(BatchExecAdaptiveJoin.class, tableConfig),
+                ExecNodeContext.newContext(BatchExecAdaptiveBroadcastJoin.class),
+                ExecNodeContext.newPersistedConfig(BatchExecAdaptiveBroadcastJoin.class, tableConfig),
                 Arrays.asList(leftInputProperty, rightInputProperty),
                 outputType,
                 description);
@@ -96,7 +100,8 @@ public class BatchExecAdaptiveJoin extends ExecNodeBase<RowData>
         this.estimatedRightRowCount = estimatedRightRowCount;
         this.tryDistinctBuildRow = tryDistinctBuildRow;
         this.condition = condition;
-        this.originalJobType = originalJobType;
+        this.description = description;
+        this.originalJoinSimplifiedName = originalJoinSimplifiedName;
     }
 
     @Override
@@ -128,34 +133,8 @@ public class BatchExecAdaptiveJoin extends ExecNodeBase<RowData>
                         leftType,
                         rightType);
 
-        // projection for equals
-        GeneratedProjection leftProj =
-                ProjectionCodeGenerator.generateProjection(
-                        new CodeGeneratorContext(
-                                config, planner.getFlinkContext().getClassLoader()),
-                        "HashJoinLeftProjection",
-                        leftType,
-                        keyType,
-                        leftKeys);
-        GeneratedProjection rightProj =
-                ProjectionCodeGenerator.generateProjection(
-                        new CodeGeneratorContext(
-                                config, planner.getFlinkContext().getClassLoader()),
-                        "HashJoinRightProjection",
-                        rightType,
-                        keyType,
-                        rightKeys);
-
         // operator
-        StreamOperatorFactory<RowData> operator;
         FlinkJoinType joinType = joinSpec.getJoinType();
-        HashJoinType hashJoinType =
-                HashJoinType.of(
-                        leftIsBuild,
-                        joinType.isLeftOuter(),
-                        joinType.isRightOuter(),
-                        joinType == FlinkJoinType.SEMI,
-                        joinType == FlinkJoinType.ANTI);
 
         long externalBufferMemory =
                 config.get(ExecutionConfigOptions.TABLE_EXEC_RESOURCE_EXTERNAL_BUFFER_MEMORY)
@@ -184,56 +163,67 @@ public class BatchExecAdaptiveJoin extends ExecNodeBase<RowData>
                 (int)
                         config.get(ExecutionConfigOptions.TABLE_EXEC_SPILL_COMPRESSION_BLOCK_SIZE)
                                 .getBytes();
-        operator =
-                new AdaptiveJoinOperatorFactory<>(
-                        hashJoinType,
-                        keyType,
+        AdaptiveBroadcastJoin adaptiveBroadcastJoin = new AdaptiveBroadcastJoinOperatorGenerator(
+                keyType,
+                leftType,
+                rightType,
+                leftKeys,
+                rightKeys,
+                ProjectionCodeGenerator.generateProjection(
+                        new CodeGeneratorContext(
+                                config, planner.getFlinkContext().getClassLoader()),
+                        "HashJoinLeftProjection",
                         leftType,
+                        keyType,
+                        leftKeys),
+                ProjectionCodeGenerator.generateProjection(
+                        new CodeGeneratorContext(
+                                config, planner.getFlinkContext().getClassLoader()),
+                        "HashJoinRightProjection",
                         rightType,
-                        leftKeys,
-                        rightKeys,
-                        leftProj,
-                        rightProj,
-                        estimatedLeftAvgRowSize,
-                        estimatedLeftRowCount,
-                        estimatedRightAvgRowSize,
-                        estimatedRightRowCount,
-                        condFunc,
-                        leftIsBuild,
-                        compressionEnabled,
-                        compressionBlockSize,
-                        sortMergeJoinFunction,
-                        getMaybeBroadcastJoinSide(joinType),
-                        originalJobType,
-                        joinSpec.getFilterNulls(),
-                        tryDistinctBuildRow,
-                        LongHashJoinGenerator.support(hashJoinType, keyType, joinSpec.getFilterNulls()));
+                        keyType,
+                        rightKeys),
+                estimatedLeftAvgRowSize,
+                estimatedLeftRowCount,
+                estimatedRightAvgRowSize,
+                estimatedRightRowCount,
+                condFunc,
+                leftIsBuild,
+                compressionEnabled,
+                compressionBlockSize,
+                sortMergeJoinFunction,
+                joinType,
+                originalJoinSimplifiedName,
+                joinSpec.getFilterNulls(),
+                tryDistinctBuildRow);
+
 
         return ExecNodeUtil.createTwoInputTransformation(
                 leftInputTransform,
                 rightInputTransform,
                 createTransformationName(config),
                 createTransformationDescription(config),
-                operator,
+                getAdaptiveBroadcastJoinOperatorFactory(adaptiveBroadcastJoin),
                 InternalTypeInfo.of(getOutputType()),
                 rightInputTransform.getParallelism(),
                 managedMemory,
                 false);
     }
 
-    private int getMaybeBroadcastJoinSide(FlinkJoinType joinType) {
-        switch (joinType) {
-            case FULL:
-            case RIGHT:
-                return 0;
-            case LEFT:
-            case ANTI:
-            case SEMI:
-                return 1;
-            case INNER:
-                return 2;
-            default:
-                return -1;
+    private StreamOperatorFactory<RowData> getAdaptiveBroadcastJoinOperatorFactory(AdaptiveBroadcastJoin adaptiveBroadcastJoin) {
+        try {
+            byte[] adaptiveJoinSerialized = InstantiationUtil.serializeObject(adaptiveBroadcastJoin);
+            return new AdaptiveBroadcastJoinOperatorFactory<>(adaptiveJoinSerialized);
+        } catch (IOException e) {
+            throw new TableException(
+                    "Adaptive broadcast join operator serialized failed.", e);
         }
+    }
+
+    @Override
+    public String getDescription() {
+        return "AdaptiveBroadcastJoin("
+                + "originalJoin=[" + originalJoinSimplifiedName + "], "
+                + description.substring(originalJoinSimplifiedName.length() + 1);
     }
 }

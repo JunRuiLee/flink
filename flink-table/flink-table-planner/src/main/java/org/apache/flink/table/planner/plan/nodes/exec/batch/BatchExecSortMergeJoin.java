@@ -59,6 +59,10 @@ public class BatchExecSortMergeJoin extends ExecNodeBase<RowData>
 
     private final ReadableConfig tableConfig;
     private final JoinSpec joinSpec;
+    private final int estimatedLeftAvgRowSize;
+    private final int estimatedRightAvgRowSize;
+    private final long estimatedLeftRowCount;
+    private final long estimatedRightRowCount;
     private final FlinkJoinType joinType;
     private final int[] leftKeys;
     private final int[] rightKeys;
@@ -75,6 +79,10 @@ public class BatchExecSortMergeJoin extends ExecNodeBase<RowData>
             ReadableConfig tableConfig,
             FlinkJoinType joinType,
             JoinSpec joinSpec,
+            int estimatedLeftAvgRowSize,
+            int estimatedRightAvgRowSize,
+            long estimatedLeftRowCount,
+            long estimatedRightRowCount,
             boolean leftIsSmaller,
             InputProperty leftInputProperty,
             InputProperty rightInputProperty,
@@ -91,6 +99,10 @@ public class BatchExecSortMergeJoin extends ExecNodeBase<RowData>
         this.tableConfig = tableConfig;
         this.joinType = checkNotNull(joinType);
         this.joinSpec = joinSpec;
+        this.estimatedLeftAvgRowSize = estimatedLeftAvgRowSize;
+        this.estimatedRightAvgRowSize = estimatedRightAvgRowSize;
+        this.estimatedLeftRowCount = estimatedLeftRowCount;
+        this.estimatedRightRowCount = estimatedRightRowCount;
         this.leftKeys = checkNotNull(joinSpec.getLeftKeys());
         this.rightKeys = checkNotNull(joinSpec.getRightKeys());
         this.filterNulls = checkNotNull(joinSpec.getFilterNulls());
@@ -173,26 +185,26 @@ public class BatchExecSortMergeJoin extends ExecNodeBase<RowData>
     }
 
     @Override
-    public boolean isSpecifiedByJoinHint() {
-        return isJoinHint;
+    public boolean canBeTransformedToAdaptiveBroadcastJoin() {
+        return !isJoinHint && joinSpec.getJoinType() != FlinkJoinType.FULL;
     }
 
     @Override
-    public BatchExecAdaptiveJoin toAdaptiveBroadcastJoinNode() {
-        return new BatchExecAdaptiveJoin(
+    public BatchExecAdaptiveBroadcastJoin toAdaptiveBroadcastJoinNode() {
+        return new BatchExecAdaptiveBroadcastJoin(
                 tableConfig,
                 joinSpec,
-                24,
-                24,
-                200000,
-                200000,
+                estimatedLeftAvgRowSize,
+                estimatedRightAvgRowSize,
+                estimatedLeftRowCount,
+                estimatedRightRowCount,
                 leftIsSmaller,
                 false,
                 leftInputProperty,
                 rightInputProperty,
                 outputType,
-                ExecNodeUtil.getAdaptiveBroadcastJoinDescription(getSimplifiedName(), description),
+                description,
                 joinSpec.getNonEquiCondition().orElse(null),
-                1);
+                getSimplifiedName());
     }
 }

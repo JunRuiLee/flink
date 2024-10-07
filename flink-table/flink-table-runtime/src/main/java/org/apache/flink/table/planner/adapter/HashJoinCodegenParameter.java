@@ -1,18 +1,14 @@
-package org.apache.flink.table.runtime.planner.adapter;
+package org.apache.flink.table.planner.adapter;
 
 import org.apache.flink.configuration.ReadableConfig;
-import org.apache.flink.table.data.RowData;
 import org.apache.flink.table.runtime.generated.GeneratedJoinCondition;
-import org.apache.flink.table.runtime.operators.CodeGenOperatorFactory;
 import org.apache.flink.table.runtime.operators.join.HashJoinType;
 import org.apache.flink.table.runtime.operators.join.SortMergeJoinFunction;
-import org.apache.flink.table.runtime.operators.join.adaptive.PlannerCodeAccessor;
 import org.apache.flink.table.types.logical.RowType;
 
-import java.lang.reflect.Method;
+import java.io.Serializable;
 
-public class HashJoinCodegenAdapter extends CodegenAdapter {
-
+public class HashJoinCodegenParameter extends CodegenAdapter.CodegenParameter implements Serializable {
     private final HashJoinType hashJoinType;
 
     private final RowType keyType;
@@ -41,7 +37,7 @@ public class HashJoinCodegenAdapter extends CodegenAdapter {
 
     private final boolean reverseJoinFunction;
 
-    public HashJoinCodegenAdapter(
+    public HashJoinCodegenParameter(
             ReadableConfig readableConfig,
             ClassLoader classLoader,
             HashJoinType hashJoinType,
@@ -130,29 +126,4 @@ public class HashJoinCodegenAdapter extends CodegenAdapter {
     public boolean isReverseJoinFunction() {
         return reverseJoinFunction;
     }
-
-    public String getClassFullName() {
-        return "org.apache.flink.table.planner.codegen.LongHashJoinGenerator";
-    }
-
-    public String getMethod() {
-        return "dynamicCodegen";
-    }
-
-    @Override
-    public CodeGenOperatorFactory<RowData> gen() {
-        try {
-            Class<?> clazz = PlannerCodeAccessor.getInstance().getClassLoader().loadClass
-                    (getClassFullName());
-//                Class<?> clazz = Class.forName
-//                        ("org.apache.flink.table.planner.codegen.LongHashJoinGenerator");
-            Method genMethod = clazz.getMethod(
-                    getMethod(),
-                    HashJoinCodegenAdapter.class);
-            return (CodeGenOperatorFactory<RowData>) genMethod.invoke(null, this);
-        } catch (Exception e) {
-            throw new RuntimeException(e);
-        }
-    }
-
 }

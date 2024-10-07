@@ -351,13 +351,13 @@ public class BatchExecHashJoin extends ExecNodeBase<RowData>
     }
 
     @Override
-    public boolean isSpecifiedByJoinHint() {
-        return isJoinHint;
+    public boolean canBeTransformedToAdaptiveBroadcastJoin() {
+        return !isJoinHint && joinSpec.getJoinType() != FlinkJoinType.FULL;
     }
 
     @Override
-    public BatchExecAdaptiveJoin toAdaptiveBroadcastJoinNode() {
-        return new BatchExecAdaptiveJoin(
+    public BatchExecAdaptiveBroadcastJoin toAdaptiveBroadcastJoinNode() {
+        return new BatchExecAdaptiveBroadcastJoin(
                 tableConfig,
                 joinSpec,
                 estimatedLeftAvgRowSize,
@@ -369,8 +369,8 @@ public class BatchExecHashJoin extends ExecNodeBase<RowData>
                 leftInputProperty,
                 rightInputProperty,
                 outputType,
-                ExecNodeUtil.getAdaptiveBroadcastJoinDescription(getSimplifiedName(), description),
+                description,
                 joinSpec.getNonEquiCondition().orElse(null),
-                0);
+                getSimplifiedName());
     }
 }

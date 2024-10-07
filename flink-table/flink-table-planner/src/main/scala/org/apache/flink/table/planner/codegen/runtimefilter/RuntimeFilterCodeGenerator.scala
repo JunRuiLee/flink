@@ -108,7 +108,6 @@ object RuntimeFilterCodeGenerator {
         DEFAULT_INPUT1_TERM,
         DEFAULT_INPUT2_TERM,
         nextSelectionCode = Some(nextSelectionCode),
-        None,
         endInputCode1 = Some(endInputCode1),
         endInputCode2 = Some(endInputCode2)
       ))

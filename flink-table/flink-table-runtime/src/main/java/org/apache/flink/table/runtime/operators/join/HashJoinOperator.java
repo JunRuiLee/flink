@@ -23,7 +23,6 @@ import org.apache.flink.configuration.AlgorithmOptions;
 import org.apache.flink.streaming.api.operators.BoundedMultiInput;
 import org.apache.flink.streaming.api.operators.InputSelectable;
 import org.apache.flink.streaming.api.operators.InputSelection;
-import org.apache.flink.streaming.api.operators.SwitchBroadcastSide;
 import org.apache.flink.streaming.api.operators.TwoInputStreamOperator;
 import org.apache.flink.streaming.runtime.streamrecord.StreamRecord;
 import org.apache.flink.table.data.GenericRowData;
@@ -68,8 +67,7 @@ import static org.apache.flink.util.Preconditions.checkState;
 public abstract class HashJoinOperator extends TableStreamOperator<RowData>
         implements TwoInputStreamOperator<RowData, RowData, RowData>,
                 BoundedMultiInput,
-                InputSelectable,
-                SwitchBroadcastSide {
+                InputSelectable {
 
     private static final Logger LOG = LoggerFactory.getLogger(HashJoinOperator.class);
 
@@ -323,11 +321,6 @@ public abstract class HashJoinOperator extends TableStreamOperator<RowData>
         }
     }
 
-    @Override
-    public void activateBroadcastJoin(boolean leftIsBuild) {
-        this.leftIsBuild = leftIsBuild;
-    }
-
     public static HashJoinOperator newHashJoinOperator(
             HashJoinType type,
             boolean leftIsBuild,
@@ -358,7 +351,6 @@ public abstract class HashJoinOperator extends TableStreamOperator<RowData>
                         tryDistinctBuildRow,
                         buildRowSize,
                         buildRowCount,
-                        probeRowCount,
                         keyType,
                         sortMergeJoinFunction);
         switch (type) {
@@ -395,7 +387,6 @@ public abstract class HashJoinOperator extends TableStreamOperator<RowData>
         boolean tryDistinctBuildRow;
         int buildRowSize;
         long buildRowCount;
-        long probeRowCount;
         RowType keyType;
         SortMergeJoinFunction sortMergeJoinFunction;
 
@@ -412,7 +403,6 @@ public abstract class HashJoinOperator extends TableStreamOperator<RowData>
                 boolean tryDistinctBuildRow,
                 int buildRowSize,
                 long buildRowCount,
-                long probeRowCount,
                 RowType keyType,
                 SortMergeJoinFunction sortMergeJoinFunction) {
             this.type = type;
@@ -427,7 +417,6 @@ public abstract class HashJoinOperator extends TableStreamOperator<RowData>
             this.tryDistinctBuildRow = tryDistinctBuildRow;
             this.buildRowSize = buildRowSize;
             this.buildRowCount = buildRowCount;
-            this.probeRowCount = probeRowCount;
             this.keyType = keyType;
             this.sortMergeJoinFunction = sortMergeJoinFunction;
         }

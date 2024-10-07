@@ -78,6 +78,18 @@ class AdaptiveBroadcastJoinTest extends TableTestBase {
                                 + " 'connector' = 'values',\n"
                                 + " 'bounded' = 'true'\n"
                                 + ")");
+
+        util.tableEnv()
+                .executeSql(
+                        "CREATE TABLE T3 (\n"
+                                + "  a3 BIGINT,\n"
+                                + "  b3 BIGINT,\n"
+                                + "  c3 VARCHAR,\n"
+                                + "  d3 BIGINT\n"
+                                + ") WITH (\n"
+                                + " 'connector' = 'values',\n"
+                                + " 'bounded' = 'true'\n"
+                                + ")");
     }
 
     @Test
@@ -129,8 +141,13 @@ class AdaptiveBroadcastJoinTest extends TableTestBase {
 
     @Test
     void testShuffleJoinWithForwardForConsecutiveHash() {
+        util.tableEnv()
+                .getConfig()
+                .set(
+                        OptimizerConfigOptions.TABLE_OPTIMIZER_MULTIPLE_INPUT_ENABLED,
+                        false);
         util.verifyExecPlan(
-                "WITH r AS (SELECT * FROM T1, T2 WHERE a1 = a2)\n"
+                "WITH r AS (SELECT * FROM T1, T2, T3 WHERE a1 = a2 and a1 = a3)\n"
                         + "SELECT sum(b1) FROM r group by a1");
     }
 

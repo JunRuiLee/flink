@@ -25,12 +25,12 @@ import org.apache.flink.table.planner.plan.nodes.exec.batch.BatchExecSortMergeJo
 import org.apache.flink.table.planner.plan.utils.{FlinkRelMdUtil, FlinkRelOptUtil, JoinTypeUtil, JoinUtil}
 import org.apache.flink.table.planner.utils.ShortcutUtils.unwrapTableConfig
 import org.apache.flink.table.runtime.operators.join.FlinkJoinType
-
 import org.apache.calcite.plan._
 import org.apache.calcite.rel.{RelCollationTraitDef, RelNode, RelWriter}
 import org.apache.calcite.rel.core._
 import org.apache.calcite.rel.metadata.RelMetadataQuery
 import org.apache.calcite.rex.RexNode
+import org.apache.calcite.util.Util
 
 import scala.collection.JavaConversions._
 
@@ -177,10 +177,19 @@ class BatchPhysicalSortMergeJoin(
       FlinkTypeFactory.toLogicalRowType(left.getRowType),
       FlinkTypeFactory.toLogicalRowType(right.getRowType))
 
+    val mq = getCluster.getMetadataQuery
+    val leftRowSize = Util.first(mq.getAverageRowSize(left), 24).toInt
+    val leftRowCount = Util.first(mq.getRowCount(left), 200000).toLong
+    val rightRowSize = Util.first(mq.getAverageRowSize(right), 24).toInt
+    val rightRowCount = Util.first(mq.getRowCount(right), 200000).toLong
     new BatchExecSortMergeJoin(
       unwrapTableConfig(this),
       JoinTypeUtil.getFlinkJoinType(joinType),
       joinSpec,
+      leftRowSize,
+      rightRowSize,
+      leftRowCount,
+      rightRowCount,
       estimateOutputSize(getLeft) < estimateOutputSize(getRight),
       InputProperty
         .builder()

@@ -280,7 +280,7 @@ object JoinUtil {
     }
   }
 
-  def getLargeManagedMemory(joinType: FlinkJoinType, config: ExecNodeConfig) = {
+  def getLargeManagedMemory(joinType: FlinkJoinType, config: ExecNodeConfig): Long = {
     val hashJoinManagedMemory = config.get(ExecutionConfigOptions.TABLE_EXEC_RESOURCE_HASH_JOIN_MEMORY).getBytes
     // The memory used by SortMergeJoinIterator that buffer the matched rows, each side needs
     // this memory if it is full outer join

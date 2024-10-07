@@ -36,9 +36,13 @@ import java.net.URL;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
+import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
+import java.util.Optional;
+import java.util.ServiceLoader;
 import java.util.UUID;
 import java.util.stream.Stream;
 
@@ -49,7 +53,7 @@ import java.util.stream.Stream;
  * ClassLoader#getResource(String)}. It will extract the jar into a temporary directory and create a
  * new {@link SubmoduleClassLoader} to load the various planner factories from that jar.
  */
-class PlannerModule {
+public class PlannerModule {
 
     /**
      * The name of the table planner dependency jar, bundled with flink-table-planner-loader module
@@ -132,6 +136,10 @@ class PlannerModule {
         }
     }
 
+    public ClassLoader getSubmoduleClassLoader() {
+        return this.submoduleClassLoader;
+    }
+
     public void addUrlToClassLoader(URL url) {
         // add the url to component url
         this.submoduleClassLoader.addURL(url);
@@ -159,6 +167,12 @@ class PlannerModule {
     public PlannerFactory loadPlannerFactory() {
         return FactoryUtil.discoverFactory(
                 this.submoduleClassLoader, PlannerFactory.class, PlannerFactory.DEFAULT_IDENTIFIER);
+    }
+
+    public <T> List<T> discover(Class<T> clazz) {
+        List<T> results = new ArrayList<>();
+        ServiceLoader.load(clazz, submoduleClassLoader).iterator().forEachRemaining(results::add);
+        return results;
     }
 
     /**

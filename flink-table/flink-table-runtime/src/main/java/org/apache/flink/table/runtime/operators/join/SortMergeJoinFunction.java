@@ -57,12 +57,12 @@ public class SortMergeJoinFunction implements Serializable {
 
     private final double externalBufferMemRatio;
     private final FlinkJoinType type;
-    private final boolean leftIsSmaller;
     private final boolean[] filterNulls;
     private final int maxNumFileHandles;
     private final boolean compressionEnabled;
     private final int compressionBlockSize;
     private final boolean asyncMergeEnabled;
+    private boolean leftIsSmaller;
 
     // generated code to cook
     private GeneratedJoinCondition condFuncCode;
@@ -126,6 +126,10 @@ public class SortMergeJoinFunction implements Serializable {
         this.comparator2 = checkNotNull(comparator2);
         this.genKeyComparator = checkNotNull(genKeyComparator);
         this.filterNulls = filterNulls;
+    }
+
+    public void resetLeftIsSmaller(boolean leftIsSmaller) {
+        this.leftIsSmaller = leftIsSmaller;
     }
 
     public void open(

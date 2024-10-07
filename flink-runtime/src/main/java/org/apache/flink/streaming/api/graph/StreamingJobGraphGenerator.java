@@ -1474,6 +1474,7 @@ public class StreamingJobGraphGenerator {
                 checkState(
                         streamGraph.isDynamic(),
                         "ForwardForConsecutiveHashPartitioner should only be used in dynamic graph.");
+                LOG.info("[POC] encounter ForwardForConsecutiveHashPartitioner edge is {}", edge);
                 edge.setPartitioner(
                         ((ForwardForConsecutiveHashPartitioner<?>) partitioner)
                                 .getHashPartitioner());
@@ -1481,6 +1482,7 @@ public class StreamingJobGraphGenerator {
                 checkState(
                         streamGraph.isDynamic(),
                         "ForwardForUnspecifiedPartitioner should only be used in dynamic graph.");
+                LOG.info("[POC] encounter ForwardForUnspecifiedPartitioner edge is {}", edge);
                 edge.setPartitioner(new RescalePartitioner<>());
             }
         }

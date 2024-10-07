@@ -28,21 +28,25 @@ import org.apache.flink.table.planner.plan.nodes.exec.ExecNode;
 import org.apache.flink.table.planner.plan.nodes.exec.ExecNodeGraph;
 import org.apache.flink.table.planner.plan.nodes.exec.InputProperty;
 import org.apache.flink.table.planner.plan.nodes.exec.InputProperty.DistributionType;
-import org.apache.flink.table.planner.plan.nodes.exec.InputProperty.KeepInputAsIsDistribution;
-import org.apache.flink.table.planner.plan.nodes.exec.batch.BatchExecAdaptiveJoin;
-import org.apache.flink.table.planner.plan.nodes.exec.batch.BatchExecHashJoin;
-import org.apache.flink.table.planner.plan.nodes.exec.batch.BatchExecSortMergeJoin;
+import org.apache.flink.table.planner.plan.nodes.exec.batch.BatchExecAdaptiveBroadcastJoin;
+import org.apache.flink.table.planner.plan.nodes.exec.batch.BatchExecExchange;
 import org.apache.flink.table.planner.plan.nodes.exec.stream.StreamExecNode;
 import org.apache.flink.table.planner.plan.nodes.exec.visitor.AbstractExecNodeExactlyOnceVisitor;
 import org.apache.flink.table.planner.plan.utils.OperatorType;
 import org.apache.flink.table.planner.utils.TableConfigUtils;
 
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
 import java.util.ArrayList;
 import java.util.List;
 import java.util.stream.Collectors;
 
-/** A {@link ExecNodeGraphProcessor} which replace join nodes into adaptive join nodes. */
+import static org.apache.flink.table.planner.plan.nodes.exec.InputProperty.DistributionType.KEEP_INPUT_AS_IS;
+
+/** A {@link ExecNodeGraphProcessor} which replace join nodes into adaptive broadcast join nodes. */
 public class AdaptiveBroadcastJoinProcessor implements ExecNodeGraphProcessor {
+    private final Logger log = LoggerFactory.getLogger(AdaptiveBroadcastJoinProcessor.class);
 
     @Override
     public ExecNodeGraph process(ExecNodeGraph execGraph, ProcessorContext context) {
@@ -58,11 +62,8 @@ public class AdaptiveBroadcastJoinProcessor implements ExecNodeGraphProcessor {
                     @Override
                     protected void visitNode(ExecNode<?> node) {
                         visitInputs(node);
-                        if (node.getInputProperties().stream()
-                                .anyMatch(
-                                        inputProperty ->
-                                                inputProperty.getRequiredDistribution()
-                                                        instanceof KeepInputAsIsDistribution)) {
+                        log.info("[POC]: "  + node.getId() + " " + node.getDescription());
+                        if (checkKeepInputAsIsExisted(node.getInputProperties())) {
                             return;
                         }
                         for (int i = 0; i < node.getInputEdges().size(); ++i) {
@@ -95,13 +96,14 @@ public class AdaptiveBroadcastJoinProcessor implements ExecNodeGraphProcessor {
     }
 
     private ExecNode<?> replaceAdaptiveBroadcastJoinNode(ExecNode<?> node) {
-        if (!(checkAllInputShuffleIsHash(node))) {
+        if (!(checkAllInputShuffleIsHash(node))
+                || isUpstreamNodeKeepInputAsIs(node.getInputEdges())) {
             return node;
         }
         ExecNode<?> newNode = node;
         if (node instanceof AdaptiveBroadcastJoinExecNode
-                && !((AdaptiveBroadcastJoinExecNode) node).isSpecifiedByJoinHint()) {
-            BatchExecAdaptiveJoin adaptiveJoin = ((AdaptiveBroadcastJoinExecNode) node).toAdaptiveBroadcastJoinNode();
+                && ((AdaptiveBroadcastJoinExecNode) node).canBeTransformedToAdaptiveBroadcastJoin()) {
+            BatchExecAdaptiveBroadcastJoin adaptiveJoin = ((AdaptiveBroadcastJoinExecNode) node).toAdaptiveBroadcastJoinNode();
             replaceInputEdge(adaptiveJoin, node);
             newNode = adaptiveJoin;
         }
@@ -109,15 +111,30 @@ public class AdaptiveBroadcastJoinProcessor implements ExecNodeGraphProcessor {
         return newNode;
     }
 
+    private boolean checkKeepInputAsIsExisted(List<InputProperty> inputProperties) {
+        return inputProperties.stream()
+                .anyMatch(
+                        inputProperty ->
+                                inputProperty.getRequiredDistribution().getType() == KEEP_INPUT_AS_IS);
+
+    }
+
+    private boolean isUpstreamNodeKeepInputAsIs(List<ExecEdge> inputEdges) {
+        return inputEdges.stream()
+                .filter(execEdge -> execEdge.getSource() instanceof BatchExecExchange)
+                .map(execEdge -> (BatchExecExchange) execEdge.getSource())
+                .anyMatch(exchange -> checkKeepInputAsIsExisted(exchange.getInputProperties()));
+    }
+
     private boolean isAdaptiveBroadcastHashJoinEnabled(ProcessorContext context) {
         TableConfig tableConfig = context.getPlanner().getTableConfig();
         boolean isAdaptiveBroadcastJoinEnabled =
                 tableConfig.get(
-                                        OptimizerConfigOptions
-                                                .TABLE_OPTIMIZER_ADAPTIVE_BROADCAST_JOIN_STRATEGY)
-                                != OptimizerConfigOptions.AdaptiveBroadcastJoinStrategy.NONE
+                        OptimizerConfigOptions
+                                .TABLE_OPTIMIZER_ADAPTIVE_BROADCAST_JOIN_STRATEGY)
+                        != OptimizerConfigOptions.AdaptiveBroadcastJoinStrategy.NONE
                         && !TableConfigUtils.isOperatorDisabled(
-                                tableConfig, OperatorType.BroadcastHashJoin);
+                        tableConfig, OperatorType.BroadcastHashJoin);
         JobManagerOptions.SchedulerType schedulerType =
                 context.getPlanner()
                         .getExecEnv()

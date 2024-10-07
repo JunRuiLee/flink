@@ -35,7 +35,7 @@ import org.apache.flink.streaming.api.graph.StreamEdgeUpdateRequestInfo;
 import org.apache.flink.streaming.api.graph.StreamGraph;
 import org.apache.flink.streaming.api.graph.StreamGraphManagerContext;
 import org.apache.flink.streaming.api.graph.StreamNode;
-import org.apache.flink.streaming.api.operators.AdaptiveJoin;
+import org.apache.flink.streaming.api.operators.AdaptiveBroadcastJoin;
 import org.apache.flink.streaming.runtime.partitioner.BroadcastPartitioner;
 import org.apache.flink.streaming.runtime.partitioner.ForwardPartitioner;
 
@@ -152,17 +152,10 @@ public class DefaultAdaptiveExecutionHandler implements AdaptiveExecutionHandler
             return;
         }
 
-        if (node.getOperatorFactory() instanceof AdaptiveJoin) {
+        if (node.getOperatorFactory() instanceof AdaptiveBroadcastJoin) {
             log.info("Try optimize adaptive join {} to broadcast join for {}.", node, jobName);
 
-            AdaptiveJoin adaptiveJoin = (AdaptiveJoin) node.getOperatorFactory();
-            List<AdaptiveJoin.PotentialBroadcastSide> potentialBroadcastJoinSides =
-                    adaptiveJoin.getPotentialBroadcastJoinSides();
-            log.info("The potential broadcast join sides are {}.", potentialBroadcastJoinSides);
-
-            if (potentialBroadcastJoinSides.isEmpty()) {
-                return;
-            }
+            AdaptiveBroadcastJoin adaptiveBroadcastJoin = (AdaptiveBroadcastJoin) node.getOperatorFactory();
 
             List<StreamEdge> sameTypeEdges =
                     node.getInEdges().stream()
@@ -187,9 +180,9 @@ public class DefaultAdaptiveExecutionHandler implements AdaptiveExecutionHandler
                     edge,
                     edge.getTypeNumber(),
                     producedBytes);
-            if (canBeBroadcast(producedBytes, edge.getTypeNumber(), potentialBroadcastJoinSides)) {
+            if (canBeBroadcast(producedBytes, edge.getTypeNumber(), adaptiveBroadcastJoin)) {
                 log.info("[POC] runtime mark {} as build side.", edge.getTypeNumber());
-                adaptiveJoin.markRealBuildSide(edge.getTypeNumber());
+                adaptiveBroadcastJoin.markActualBuildSide(edge.getTypeNumber(), true);
                 List<StreamEdge> otherEdge =
                         node.getInEdges().stream()
                                 .filter(e -> e.getTypeNumber() != edge.getTypeNumber())
@@ -204,11 +197,13 @@ public class DefaultAdaptiveExecutionHandler implements AdaptiveExecutionHandler
                     log.info("{} Failed to update hash join to broadcast join.", jobName);
                 }
             } else {
-                int staticBuildSide  = adaptiveJoin.getStaticBuildSide();
+                int staticBuildSide  = edge.getTypeNumber();
+                adaptiveBroadcastJoin.markActualBuildSide(edge.getTypeNumber(), false);
                 log.info("[POC] set raw build side : " + staticBuildSide);
+                int finalStaticBuildSide = staticBuildSide;
                 node.getInEdges()
                         .forEach(inEdge -> {
-                            if (inEdge.getTypeNumber() == staticBuildSide) {
+                            if (inEdge.getTypeNumber() == finalStaticBuildSide) {
                                 inEdge.setTypeNumber(1);
                             } else {
                                 inEdge.setTypeNumber(2);
@@ -223,7 +218,7 @@ public class DefaultAdaptiveExecutionHandler implements AdaptiveExecutionHandler
                 }
                 updatedStreamNodeIds.add(node.getId());
             }
-            adaptiveJoin.genOperatorFactory(userClassloader, configuration);
+            adaptiveBroadcastJoin.genOperatorFactory(userClassloader, configuration);
         }
     }
 
@@ -282,31 +277,15 @@ public class DefaultAdaptiveExecutionHandler implements AdaptiveExecutionHandler
     private boolean canBeBroadcast(
             long producedBytes,
             int typeNumber,
-            List<AdaptiveJoin.PotentialBroadcastSide> potentialBroadcastSides) {
+            AdaptiveBroadcastJoin adaptiveBroadcastJoin) {
         boolean isSmallEnough = isProducedBytesBelowThreshold(producedBytes);
-        boolean isBroadcastCandidate =
-                isEdgeTypeAndSideCompatible(typeNumber, potentialBroadcastSides);
+        boolean isBroadcastCandidate = adaptiveBroadcastJoin.canBeBuildSide(typeNumber);
         return isSmallEnough && isBroadcastCandidate;
     }
 
     private boolean isProducedBytesBelowThreshold(long producedBytes) {
         return configuration.get(BatchExecutionOptions.ADAPTIVE_BROADCAST_JOIN_THRESHOLD).getBytes()
                 >= producedBytes;
-    }
-
-    private boolean isEdgeTypeAndSideCompatible(
-            int typeNumber, List<AdaptiveJoin.PotentialBroadcastSide> potentialBroadcastSides) {
-        return potentialBroadcastSides.contains(getBroadCastSide(typeNumber));
-    }
-
-    private AdaptiveJoin.PotentialBroadcastSide getBroadCastSide(int edgeTypeNumber) {
-        if (edgeTypeNumber == 1) {
-            return AdaptiveJoin.PotentialBroadcastSide.LEFT;
-        } else if (edgeTypeNumber == 2) {
-            return AdaptiveJoin.PotentialBroadcastSide.RIGHT;
-        } else {
-            throw new IllegalArgumentException();
-        }
     }
 
     @Override

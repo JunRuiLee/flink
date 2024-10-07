@@ -19,19 +19,18 @@ package org.apache.flink.table.planner.codegen
 
 import org.apache.flink.configuration.{Configuration, ReadableConfig}
 import org.apache.flink.metrics.Gauge
-import org.apache.flink.table.data.{RowData, TimestampData}
 import org.apache.flink.table.data.utils.JoinedRowData
+import org.apache.flink.table.data.{RowData, TimestampData}
 import org.apache.flink.table.planner.codegen.CodeGenUtils._
 import org.apache.flink.table.planner.codegen.OperatorCodeGenerator.{INPUT_SELECTION, generateCollect}
 import org.apache.flink.table.runtime.generated.{GeneratedJoinCondition, GeneratedProjection}
 import org.apache.flink.table.runtime.hashtable.{LongHashPartition, LongHybridHashTable, ProbeIterator}
 import org.apache.flink.table.runtime.operators.CodeGenOperatorFactory
 import org.apache.flink.table.runtime.operators.join.{HashJoinType, SortMergeJoinFunction}
-import org.apache.flink.table.runtime.planner.adapter.HashJoinCodegenAdapter
 import org.apache.flink.table.runtime.typeutils.BinaryRowDataSerializer
 import org.apache.flink.table.runtime.util.{RowIterator, StreamRecordCollector}
-import org.apache.flink.table.types.logical._
 import org.apache.flink.table.types.logical.LogicalTypeRoot._
+import org.apache.flink.table.types.logical._
 
 /** Generate a long key hash join operator using [[LongHybridHashTable]]. */
 object LongHashJoinGenerator {
@@ -100,25 +99,6 @@ object LongHashJoinGenerator {
       rowType,
       rowType,
       types.indices.toArray)
-  }
-
-  def dynamicCodegen(hashJoinCodegenAdapter: HashJoinCodegenAdapter) : CodeGenOperatorFactory[RowData] = {
-    gen(hashJoinCodegenAdapter.getReadableConfig,
-      hashJoinCodegenAdapter.getClassLoader,
-      hashJoinCodegenAdapter.getHashJoinType,
-      hashJoinCodegenAdapter.getKeyType,
-      hashJoinCodegenAdapter.getBuildType,
-      hashJoinCodegenAdapter.getProbeType,
-      hashJoinCodegenAdapter.getBuildKeys,
-      hashJoinCodegenAdapter.getProbeKeys,
-      hashJoinCodegenAdapter.getBuildRowSize,
-      hashJoinCodegenAdapter.getBuildRowCount,
-      hashJoinCodegenAdapter.isReverseJoinFunction,
-      hashJoinCodegenAdapter.getCondFunc,
-      hashJoinCodegenAdapter.isLeftIsBuild,
-      hashJoinCodegenAdapter.isCompressionEnabled,
-      hashJoinCodegenAdapter.getCompressionBlockSize,
-      hashJoinCodegenAdapter.getSortMergeJoinFunction)
   }
 
   def gen(
@@ -472,9 +452,6 @@ object LongHashJoinGenerator {
                                   |  return $INPUT_SELECTION.FIRST;
                                   |}
          """.stripMargin),
-      switchBroadcastSideCode = Some(s"""
-                                      |$leftIsBuildTerm = leftIsBuild;
-       """.stripMargin),
       endInputCode1 = Some(s"""
                               |LOG.info("Finish build phase.");
                               |table.endBuild();

@@ -15,48 +15,28 @@
  * limitations under the License.
  */
 
-package org.apache.flink.table.runtime.operators.join.adaptive;
+package org.apache.flink.table.planner.adaptive;
 
-import org.apache.flink.annotation.Internal;
 import org.apache.flink.configuration.ReadableConfig;
-import org.apache.flink.streaming.api.operators.AbstractStreamOperatorFactory;
-import org.apache.flink.streaming.api.operators.AdaptiveJoin;
+import org.apache.flink.streaming.api.operators.AdaptiveBroadcastJoin;
 import org.apache.flink.streaming.api.operators.SimpleOperatorFactory;
-import org.apache.flink.streaming.api.operators.StreamOperator;
 import org.apache.flink.streaming.api.operators.StreamOperatorFactory;
-import org.apache.flink.streaming.api.operators.StreamOperatorParameters;
-import org.apache.flink.streaming.api.operators.SwitchBroadcastSide;
 import org.apache.flink.table.data.RowData;
+import org.apache.flink.table.planner.codegen.LongHashJoinGenerator;
 import org.apache.flink.table.runtime.generated.GeneratedJoinCondition;
 import org.apache.flink.table.runtime.generated.GeneratedProjection;
+import org.apache.flink.table.runtime.operators.join.FlinkJoinType;
 import org.apache.flink.table.runtime.operators.join.HashJoinOperator;
 import org.apache.flink.table.runtime.operators.join.HashJoinType;
 import org.apache.flink.table.runtime.operators.join.SortMergeJoinFunction;
 import org.apache.flink.table.runtime.operators.join.SortMergeJoinOperator;
-import org.apache.flink.table.runtime.planner.adapter.HashJoinCodegenAdapter;
 import org.apache.flink.table.types.logical.RowType;
 
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-
-import java.util.ArrayList;
-import java.util.List;
-
 /**
- * Adaptive join factory.
- *
- * @param <OUT> The output type of the operator
+ * Implementation class for {@link AdaptiveBroadcastJoin}. It can selectively generate broadcast
+ * hash join, shuffle hash join or shuffle merge join operator based on actual conditions.
  */
-@Internal
-public class AdaptiveJoinOperatorFactory<OUT> extends AbstractStreamOperatorFactory<OUT>
-        implements AdaptiveJoin {
-    private static final long serialVersionUID = 1L;
-
-    private final Logger log = LoggerFactory.getLogger(AdaptiveJoinOperatorFactory.class);
-
-    private final List<PotentialBroadcastSide> potentialBroadcastJoinSides;
-
-    private final HashJoinType hashJoinType;
+public class AdaptiveBroadcastJoinOperatorGenerator implements AdaptiveBroadcastJoin {
 
     private final RowType keyType;
 
@@ -86,13 +66,13 @@ public class AdaptiveJoinOperatorFactory<OUT> extends AbstractStreamOperatorFact
 
     private final int compressionBlockSize;
 
-    private final SortMergeJoinFunction sortMergeJoinFunction;
+    private SortMergeJoinFunction sortMergeJoinFunction;
 
-    private final int originalJobType;
+    private final FlinkJoinType joinType;
+
+    private final String originalJoinSimplifiedName;
 
     private final boolean[] filterNullKeys;
-
-    private final boolean supportCodegen;
 
     private final boolean tryDistinctBuildRow;
 
@@ -100,10 +80,7 @@ public class AdaptiveJoinOperatorFactory<OUT> extends AbstractStreamOperatorFact
 
     private boolean isBroadcastJoin;
 
-    private StreamOperatorFactory<OUT> finalFactory;
-
-    public AdaptiveJoinOperatorFactory(
-            HashJoinType hashJoinType,
+    public AdaptiveBroadcastJoinOperatorGenerator(
             RowType keyType,
             RowType leftType,
             RowType rightType,
@@ -120,12 +97,10 @@ public class AdaptiveJoinOperatorFactory<OUT> extends AbstractStreamOperatorFact
             boolean compressionEnabled,
             int compressionBlockSize,
             SortMergeJoinFunction sortMergeJoinFunction,
-            int maybeBroadcastJoinSide,
-            int originalJobType,
+            FlinkJoinType joinType,
+            String originalJoinSimplifiedName,
             boolean[] filterNullKeys,
-            boolean tryDistinctBuildRow,
-            boolean supportCodegen) {
-        this.hashJoinType = hashJoinType;
+            boolean tryDistinctBuildRow) {
         this.keyType = keyType;
         this.leftType = leftType;
         this.rightType = rightType;
@@ -142,26 +117,24 @@ public class AdaptiveJoinOperatorFactory<OUT> extends AbstractStreamOperatorFact
         this.compressionEnabled = compressionEnabled;
         this.compressionBlockSize = compressionBlockSize;
         this.sortMergeJoinFunction = sortMergeJoinFunction;
-        this.originalJobType = originalJobType;
+        this.joinType = joinType;
+        this.originalJoinSimplifiedName = originalJoinSimplifiedName;
         this.filterNullKeys = filterNullKeys;
         this.tryDistinctBuildRow = tryDistinctBuildRow;
-        this.supportCodegen = supportCodegen;
-
-        potentialBroadcastJoinSides = new ArrayList<>();
-        if (maybeBroadcastJoinSide == 0) {
-            potentialBroadcastJoinSides.add(PotentialBroadcastSide.LEFT);
-        } else if (maybeBroadcastJoinSide == 1) {
-            potentialBroadcastJoinSides.add(PotentialBroadcastSide.RIGHT);
-        } else if (maybeBroadcastJoinSide == 2) {
-            potentialBroadcastJoinSides.add(PotentialBroadcastSide.LEFT);
-            potentialBroadcastJoinSides.add(PotentialBroadcastSide.RIGHT);
-        }
     }
 
     @Override
-    public void genOperatorFactory(ClassLoader classLoader, ReadableConfig config) {
-        StreamOperatorFactory<RowData> operatorFactory = null;
-        if (isBroadcastJoin || originalJobType == 0) {
+    public StreamOperatorFactory<?> genOperatorFactory(ClassLoader classLoader, ReadableConfig config) {
+        StreamOperatorFactory<RowData> operatorFactory;
+        sortMergeJoinFunction.resetLeftIsSmaller(leftIsBuild);
+        HashJoinType hashJoinType =
+                HashJoinType.of(
+                        leftIsBuild,
+                        joinType.isLeftOuter(),
+                        joinType.isRightOuter(),
+                        joinType == FlinkJoinType.SEMI,
+                        joinType == FlinkJoinType.ANTI);
+        if (isBroadcastJoin || originalJoinSimplifiedName.equalsIgnoreCase("hashjoin")) {
             boolean reverseJoin = !leftIsBuild;
             GeneratedProjection buildProj;
             GeneratedProjection probeProj;
@@ -197,34 +170,24 @@ public class AdaptiveJoinOperatorFactory<OUT> extends AbstractStreamOperatorFact
                 probeKeys = leftKeyMapping;
             }
 
-            if (supportCodegen) {
-                try {
-                    HashJoinCodegenAdapter hashJoinCodegenAdapter = new HashJoinCodegenAdapter(
-                            config,
-                            classLoader,
-                            hashJoinType,
-                            keyType,
-                            buildType,
-                            probeType,
-                            buildKeys,
-                            probeKeys,
-                            buildRowSize,
-                            buildRowCount,
-                            reverseJoin,
-                            condFunc,
-                            leftIsBuild,
-                            compressionEnabled,
-                            compressionBlockSize,
-                            sortMergeJoinFunction);
+            if (LongHashJoinGenerator.support(hashJoinType, keyType, filterNullKeys)) {
+                operatorFactory = LongHashJoinGenerator.gen(config,
+                        classLoader,
+                        hashJoinType,
+                        keyType,
+                        buildType,
+                        probeType,
+                        buildKeys,
+                        probeKeys,
+                        buildRowSize,
+                        buildRowCount,
+                        reverseJoin,
+                        condFunc,
+                        leftIsBuild,
+                        compressionEnabled,
+                        compressionBlockSize,
+                        sortMergeJoinFunction);
 
-                    long startTimeMs = System.currentTimeMillis();
-                    operatorFactory = hashJoinCodegenAdapter.gen();
-                    log.info(
-                            "[POC] codegen use time {} ms.",
-                            System.currentTimeMillis() - startTimeMs);
-                } catch (Exception e) {
-                    throw new RuntimeException(e);
-                }
             } else {
                 operatorFactory = SimpleOperatorFactory.of(
                         HashJoinOperator.newHashJoinOperator(
@@ -248,21 +211,12 @@ public class AdaptiveJoinOperatorFactory<OUT> extends AbstractStreamOperatorFact
             operatorFactory = SimpleOperatorFactory.of(new SortMergeJoinOperator(sortMergeJoinFunction));
         }
 
-        finalFactory = (StreamOperatorFactory<OUT>) operatorFactory;
+        return operatorFactory;
     }
 
     @Override
-    public int getStaticBuildSide() {
-        if (leftIsBuild) {
-            return 1;
-        } else {
-            return 2;
-        }
-    }
-
-    @Override
-    public void markRealBuildSide(int side) {
-        isBroadcastJoin = true;
+    public void markActualBuildSide(int side, boolean isBroadcast) {
+        isBroadcastJoin = isBroadcast;
         if (side == 1) {
             leftIsBuild = true;
         } else {
@@ -271,25 +225,14 @@ public class AdaptiveJoinOperatorFactory<OUT> extends AbstractStreamOperatorFact
     }
 
     @Override
-    public List<PotentialBroadcastSide> getPotentialBroadcastJoinSides() {
-        return potentialBroadcastJoinSides;
-    }
-
-    @Override
-    public <T extends StreamOperator<OUT>> T createStreamOperator(StreamOperatorParameters<OUT> parameters) {
-        if (finalFactory instanceof AbstractStreamOperatorFactory) {
-            ((AbstractStreamOperatorFactory) finalFactory).setProcessingTimeService(processingTimeService);
+    public boolean canBeBuildSide(int side) {
+        if (side == 1) {
+            return joinType == FlinkJoinType.RIGHT || joinType == FlinkJoinType.INNER;
+        } else {
+            return joinType == FlinkJoinType.LEFT ||
+                    joinType == FlinkJoinType.ANTI ||
+                    joinType == FlinkJoinType.SEMI ||
+                    joinType == FlinkJoinType.INNER;
         }
-        StreamOperator<OUT> operator = finalFactory.createStreamOperator(parameters);
-        if (isBroadcastJoin && operator instanceof SwitchBroadcastSide) {
-            ((SwitchBroadcastSide) operator)
-                    .activateBroadcastJoin(leftIsBuild);
-        }
-        return (T) operator;
-    }
-
-    @Override
-    public Class<? extends StreamOperator> getStreamOperatorClass(ClassLoader classLoader) {
-        return finalFactory.getStreamOperatorClass(classLoader);
     }
 }

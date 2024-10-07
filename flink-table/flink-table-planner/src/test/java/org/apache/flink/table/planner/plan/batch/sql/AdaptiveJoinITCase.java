@@ -20,15 +20,27 @@ package org.apache.flink.table.planner.plan.batch.sql;
 
 import org.apache.flink.api.common.BatchShuffleMode;
 import org.apache.flink.api.common.RuntimeExecutionMode;
+import org.apache.flink.api.java.utils.ParameterTool;
 import org.apache.flink.configuration.BatchExecutionOptions;
 import org.apache.flink.configuration.Configuration;
 import org.apache.flink.configuration.DeploymentOptions;
 import org.apache.flink.configuration.ExecutionOptions;
+import org.apache.flink.core.fs.FileSystem;
+import org.apache.flink.streaming.api.graph.GlobalStreamExchangeMode;
+import org.apache.flink.table.api.EnvironmentSettings;
+import org.apache.flink.table.api.Table;
 import org.apache.flink.table.api.TableEnvironment;
+import org.apache.flink.table.api.TableResult;
 import org.apache.flink.table.api.config.ExecutionConfigOptions;
 import org.apache.flink.table.api.config.OptimizerConfigOptions;
+import org.apache.flink.table.api.internal.TableEnvironmentInternal;
+import org.apache.flink.table.catalog.ConnectorCatalogTable;
+import org.apache.flink.table.catalog.ObjectPath;
 import org.apache.flink.table.planner.factories.TestValuesTableFactory;
 import org.apache.flink.table.planner.utils.TableTestBase;
+import org.apache.flink.table.sinks.CsvTableSink;
+import org.apache.flink.table.sources.CsvTableSource;
+import org.apache.flink.table.types.utils.TypeConversions;
 import org.apache.flink.testutils.junit.extensions.parameterized.ParameterizedTestExtension;
 import org.apache.flink.types.Row;
 
@@ -37,8 +49,13 @@ import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 
+import java.nio.charset.StandardCharsets;
+import java.nio.file.Files;
+import java.nio.file.Paths;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.List;
+import java.util.stream.Stream;
 
 /** Plan test for dynamic filtering. */
 @ExtendWith(ParameterizedTestExtension.class)
@@ -49,12 +66,15 @@ class AdaptiveJoinITCase extends TableTestBase {
     @BeforeEach
     void before() {
         Configuration config = new Configuration();
-        config.set(ExecutionConfigOptions.TABLE_EXEC_RESOURCE_DEFAULT_PARALLELISM, 10);
-        config.set(ExecutionOptions.BATCH_SHUFFLE_MODE, BatchShuffleMode.ALL_EXCHANGES_BLOCKING);
+        config.set(ExecutionConfigOptions.TABLE_EXEC_RESOURCE_DEFAULT_PARALLELISM, 1);
+//        config.set(ExecutionOptions.BATCH_SHUFFLE_MODE, BatchShuffleMode.ALL_EXCHANGES_BLOCKING);
+        config.set(BatchExecutionOptions.ADAPTIVE_AUTO_PARALLELISM_MAX_PARALLELISM, 8);
+        config.set(BatchExecutionOptions.SPECULATIVE_ENABLED, true);
+
         config.set(ExecutionOptions.RUNTIME_MODE, RuntimeExecutionMode.BATCH);
         config.set(
                 OptimizerConfigOptions.TABLE_OPTIMIZER_ADAPTIVE_BROADCAST_JOIN_STRATEGY,
-                OptimizerConfigOptions.AdaptiveBroadcastJoinStrategy.AUTO);
+                OptimizerConfigOptions.AdaptiveBroadcastJoinStrategy.RUNTIME_ONLY);
         config.set(DeploymentOptions.SUBMIT_STREAM_GRAPH_ENABLED, true);
         config.set(BatchExecutionOptions.ADAPTIVE_JOIN_TYPE_ENABLED, true);
 
@@ -124,405 +144,6 @@ class AdaptiveJoinITCase extends TableTestBase {
     }
 
     @Test
-    void testQ2() {
-        List<Row> data1 = new ArrayList<>();
-        data1.add(Row.of("123", 123));
-        env.executeSql(
-                String.format(
-                        "CREATE TABLE web_sales (\n"
-                                + "  ws_sold_date_sk VARCHAR,\n"
-                                + "  ws_ext_sales_price INT\n"
-                                + ")  WITH (\n"
-                                + " 'connector' = 'values',\n"
-                                + " 'data-id' = '%s',\n"
-                                + " 'bounded' = 'true'\n"
-                                + ")",
-                        TestValuesTableFactory.registerData(data1)));
-
-        env.executeSql(
-                String.format(
-                        "CREATE TABLE catalog_sales (\n"
-                                + "  cs_sold_date_sk VARCHAR,\n"
-                                + "  cs_ext_sales_price INT\n"
-                                + ")  WITH (\n"
-                                + " 'connector' = 'values',\n"
-                                + " 'data-id' = '%s',\n"
-                                + " 'bounded' = 'true'\n"
-                                + ")",
-                        TestValuesTableFactory.registerData(data1)));
-
-        List<Row> data2 = new ArrayList<>();
-        data2.add(Row.of("123", "Sunday", 123, 2001));
-        env.executeSql(
-                String.format(
-                        "CREATE TABLE date_dim (\n"
-                                + "  d_date_sk VARCHAR,\n"
-                                + "  d_day_name VARCHAR,\n"
-                                + "  d_week_seq int,\n"
-                                + "  d_year int\n"
-                                + ")  WITH (\n"
-                                + " 'connector' = 'values',\n"
-                                + " 'data-id' = '%s',\n"
-                                + " 'bounded' = 'true'\n"
-                                + ")",
-                        TestValuesTableFactory.registerData(data2)));
-
-        env.executeSql(
-                        "with wscs as\n"
-                                + " (select sold_date_sk\n"
-                                + "        ,sales_price\n"
-                                + "  from (select ws_sold_date_sk sold_date_sk\n"
-                                + "              ,ws_ext_sales_price sales_price\n"
-                                + "        from web_sales) x\n"
-                                + "        union all\n"
-                                + "       (select cs_sold_date_sk sold_date_sk\n"
-                                + "              ,cs_ext_sales_price sales_price\n"
-                                + "        from catalog_sales)),\n"
-                                + " wswscs as \n"
-                                + " (select d_week_seq,\n"
-                                + "        sum(case when (d_day_name='Sunday') then sales_price else null end) sun_sales,\n"
-                                + "        sum(case when (d_day_name='Monday') then sales_price else null end) mon_sales,\n"
-                                + "        sum(case when (d_day_name='Tuesday') then sales_price else  null end) tue_sales,\n"
-                                + "        sum(case when (d_day_name='Wednesday') then sales_price else null end) wed_sales,\n"
-                                + "        sum(case when (d_day_name='Thursday') then sales_price else null end) thu_sales,\n"
-                                + "        sum(case when (d_day_name='Friday') then sales_price else null end) fri_sales,\n"
-                                + "        sum(case when (d_day_name='Saturday') then sales_price else null end) sat_sales\n"
-                                + " from wscs\n"
-                                + "     ,date_dim\n"
-                                + " where d_date_sk = sold_date_sk\n"
-                                + " group by d_week_seq)\n"
-                                + " select d_week_seq1\n"
-                                + "       ,round(sun_sales1/sun_sales2,2)\n"
-                                + "       ,round(mon_sales1/mon_sales2,2)\n"
-                                + "       ,round(tue_sales1/tue_sales2,2)\n"
-                                + "       ,round(wed_sales1/wed_sales2,2)\n"
-                                + "       ,round(thu_sales1/thu_sales2,2)\n"
-                                + "       ,round(fri_sales1/fri_sales2,2)\n"
-                                + "       ,round(sat_sales1/sat_sales2,2)\n"
-                                + " from\n"
-                                + " (select wswscs.d_week_seq d_week_seq1\n"
-                                + "        ,sun_sales sun_sales1\n"
-                                + "        ,mon_sales mon_sales1\n"
-                                + "        ,tue_sales tue_sales1\n"
-                                + "        ,wed_sales wed_sales1\n"
-                                + "        ,thu_sales thu_sales1\n"
-                                + "        ,fri_sales fri_sales1\n"
-                                + "        ,sat_sales sat_sales1\n"
-                                + "  from wswscs,date_dim \n"
-                                + "  where date_dim.d_week_seq = wswscs.d_week_seq and\n"
-                                + "        d_year = 2001) y,\n"
-                                + " (select wswscs.d_week_seq d_week_seq2\n"
-                                + "        ,sun_sales sun_sales2\n"
-                                + "        ,mon_sales mon_sales2\n"
-                                + "        ,tue_sales tue_sales2\n"
-                                + "        ,wed_sales wed_sales2\n"
-                                + "        ,thu_sales thu_sales2\n"
-                                + "        ,fri_sales fri_sales2\n"
-                                + "        ,sat_sales sat_sales2\n"
-                                + "  from wswscs\n"
-                                + "      ,date_dim \n"
-                                + "  where date_dim.d_week_seq = wswscs.d_week_seq and\n"
-                                + "        d_year = 2001+1) z\n"
-                                + " where d_week_seq1=d_week_seq2-53\n"
-                                + " order by d_week_seq1")
-                .print();
-    }
-
-    @Test
-    void testQ3() {
-        List<Row> data1 = new ArrayList<>();
-        data1.add(Row.of(123, 123, 123, 436));
-        env.executeSql(
-                String.format(
-                        "CREATE TABLE item (\n"
-                                + "  i_brand_id int,\n"
-                                + "  i_brand INT,\n"
-                                + "  i_item_sk INT,\n"
-                                + "  i_manufact_id INT\n"
-                                + ")  WITH (\n"
-                                + " 'connector' = 'values',\n"
-                                + " 'data-id' = '%s',\n"
-                                + " 'bounded' = 'true'\n"
-                                + ")",
-                        TestValuesTableFactory.registerData(data1)));
-
-        env.executeSql(
-                String.format(
-                        "CREATE TABLE store_sales (\n"
-                                + "  ss_sold_date_sk int,\n"
-                                + "  ss_ext_sales_price INT,\n"
-                                + "  ss_item_sk INT,\n"
-                                + "  i_item_sk INT\n"
-                                + ")  WITH (\n"
-                                + " 'connector' = 'values',\n"
-                                + " 'data-id' = '%s',\n"
-                                + " 'bounded' = 'true'\n"
-                                + ")",
-                        TestValuesTableFactory.registerData(data1)));
-
-        List<Row> data2 = new ArrayList<>();
-        data2.add(Row.of(123, "Sunday", 12, 2001));
-        env.executeSql(
-                String.format(
-                        "CREATE TABLE date_dim (\n"
-                                + "  d_date_sk int,\n"
-                                + "  d_day_name VARCHAR,\n"
-                                + "  d_moy int,\n"
-                                + "  d_year int\n"
-                                + ")  WITH (\n"
-                                + " 'connector' = 'values',\n"
-                                + " 'data-id' = '%s',\n"
-                                + " 'bounded' = 'true'\n"
-                                + ")",
-                        TestValuesTableFactory.registerData(data2)));
-
-        env.executeSql(
-                        "-- start query 1 in stream 0 using template query3.tpl and seed 2031708268\n"
-                                + "select  dt.d_year \n"
-                                + "       ,item.i_brand_id brand_id \n"
-                                + "       ,item.i_brand brand\n"
-                                + "       ,sum(ss_ext_sales_price) sum_agg\n"
-                                + " from  date_dim dt \n"
-                                + "      ,store_sales\n"
-                                + "      ,item\n"
-                                + " where dt.d_date_sk = store_sales.ss_sold_date_sk\n"
-                                + "   and store_sales.ss_item_sk = item.i_item_sk\n"
-                                + "   and item.i_manufact_id = 436\n"
-                                + "   and dt.d_moy=12\n"
-                                + " group by dt.d_year\n"
-                                + "      ,item.i_brand\n"
-                                + "      ,item.i_brand_id\n"
-                                + " order by dt.d_year\n"
-                                + "         ,sum_agg desc\n"
-                                + "         ,brand_id\n"
-                                + " limit 100\n"
-                                + "\n"
-                                + "-- end query 1 in stream 0 using template query3.tpl\n")
-                .print();
-    }
-
-    @Test
-    void testQ4() {
-        List<Row> data1 = new ArrayList<>();
-        data1.add(Row.of(123, 123, "123", "436", 1, "china", "log", 1));
-        env.executeSql(
-                String.format(
-                        "CREATE TABLE customer (\n"
-                                + "  c_customer_sk int,\n"
-                                + "  c_customer_id int,\n"
-                                + "  c_first_name VARCHAR,\n"
-                                + "  c_last_name VARCHAR,\n"
-                                + "  c_preferred_cust_flag INT,\n"
-                                + "  c_birth_country VARCHAR,\n"
-                                + "  c_login VARCHAR,\n"
-                                + "  c_email_address INT\n"
-                                + ")  WITH (\n"
-                                + " 'connector' = 'values',\n"
-                                + " 'data-id' = '%s',\n"
-                                + " 'bounded' = 'true'\n"
-                                + ")",
-                        TestValuesTableFactory.registerData(data1)));
-
-        List<Row> data2 = new ArrayList<>();
-        data2.add(Row.of(123, 123, 123, 436, 123, 436));
-        env.executeSql(
-                String.format(
-                        "CREATE TABLE store_sales (\n"
-                                + "  ss_sold_date_sk int,\n"
-                                + "  ss_customer_sk int,\n"
-                                + "  ss_ext_list_price int,\n"
-                                + "  ss_ext_wholesale_cost INT,\n"
-                                + "  ss_ext_discount_amt INT,\n"
-                                + "  ss_ext_sales_price INT\n"
-                                + ")  WITH (\n"
-                                + " 'connector' = 'values',\n"
-                                + " 'data-id' = '%s',\n"
-                                + " 'bounded' = 'true'\n"
-                                + ")",
-                        TestValuesTableFactory.registerData(data2)));
-
-        List<Row> data4 = new ArrayList<>();
-        data4.add(Row.of(123, 123, 123, 436, 123, 436));
-        env.executeSql(
-                String.format(
-                        "CREATE TABLE catalog_sales (\n"
-                                + "  cs_sold_date_sk int,\n"
-                                + "  cs_bill_customer_sk int,\n"
-                                + "  cs_ext_list_price int,\n"
-                                + "  cs_ext_wholesale_cost INT,\n"
-                                + "  cs_ext_discount_amt INT,\n"
-                                + "  cs_ext_sales_price INT\n"
-                                + ")  WITH (\n"
-                                + " 'connector' = 'values',\n"
-                                + " 'data-id' = '%s',\n"
-                                + " 'bounded' = 'true'\n"
-                                + ")",
-                        TestValuesTableFactory.registerData(data4)));
-
-        List<Row> data5 = new ArrayList<>();
-        data5.add(Row.of(123, 123, 123, 436, 123, 436));
-        env.executeSql(
-                String.format(
-                        "CREATE TABLE web_sales (\n"
-                                + "  ws_sold_date_sk int,\n"
-                                + "  ws_bill_customer_sk int,\n"
-                                + "  ws_ext_list_price int,\n"
-                                + "  ws_ext_wholesale_cost INT,\n"
-                                + "  ws_ext_discount_amt INT,\n"
-                                + "  ws_ext_sales_price INT\n"
-                                + ")  WITH (\n"
-                                + " 'connector' = 'values',\n"
-                                + " 'data-id' = '%s',\n"
-                                + " 'bounded' = 'true'\n"
-                                + ")",
-                        TestValuesTableFactory.registerData(data5)));
-
-        List<Row> data3 = new ArrayList<>();
-        data3.add(Row.of(123, "Sunday", 12, 2001));
-        env.executeSql(
-                String.format(
-                        "CREATE TABLE date_dim (\n"
-                                + "  d_date_sk int,\n"
-                                + "  d_day_name VARCHAR,\n"
-                                + "  d_moy int,\n"
-                                + "  d_year int\n"
-                                + ")  WITH (\n"
-                                + " 'connector' = 'values',\n"
-                                + " 'data-id' = '%s',\n"
-                                + " 'bounded' = 'true'\n"
-                                + ")",
-                        TestValuesTableFactory.registerData(data3)));
-
-        List<Row> data6 = new ArrayList<>();
-        data6.add(Row.of(123, "Sunday", 12, 2001));
-        env.executeSql(
-                String.format(
-                        "CREATE TABLE year_total (\n"
-                                + "  customer_id int,\n"
-                                + "  sale_type VARCHAR,\n"
-                                + "  year_total int,\n"
-                                + "  d_year int\n"
-                                + ")  WITH (\n"
-                                + " 'connector' = 'values',\n"
-                                + " 'data-id' = '%s',\n"
-                                + " 'bounded' = 'true'\n"
-                                + ")",
-                        TestValuesTableFactory.registerData(data6)));
-
-        env.executeSql(
-                        "-- start query 1 in stream 0 using template query4.tpl and seed 1819994127\n"
-                                + "with year_total as (\n"
-                                + " select c_customer_id customer_id\n"
-                                + "       ,c_first_name customer_first_name\n"
-                                + "       ,c_last_name customer_last_name\n"
-                                + "       ,c_preferred_cust_flag customer_preferred_cust_flag\n"
-                                + "       ,c_birth_country customer_birth_country\n"
-                                + "       ,c_login customer_login\n"
-                                + "       ,c_email_address customer_email_address\n"
-                                + "       ,d_year dyear\n"
-                                + "       ,sum(((ss_ext_list_price-ss_ext_wholesale_cost-ss_ext_discount_amt)+ss_ext_sales_price)/2) year_total\n"
-                                + "       ,'s' sale_type\n"
-                                + " from customer\n"
-                                + "     ,store_sales\n"
-                                + "     ,date_dim\n"
-                                + " where c_customer_sk = ss_customer_sk\n"
-                                + "   and ss_sold_date_sk = d_date_sk\n"
-                                + " group by c_customer_id\n"
-                                + "         ,c_first_name\n"
-                                + "         ,c_last_name\n"
-                                + "         ,c_preferred_cust_flag\n"
-                                + "         ,c_birth_country\n"
-                                + "         ,c_login\n"
-                                + "         ,c_email_address\n"
-                                + "         ,d_year\n"
-                                + " union all\n"
-                                + " select c_customer_id customer_id\n"
-                                + "       ,c_first_name customer_first_name\n"
-                                + "       ,c_last_name customer_last_name\n"
-                                + "       ,c_preferred_cust_flag customer_preferred_cust_flag\n"
-                                + "       ,c_birth_country customer_birth_country\n"
-                                + "       ,c_login customer_login\n"
-                                + "       ,c_email_address customer_email_address\n"
-                                + "       ,d_year dyear\n"
-                                + "       ,sum((((cs_ext_list_price-cs_ext_wholesale_cost-cs_ext_discount_amt)+cs_ext_sales_price)/2) ) year_total\n"
-                                + "       ,'c' sale_type\n"
-                                + " from customer\n"
-                                + "     ,catalog_sales\n"
-                                + "     ,date_dim\n"
-                                + " where c_customer_sk = cs_bill_customer_sk\n"
-                                + "   and cs_sold_date_sk = d_date_sk\n"
-                                + " group by c_customer_id\n"
-                                + "         ,c_first_name\n"
-                                + "         ,c_last_name\n"
-                                + "         ,c_preferred_cust_flag\n"
-                                + "         ,c_birth_country\n"
-                                + "         ,c_login\n"
-                                + "         ,c_email_address\n"
-                                + "         ,d_year\n"
-                                + "union all\n"
-                                + " select c_customer_id customer_id\n"
-                                + "       ,c_first_name customer_first_name\n"
-                                + "       ,c_last_name customer_last_name\n"
-                                + "       ,c_preferred_cust_flag customer_preferred_cust_flag\n"
-                                + "       ,c_birth_country customer_birth_country\n"
-                                + "       ,c_login customer_login\n"
-                                + "       ,c_email_address customer_email_address\n"
-                                + "       ,d_year dyear\n"
-                                + "       ,sum((((ws_ext_list_price-ws_ext_wholesale_cost-ws_ext_discount_amt)+ws_ext_sales_price)/2) ) year_total\n"
-                                + "       ,'w' sale_type\n"
-                                + " from customer\n"
-                                + "     ,web_sales\n"
-                                + "     ,date_dim\n"
-                                + " where c_customer_sk = ws_bill_customer_sk\n"
-                                + "   and ws_sold_date_sk = d_date_sk\n"
-                                + " group by c_customer_id\n"
-                                + "         ,c_first_name\n"
-                                + "         ,c_last_name\n"
-                                + "         ,c_preferred_cust_flag\n"
-                                + "         ,c_birth_country\n"
-                                + "         ,c_login\n"
-                                + "         ,c_email_address\n"
-                                + "         ,d_year\n"
-                                + "         )\n"
-                                + "  select  t_s_secyear.customer_preferred_cust_flag\n"
-                                + " from year_total t_s_firstyear\n"
-                                + "     ,year_total t_s_secyear\n"
-                                + "     ,year_total t_c_firstyear\n"
-                                + "     ,year_total t_c_secyear\n"
-                                + "     ,year_total t_w_firstyear\n"
-                                + "     ,year_total t_w_secyear\n"
-                                + " where t_s_secyear.customer_id = t_s_firstyear.customer_id\n"
-                                + "   and t_s_firstyear.customer_id = t_c_secyear.customer_id\n"
-                                + "   and t_s_firstyear.customer_id = t_c_firstyear.customer_id\n"
-                                + "   and t_s_firstyear.customer_id = t_w_firstyear.customer_id\n"
-                                + "   and t_s_firstyear.customer_id = t_w_secyear.customer_id\n"
-                                + "   and t_s_firstyear.sale_type = 's'\n"
-                                + "   and t_c_firstyear.sale_type = 'c'\n"
-                                + "   and t_w_firstyear.sale_type = 'w'\n"
-                                + "   and t_s_secyear.sale_type = 's'\n"
-                                + "   and t_c_secyear.sale_type = 'c'\n"
-                                + "   and t_w_secyear.sale_type = 'w'\n"
-                                + "   and t_s_firstyear.dyear =  2001\n"
-                                + "   and t_s_secyear.dyear = 2001+1\n"
-                                + "   and t_c_firstyear.dyear =  2001\n"
-                                + "   and t_c_secyear.dyear =  2001+1\n"
-                                + "   and t_w_firstyear.dyear = 2001\n"
-                                + "   and t_w_secyear.dyear = 2001+1\n"
-                                + "   and t_s_firstyear.year_total > 0\n"
-                                + "   and t_c_firstyear.year_total > 0\n"
-                                + "   and t_w_firstyear.year_total > 0\n"
-                                + "   and case when t_c_firstyear.year_total > 0 then t_c_secyear.year_total / t_c_firstyear.year_total else null end\n"
-                                + "           > case when t_s_firstyear.year_total > 0 then t_s_secyear.year_total / t_s_firstyear.year_total else null end\n"
-                                + "   and case when t_c_firstyear.year_total > 0 then t_c_secyear.year_total / t_c_firstyear.year_total else null end\n"
-                                + "           > case when t_w_firstyear.year_total > 0 then t_w_secyear.year_total / t_w_firstyear.year_total else null end\n"
-                                + " order by t_s_secyear.customer_preferred_cust_flag\n"
-                                + "limit 100\n"
-                                + "\n"
-                                + "-- end query 1 in stream 0 using template query4.tpl\n")
-                .print();
-    }
-
-    @Test
     void testBroadcast() throws Exception {
         env.executeSql("SELECT /*+ BROADCAST(t2) */ x, z, a, b, c FROM t1 JOIN t2 ON t1.x=t2.a")
                 .print();
@@ -533,6 +154,152 @@ class AdaptiveJoinITCase extends TableTestBase {
         env.executeSql("SELECT /*+ SHUFFLE_MERGE(t1) */ x, z, a, b, c FROM t1 JOIN t2 ON t1.x=t2.a")
                 .print();
     }
+
+    private static final List<String> TPCDS_TABLES =
+            Arrays.asList(
+                    "catalog_sales",
+                    "catalog_returns",
+                    "inventory",
+                    "store_sales",
+                    "store_returns",
+                    "web_sales",
+                    "web_returns",
+                    "call_center",
+                    "catalog_page",
+                    "customer",
+                    "customer_address",
+                    "customer_demographics",
+                    "date_dim",
+                    "household_demographics",
+                    "income_band",
+                    "item",
+                    "promotion",
+                    "reason",
+                    "ship_mode",
+                    "store",
+                    "time_dim",
+                    "warehouse",
+                    "web_page",
+                    "web_site");
+    private static final List<String> TPCDS_QUERIES =
+            Arrays.asList(
+                    "14a");
+//            Arrays.asList(
+//                    "1", "2", "3", "4", "5", "6", "7", "8", "9", "10", "11", "12", "13", "14a",
+//                    "14b", "15", "16", "17", "18", "19", "20", "21", "22", "23a", "23b", "24a",
+//                    "24b", "25", "26", "27", "28", "29", "30", "31", "32", "33", "34", "35", "36",
+//                    "37", "38", "39a", "39b", "40", "41", "42", "43", "44", "45", "46", "47", "48",
+//                    "49", "50", "51", "52", "53", "54", "55", "56", "57", "58", "59", "60", "61",
+//                    "62", "63", "64", "65", "66", "67", "68", "69", "70", "71", "72", "73", "74",
+//                    "75", "76", "77", "78", "79", "80", "81", "82", "83", "84", "85", "86", "87",
+//                    "88", "89", "90", "91", "92", "93", "94", "95", "96", "97", "98", "99");
+
+    private static final String QUERY_PREFIX = "query";
+    private static final String QUERY_SUFFIX = ".sql";
+    private static final String DATA_SUFFIX = ".dat";
+    private static final String RESULT_SUFFIX = ".ans";
+    private static final String COL_DELIMITER = "|";
+    private static final String FILE_SEPARATOR = "/";
+
+    @Test
+    void testTpcDs() throws Exception {
+        String sourceTablePath = "/Users/sunxia.sx/IdeaProjects/flink-aqe/flink-end-to-end-tests/flink-tpcds-test/target/table";
+        String queryPath = "/Users/sunxia.sx/IdeaProjects/flink-aqe/flink-end-to-end-tests/flink-tpcds-test/tpcds-tool/query";
+        String sinkTablePath = "/Users/sunxia.sx/IdeaProjects/flink-aqe/flink-end-to-end-tests/flink-tpcds-test/target/answer_set_qualified";
+        Boolean useTableStats = false;
+        TableEnvironment tableEnvironment = prepareTableEnv(sourceTablePath, useTableStats);
+
+        // execute TPC-DS queries
+        for (String queryId : TPCDS_QUERIES) {
+            System.out.println("[INFO]Run TPC-DS query " + queryId + " ...");
+            String queryName = QUERY_PREFIX + queryId + QUERY_SUFFIX;
+            String queryFilePath = queryPath + FILE_SEPARATOR + queryName;
+            String queryString = loadFile2String(queryFilePath);
+            Table resultTable = tableEnvironment.sqlQuery(queryString);
+
+            // register sink table
+            String sinkTableName = QUERY_PREFIX + queryId + "_sinkTable";
+            ((TableEnvironmentInternal) tableEnvironment)
+                    .registerTableSinkInternal(
+                            sinkTableName,
+                            new CsvTableSink(
+                                    sinkTablePath + FILE_SEPARATOR + queryId + RESULT_SUFFIX,
+                                    COL_DELIMITER,
+                                    1,
+                                    FileSystem.WriteMode.OVERWRITE,
+                                    resultTable.getSchema().getFieldNames(),
+                                    resultTable.getSchema().getFieldDataTypes()));
+            TableResult tableResult = resultTable.executeInsert(sinkTableName);
+            // wait job finish
+            tableResult.getJobClient().get().getJobExecutionResult().get();
+            System.out.println("[INFO]Run TPC-DS query " + queryId + " success.");
+        }
+    }
+
+    private static TableEnvironment prepareTableEnv(String sourceTablePath, Boolean useTableStats) {
+        // init Table Env
+        EnvironmentSettings environmentSettings = EnvironmentSettings.inBatchMode();
+        TableEnvironment tEnv = TableEnvironment.create(environmentSettings);
+
+        // config Optimizer parameters
+        // TODO use the default shuffle mode of batch runtime mode once FLINK-23470 is implemented
+        tEnv.getConfig()
+                .set(
+                        ExecutionConfigOptions.TABLE_EXEC_SHUFFLE_MODE,
+                        GlobalStreamExchangeMode.POINTWISE_EDGES_PIPELINED.toString());
+        tEnv.getConfig()
+                .set(
+                        OptimizerConfigOptions.TABLE_OPTIMIZER_BROADCAST_JOIN_THRESHOLD,
+                        10 * 1024 * 1024L);
+        tEnv.getConfig().set(OptimizerConfigOptions.TABLE_OPTIMIZER_JOIN_REORDER_ENABLED, true);
+        tEnv.getConfig().set(OptimizerConfigOptions.TABLE_OPTIMIZER_ADAPTIVE_BROADCAST_JOIN_STRATEGY, OptimizerConfigOptions.AdaptiveBroadcastJoinStrategy.RUNTIME_ONLY);
+        tEnv.getConfig().set(DeploymentOptions.SUBMIT_STREAM_GRAPH_ENABLED, true);
+        tEnv.getConfig().set(BatchExecutionOptions.ADAPTIVE_JOIN_TYPE_ENABLED, true);
+
+        // register TPC-DS tables
+        TPCDS_TABLES.forEach(
+                table -> {
+                    TpcdsSchema schema = TpcdsSchemaProvider.getTableSchema(table);
+                    CsvTableSource.Builder builder = CsvTableSource.builder();
+                    builder.path(sourceTablePath + FILE_SEPARATOR + table + DATA_SUFFIX);
+                    for (int i = 0; i < schema.getFieldNames().size(); i++) {
+                        builder.field(
+                                schema.getFieldNames().get(i),
+                                TypeConversions.fromDataTypeToLegacyInfo(
+                                        schema.getFieldTypes().get(i)));
+                    }
+                    builder.fieldDelimiter(COL_DELIMITER);
+                    builder.emptyColumnAsNull();
+                    builder.lineDelimiter("\n");
+                    CsvTableSource tableSource = builder.build();
+                    ConnectorCatalogTable catalogTable =
+                            ConnectorCatalogTable.source(tableSource, true);
+                    tEnv.getCatalog(tEnv.getCurrentCatalog())
+                            .ifPresent(
+                                    catalog -> {
+                                        try {
+                                            catalog.createTable(
+                                                    new ObjectPath(
+                                                            tEnv.getCurrentDatabase(), table),
+                                                    catalogTable,
+                                                    false);
+                                        } catch (Exception e) {
+                                            throw new RuntimeException(e);
+                                        }
+                                    });
+                });
+
+        return tEnv;
+    }
+
+    private static String loadFile2String(String filePath) throws Exception {
+        StringBuilder stringBuilder = new StringBuilder();
+        Stream<String> stream = Files.lines(Paths.get(filePath), StandardCharsets.UTF_8);
+        stream.forEach(s -> stringBuilder.append(s).append('\n'));
+        return stringBuilder.toString();
+    }
+
+
 
     private List<Row> getRepeatedRow(int key, int nums) {
         List<Row> rows = new ArrayList<>();

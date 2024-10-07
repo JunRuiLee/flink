@@ -18,7 +18,7 @@
 package org.apache.flink.table.planner.codegen
 
 import org.apache.flink.streaming.api.graph.StreamConfig
-import org.apache.flink.streaming.api.operators.{AbstractStreamOperator, BoundedMultiInput, BoundedOneInput, InputSelectable, InputSelection, OneInputStreamOperator, Output, StreamOperator, SwitchBroadcastSide, TwoInputStreamOperator}
+import org.apache.flink.streaming.api.operators.{AbstractStreamOperator, BoundedMultiInput, BoundedOneInput, InputSelectable, InputSelection, OneInputStreamOperator, Output, StreamOperator, TwoInputStreamOperator}
 import org.apache.flink.streaming.runtime.streamrecord.StreamRecord
 import org.apache.flink.streaming.runtime.tasks.{ProcessingTimeService, StreamTask}
 import org.apache.flink.table.planner.codegen.CodeGenUtils._
@@ -41,14 +41,14 @@ object OperatorCodeGenerator extends Logging {
   }
 
   def generateOneInputStreamOperator[IN <: Any, OUT <: Any](
-      ctx: CodeGeneratorContext,
-      name: String,
-      processCode: String,
-      inputType: LogicalType,
-      inputTerm: String = CodeGenUtils.DEFAULT_INPUT1_TERM,
-      endInputCode: Option[String] = None,
-      lazyInputUnboxingCode: Boolean = false,
-      converter: String => String = a => a): GeneratedOperator[OneInputStreamOperator[IN, OUT]] = {
+                                                             ctx: CodeGeneratorContext,
+                                                             name: String,
+                                                             processCode: String,
+                                                             inputType: LogicalType,
+                                                             inputTerm: String = CodeGenUtils.DEFAULT_INPUT1_TERM,
+                                                             endInputCode: Option[String] = None,
+                                                             lazyInputUnboxingCode: Boolean = false,
+                                                             converter: String => String = a => a): GeneratedOperator[OneInputStreamOperator[IN, OUT]] = {
     addReuseOutElement(ctx)
     val operatorName = newName(ctx, name)
     val abstractBaseClass = ctx.getOperatorBaseClass
@@ -131,19 +131,18 @@ object OperatorCodeGenerator extends Logging {
   }
 
   def generateTwoInputStreamOperator[IN1 <: Any, IN2 <: Any, OUT <: Any](
-      ctx: CodeGeneratorContext,
-      name: String,
-      processCode1: String,
-      processCode2: String,
-      input1Type: LogicalType,
-      input2Type: LogicalType,
-      input1Term: String = CodeGenUtils.DEFAULT_INPUT1_TERM,
-      input2Term: String = CodeGenUtils.DEFAULT_INPUT2_TERM,
-      nextSelectionCode: Option[String] = None,
-      switchBroadcastSideCode: Option[String] = None,
-      endInputCode1: Option[String] = None,
-      endInputCode2: Option[String] = None,
-      useTimeCollect: Boolean = false): GeneratedOperator[TwoInputStreamOperator[IN1, IN2, OUT]] = {
+                                                                          ctx: CodeGeneratorContext,
+                                                                          name: String,
+                                                                          processCode1: String,
+                                                                          processCode2: String,
+                                                                          input1Type: LogicalType,
+                                                                          input2Type: LogicalType,
+                                                                          input1Term: String = CodeGenUtils.DEFAULT_INPUT1_TERM,
+                                                                          input2Term: String = CodeGenUtils.DEFAULT_INPUT2_TERM,
+                                                                          nextSelectionCode: Option[String] = None,
+                                                                          endInputCode1: Option[String] = None,
+                                                                          endInputCode2: Option[String] = None,
+                                                                          useTimeCollect: Boolean = false): GeneratedOperator[TwoInputStreamOperator[IN1, IN2, OUT]] = {
     addReuseOutElement(ctx)
     val operatorName = newName(ctx, name)
     val abstractBaseClass = ctx.getOperatorBaseClass
@@ -164,19 +163,6 @@ object OperatorCodeGenerator extends Logging {
              |}
          """.stripMargin,
           s", ${className[InputSelectable]}")
-    }
-
-    val (switchBroadcastSide, switchBroadcastSideImpl) = switchBroadcastSideCode match {
-      case None => ("", "")
-      case Some(code) =>
-        (
-          s"""
-             |@Override
-             |public void activateBroadcastJoin(boolean leftIsBuild) {
-             |  $code
-             |}
-         """.stripMargin,
-          s", ${className[SwitchBroadcastSide]}")
     }
 
     val (endInput, endInputImpl) = (endInputCode1, endInputCode2) match {
@@ -212,7 +198,7 @@ object OperatorCodeGenerator extends Logging {
     val operatorCode =
       j"""
       public class $operatorName extends ${abstractBaseClass.getCanonicalName}
-          implements ${baseClass.getCanonicalName}$nextSelImpl$endInputImpl$switchBroadcastSideImpl {
+          implements ${baseClass.getCanonicalName}$nextSelImpl$endInputImpl {
 
         public static org.slf4j.Logger LOG = org.slf4j.LoggerFactory.getLogger("$operatorName");
 
@@ -259,8 +245,6 @@ object OperatorCodeGenerator extends Logging {
         $nextSel
 
         $endInput
-
-        $switchBroadcastSide
 
         @Override
         public void finish() throws Exception {

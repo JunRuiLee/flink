@@ -18,16 +18,16 @@
 
 package org.apache.flink.table.planner.plan.nodes.exec;
 
-import org.apache.flink.table.planner.plan.nodes.exec.batch.BatchExecAdaptiveJoin;
+import org.apache.flink.table.planner.plan.nodes.exec.batch.BatchExecAdaptiveBroadcastJoin;
 
-/** A {@link ExecNode} which support adaptive broadcast hash join. */
+/** A {@link ExecNode} which support to convert to adaptive broadcast join node. */
 public interface AdaptiveBroadcastJoinExecNode {
 
-    /** Whether this join node is specified by a hint. */
-    boolean isSpecifiedByJoinHint();
+    /** Whether this join node can be transformed to a {@link BatchExecAdaptiveBroadcastJoin} node. */
+    boolean canBeTransformedToAdaptiveBroadcastJoin();
 
     /**
-     * Translates this node into a {@link BatchExecAdaptiveJoin}.
+     * Transform this node into a {@link BatchExecAdaptiveBroadcastJoin} node.
      */
-    BatchExecAdaptiveJoin toAdaptiveBroadcastJoinNode();
+    BatchExecAdaptiveBroadcastJoin toAdaptiveBroadcastJoinNode();
 }
