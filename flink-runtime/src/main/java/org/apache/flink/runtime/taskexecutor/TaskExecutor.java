@@ -22,7 +22,6 @@ import org.apache.flink.annotation.VisibleForTesting;
 import org.apache.flink.api.common.JobID;
 import org.apache.flink.configuration.BatchExecutionOptions;
 import org.apache.flink.configuration.ClusterOptions;
-import org.apache.flink.management.jmx.JMXService;
 import org.apache.flink.runtime.accumulators.AccumulatorSnapshot;
 import org.apache.flink.runtime.blob.JobPermanentBlobService;
 import org.apache.flink.runtime.blob.PermanentBlobKey;
@@ -1560,7 +1559,7 @@ public class TaskExecutor extends RpcEndpoint implements TaskExecutorGateway {
                         getAddress(),
                         getResourceID(),
                         unresolvedTaskManagerLocation.getDataPort(),
-                        JMXService.getPort().orElse(-1),
+                        -1,
                         hardwareDescription,
                         memoryConfiguration,
                         taskManagerConfiguration.getDefaultSlotResourceProfile(),

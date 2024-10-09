@@ -21,7 +21,6 @@ package org.apache.flink.runtime.taskexecutor;
 import org.apache.flink.annotation.VisibleForTesting;
 import org.apache.flink.api.java.tuple.Tuple2;
 import org.apache.flink.configuration.Configuration;
-import org.apache.flink.configuration.JMXServerOptions;
 import org.apache.flink.configuration.RpcOptions;
 import org.apache.flink.configuration.TaskManagerOptions;
 import org.apache.flink.configuration.TaskManagerOptionsInternal;
@@ -29,7 +28,6 @@ import org.apache.flink.core.fs.FileSystem;
 import org.apache.flink.core.plugin.PluginManager;
 import org.apache.flink.core.plugin.PluginUtils;
 import org.apache.flink.core.security.FlinkSecurityManager;
-import org.apache.flink.management.jmx.JMXService;
 import org.apache.flink.metrics.MetricGroup;
 import org.apache.flink.runtime.blob.BlobCacheService;
 import org.apache.flink.runtime.blob.BlobUtils;
@@ -199,8 +197,6 @@ public class TaskManagerRunner implements FatalErrorHandler {
                             rpcSystem,
                             this);
 
-            JMXService.startInstance(configuration.get(JMXServerOptions.JMX_SERVER_PORT));
-
             rpcService = createRpcService(configuration, highAvailabilityServices, rpcSystem);
 
             this.resourceId =
@@ -369,12 +365,6 @@ public class TaskManagerRunner implements FatalErrorHandler {
         synchronized (lock) {
             Collection<CompletableFuture<Void>> terminationFutures = new ArrayList<>(3);
             Exception exception = null;
-
-            try {
-                JMXService.stopInstance();
-            } catch (Exception e) {
-                exception = ExceptionUtils.firstOrSuppressed(e, exception);
-            }
 
             if (blobCacheService != null) {
                 try {
