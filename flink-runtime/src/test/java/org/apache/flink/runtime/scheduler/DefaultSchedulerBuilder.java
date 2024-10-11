@@ -59,7 +59,6 @@ import org.apache.flink.runtime.shuffle.ShuffleMaster;
 import org.apache.flink.runtime.shuffle.ShuffleTestUtils;
 import org.apache.flink.util.concurrent.ScheduledExecutor;
 import org.apache.flink.util.concurrent.ScheduledExecutorServiceAdapter;
-
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -69,6 +68,7 @@ import java.util.Collections;
 import java.util.HashSet;
 import java.util.List;
 import java.util.concurrent.Executor;
+import java.util.concurrent.ExecutorService;
 import java.util.concurrent.ScheduledExecutorService;
 import java.util.function.Function;
 
@@ -81,6 +81,7 @@ public class DefaultSchedulerBuilder {
 
     private final JobGraph jobGraph;
     private final ComponentMainThreadExecutor mainThreadExecutor;
+    private final ExecutorService serializationExecutor;
 
     private Executor ioExecutor;
     private ScheduledExecutorService futureExecutor;
@@ -131,6 +132,7 @@ public class DefaultSchedulerBuilder {
                 mainThreadExecutor,
                 generalExecutorService,
                 generalExecutorService,
+                generalExecutorService,
                 new ScheduledExecutorServiceAdapter(generalExecutorService));
     }
 
@@ -138,11 +140,13 @@ public class DefaultSchedulerBuilder {
             JobGraph jobGraph,
             ComponentMainThreadExecutor mainThreadExecutor,
             Executor ioExecutor,
+            ExecutorService serializationExecutor,
             ScheduledExecutorService futureExecutor,
             ScheduledExecutor delayExecutor) {
         this.jobGraph = jobGraph;
         this.mainThreadExecutor = mainThreadExecutor;
         this.ioExecutor = ioExecutor;
+        this.serializationExecutor = serializationExecutor;
         this.futureExecutor = futureExecutor;
         this.delayExecutor = delayExecutor;
     }
@@ -355,6 +359,7 @@ public class DefaultSchedulerBuilder {
                 jobGraph,
                 jobGraph.getSerializedExecutionConfig().deserializeValue(userCodeLoader),
                 ioExecutor,
+                serializationExecutor,
                 jobMasterConfiguration,
                 futureExecutor,
                 userCodeLoader,
@@ -399,7 +404,8 @@ public class DefaultSchedulerBuilder {
                 executionJobVertexFactory,
                 isDynamicGraph
                         && hybridPartitionDataConsumeConstraint
-                                == HybridPartitionDataConsumeConstraint.ONLY_FINISHED_PRODUCERS);
+                                == HybridPartitionDataConsumeConstraint.ONLY_FINISHED_PRODUCERS,
+                -1);
     }
 
     public static VertexParallelismAndInputInfosDecider createCustomParallelismDecider(

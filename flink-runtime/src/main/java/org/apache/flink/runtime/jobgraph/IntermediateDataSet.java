@@ -41,6 +41,8 @@ public class IntermediateDataSet implements java.io.Serializable {
 
     private final JobVertex producer; // the operation that produced this data set
 
+    private int producerStreamNodeId;
+
     // All consumers must have the same partitioner and parallelism
     private final List<JobEdge> consumers = new ArrayList<>();
 
@@ -74,6 +76,18 @@ public class IntermediateDataSet implements java.io.Serializable {
 
     public List<JobEdge> getConsumers() {
         return this.consumers;
+    }
+
+    public boolean isAllConsumerVerticesCreated() {
+        return streamEdges.size() == consumers.size();
+    }
+
+    public void setProducerStreamNodeId(int streamNodeId) {
+        this.producerStreamNodeId = streamNodeId;
+    }
+
+    public int getProducerStreamNodeId() {
+        return producerStreamNodeId;
     }
 
     public boolean isBroadcast() {

@@ -22,7 +22,6 @@ package org.apache.flink.runtime.scheduler.adaptivebatch;
 import org.apache.flink.annotation.VisibleForTesting;
 import org.apache.flink.api.common.BatchShuffleMode;
 import org.apache.flink.api.common.ExecutionConfig;
-import org.apache.flink.api.common.RuntimeExecutionMode;
 import org.apache.flink.configuration.BatchExecutionOptions;
 import org.apache.flink.configuration.Configuration;
 import org.apache.flink.configuration.ExecutionOptions;
@@ -45,9 +44,6 @@ import org.apache.flink.runtime.jobgraph.IntermediateDataSet;
 import org.apache.flink.runtime.jobgraph.JobGraph;
 import org.apache.flink.runtime.jobgraph.JobType;
 import org.apache.flink.runtime.jobgraph.JobVertex;
-import org.apache.flink.runtime.jobgraph.JobVertexID;
-import org.apache.flink.runtime.jobgraph.forwardgroup.ForwardGroup;
-import org.apache.flink.runtime.jobgraph.forwardgroup.ForwardGroupComputeUtil;
 import org.apache.flink.runtime.jobmaster.ExecutionDeploymentTracker;
 import org.apache.flink.runtime.jobmaster.event.FileSystemJobEventStore;
 import org.apache.flink.runtime.jobmaster.event.JobEventManager;
@@ -76,17 +72,20 @@ import org.apache.flink.runtime.scheduler.strategy.VertexwiseSchedulingStrategy;
 import org.apache.flink.runtime.shuffle.ShuffleMaster;
 import org.apache.flink.runtime.util.SlotSelectionStrategyUtils;
 import org.apache.flink.streaming.api.graph.ExecutionPlan;
+import org.apache.flink.streaming.api.graph.StreamEdge;
+import org.apache.flink.streaming.api.graph.StreamGraph;
 import org.apache.flink.streaming.api.graph.StreamGraphWrapper;
+import org.apache.flink.streaming.api.graph.StreamNode;
+import org.apache.flink.streaming.api.transformations.StreamExchangeMode;
+import org.apache.flink.types.Either;
 import org.apache.flink.util.Preconditions;
 import org.apache.flink.util.concurrent.ScheduledExecutor;
 import org.apache.flink.util.concurrent.ScheduledExecutorServiceAdapter;
-
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.time.Duration;
 import java.util.Collection;
-import java.util.Map;
 import java.util.concurrent.Executor;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.ScheduledExecutorService;
@@ -125,17 +124,6 @@ public class AdaptiveBatchSchedulerFactory implements SchedulerNGFactory {
             Collection<FailureEnricher> failureEnrichers,
             BlocklistOperations blocklistOperations)
             throws Exception {
-        JobGraph jobGraph;
-
-        if (executionPlan instanceof JobGraph) {
-            jobGraph = (JobGraph) executionPlan;
-        } else {
-            jobGraph =
-                    ((StreamGraphWrapper) executionPlan)
-                            .deserializeStreamGraph(userCodeLoader, serializationExecutor)
-                            .getJobGraph(userCodeLoader);
-        }
-
         final SlotPool slotPool =
                 slotPoolService
                         .castInto(SlotPool.class)
@@ -148,19 +136,19 @@ public class AdaptiveBatchSchedulerFactory implements SchedulerNGFactory {
                 createExecutionSlotAllocatorFactory(jobMasterConfiguration, slotPool);
 
         ExecutionConfig executionConfig =
-                jobGraph.getSerializedExecutionConfig().deserializeValue(userCodeLoader);
+                executionPlan.getSerializedExecutionConfig().deserializeValue(userCodeLoader);
 
         final RestartBackoffTimeStrategy restartBackoffTimeStrategy =
                 RestartBackoffTimeStrategyFactoryLoader.createRestartBackoffTimeStrategyFactory(
-                                jobGraph.getJobConfiguration(),
+                                executionPlan.getJobConfiguration(),
                                 jobMasterConfiguration,
-                                jobGraph.isCheckpointingEnabled())
+                                executionPlan.isCheckpointingEnabled())
                         .create();
         log.info(
                 "Using restart back off time strategy {} for {} ({}).",
                 restartBackoffTimeStrategy,
-                jobGraph.getName(),
-                jobGraph.getJobID());
+                executionPlan.getName(),
+                executionPlan.getJobID());
 
         final boolean isJobRecoveryEnabled =
                 jobMasterConfiguration.get(BatchExecutionOptions.JOB_RECOVERY_ENABLED)
@@ -169,7 +157,7 @@ public class AdaptiveBatchSchedulerFactory implements SchedulerNGFactory {
         BatchJobRecoveryHandler jobRecoveryHandler;
         if (isJobRecoveryEnabled) {
             FileSystemJobEventStore jobEventStore =
-                    new FileSystemJobEventStore(jobGraph.getJobID(), jobMasterConfiguration);
+                    new FileSystemJobEventStore(executionPlan.getJobID(), jobMasterConfiguration);
             JobEventManager jobEventManager = new JobEventManager(jobEventStore);
             jobRecoveryHandler =
                     new DefaultBatchJobRecoveryHandler(jobEventManager, jobMasterConfiguration);
@@ -179,9 +167,10 @@ public class AdaptiveBatchSchedulerFactory implements SchedulerNGFactory {
 
         return createScheduler(
                 log,
-                jobGraph,
+                executionPlan,
                 executionConfig,
                 ioExecutor,
+                serializationExecutor,
                 jobMasterConfiguration,
                 futureExecutor,
                 userCodeLoader,
@@ -210,9 +199,10 @@ public class AdaptiveBatchSchedulerFactory implements SchedulerNGFactory {
     @VisibleForTesting
     public static AdaptiveBatchScheduler createScheduler(
             Logger log,
-            JobGraph jobGraph,
+            ExecutionPlan executionPlan,
             ExecutionConfig executionConfig,
             Executor ioExecutor,
+            ExecutorService serializationExecutor,
             Configuration jobMasterConfiguration,
             ScheduledExecutorService futureExecutor,
             ClassLoader userCodeLoader,
@@ -235,11 +225,21 @@ public class AdaptiveBatchSchedulerFactory implements SchedulerNGFactory {
             VertexParallelismAndInputInfosDecider vertexParallelismAndInputInfosDecider,
             BatchJobRecoveryHandler jobRecoveryHandler)
             throws Exception {
+        Either<JobGraph, StreamGraph> jobGraphOrStreamGraph;
+
+        if (executionPlan instanceof JobGraph) {
+            jobGraphOrStreamGraph = Either.Left((JobGraph) executionPlan);
+        } else {
+            jobGraphOrStreamGraph =
+                    Either.Right(
+                            ((StreamGraphWrapper) executionPlan)
+                                    .deserializeStreamGraph(userCodeLoader, serializationExecutor));
+        }
 
         checkState(
-                jobGraph.getJobType() == JobType.BATCH,
+                executionPlan.getJobType() == JobType.BATCH,
                 "Adaptive batch scheduler only supports batch jobs");
-        checkAllExchangesAreSupported(jobGraph);
+        checkAllExchangesAreSupported(jobGraphOrStreamGraph);
 
         final boolean enableSpeculativeExecution =
                 jobMasterConfiguration.get(BatchExecutionOptions.SPECULATIVE_ENABLED);
@@ -247,6 +247,9 @@ public class AdaptiveBatchSchedulerFactory implements SchedulerNGFactory {
         final HybridPartitionDataConsumeConstraint hybridPartitionDataConsumeConstraint =
                 getOrDecideHybridPartitionDataConsumeConstraint(
                         jobMasterConfiguration, enableSpeculativeExecution);
+
+        int defaultMaxParallelism =
+                getDefaultMaxParallelism(jobMasterConfiguration, executionConfig);
 
         final ExecutionGraphFactory executionGraphFactory =
                 new DefaultExecutionGraphFactory(
@@ -262,22 +265,24 @@ public class AdaptiveBatchSchedulerFactory implements SchedulerNGFactory {
                         partitionTracker,
                         true,
                         createExecutionJobVertexFactory(enableSpeculativeExecution),
-                        hybridPartitionDataConsumeConstraint == ONLY_FINISHED_PRODUCERS);
+                        hybridPartitionDataConsumeConstraint == ONLY_FINISHED_PRODUCERS,
+                        defaultMaxParallelism);
 
         final SchedulingStrategyFactory schedulingStrategyFactory =
                 new VertexwiseSchedulingStrategy.Factory(
                         loadInputConsumableDeciderFactory(hybridPartitionDataConsumeConstraint));
 
-        int defaultMaxParallelism =
-                getDefaultMaxParallelism(jobMasterConfiguration, executionConfig);
-
-        final Map<JobVertexID, ForwardGroup> forwardGroupsByJobVertexId =
-                ForwardGroupComputeUtil.computeForwardGroupsAndCheckParallelism(
-                        jobGraph.getVerticesSortedTopologicallyFromSources());
+        AdaptiveExecutionHandler handler =
+                jobGraphOrStreamGraph.isLeft()
+                        ? new DummyAdaptiveExecutionHandler(jobGraphOrStreamGraph.left())
+                        : new DefaultAdaptiveExecutionHandler(
+                                userCodeLoader,
+                                jobGraphOrStreamGraph.right(),
+                                serializationExecutor);
 
         return new AdaptiveBatchScheduler(
                 log,
-                jobGraph,
+                handler,
                 ioExecutor,
                 jobMasterConfiguration,
                 componentMainThreadExecutor -> {},
@@ -303,7 +308,6 @@ public class AdaptiveBatchSchedulerFactory implements SchedulerNGFactory {
                 defaultMaxParallelism,
                 blocklistOperations,
                 hybridPartitionDataConsumeConstraint,
-                forwardGroupsByJobVertexId,
                 jobRecoveryHandler);
     }
 
@@ -370,23 +374,32 @@ public class AdaptiveBatchSchedulerFactory implements SchedulerNGFactory {
         }
     }
 
-    private static void checkAllExchangesAreSupported(final JobGraph jobGraph) {
-        for (JobVertex jobVertex : jobGraph.getVertices()) {
-            for (IntermediateDataSet dataSet : jobVertex.getProducedDataSets()) {
-                checkState(
-                        dataSet.getResultType().isBlockingOrBlockingPersistentResultPartition()
-                                || dataSet.getResultType().isHybridResultPartition(),
-                        String.format(
-                                "At the moment, adaptive batch scheduler requires batch workloads "
-                                        + "to be executed with types of all edges being BLOCKING or HYBRID_FULL/HYBRID_SELECTIVE. "
-                                        + "To do that, you need to configure '%s' to '%s' or '%s/%s'. "
-                                        + "Note that for DataSet jobs which do not recognize the aforementioned shuffle mode, "
-                                        + "the RuntimeExecutionMode needs to be %s to force BLOCKING shuffle",
-                                ExecutionOptions.BATCH_SHUFFLE_MODE.key(),
-                                BatchShuffleMode.ALL_EXCHANGES_BLOCKING,
-                                BatchShuffleMode.ALL_EXCHANGES_HYBRID_FULL,
-                                BatchShuffleMode.ALL_EXCHANGES_HYBRID_SELECTIVE,
-                                RuntimeExecutionMode.BATCH));
+    private static void checkAllExchangesAreSupported(
+            final Either<JobGraph, StreamGraph> jobGraphOrStreamGraph) {
+        String errMsg =
+                String.format(
+                        "At the moment, adaptive batch scheduler requires batch workloads "
+                                + "to be executed with types of all edges being BLOCKING or HYBRID_FULL/HYBRID_SELECTIVE. "
+                                + "To do that, you need to configure '%s' to '%s' or '%s/%s'. ",
+                        ExecutionOptions.BATCH_SHUFFLE_MODE.key(),
+                        BatchShuffleMode.ALL_EXCHANGES_BLOCKING,
+                        BatchShuffleMode.ALL_EXCHANGES_HYBRID_FULL,
+                        BatchShuffleMode.ALL_EXCHANGES_HYBRID_SELECTIVE);
+        if (jobGraphOrStreamGraph.isLeft()) {
+            for (JobVertex jobVertex : jobGraphOrStreamGraph.left().getVertices()) {
+                for (IntermediateDataSet dataSet : jobVertex.getProducedDataSets()) {
+                    checkState(
+                            dataSet.getResultType().isBlockingOrBlockingPersistentResultPartition()
+                                    || dataSet.getResultType().isHybridResultPartition(),
+                            errMsg);
+                }
+            }
+        } else {
+            for (StreamNode streamNode : jobGraphOrStreamGraph.right().getStreamNodes()) {
+                for (StreamEdge edge : streamNode.getOutEdges()) {
+                    checkState(
+                            !edge.getExchangeMode().equals(StreamExchangeMode.PIPELINED), errMsg);
+                }
             }
         }
     }

@@ -97,6 +97,7 @@ public class HandleGlobalFailureAndRestartAllTasksBenchmark extends SchedulerEnd
                                 mainThreadExecutor,
                                 executorService,
                                 executorService,
+                                executorService,
                                 taskRestartExecutor)
                         .setExecutionSlotAllocatorFactory(
                                 SchedulerTestingUtils.newSlotSharingExecutionSlotAllocatorFactory(

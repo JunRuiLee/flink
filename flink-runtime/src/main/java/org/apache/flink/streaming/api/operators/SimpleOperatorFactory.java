@@ -35,7 +35,7 @@ import static org.apache.flink.util.Preconditions.checkNotNull;
 @Internal
 public class SimpleOperatorFactory<OUT> extends AbstractStreamOperatorFactory<OUT> {
 
-    private final StreamOperator<OUT> operator;
+    private StreamOperator<OUT> operator;
 
     /** Create a SimpleOperatorFactory from existed StreamOperator. */
     @SuppressWarnings("unchecked")

@@ -80,6 +80,10 @@ public class JobGraph implements ExecutionPlan {
     private final Map<JobVertexID, JobVertex> taskVertices =
             new LinkedHashMap<JobVertexID, JobVertex>();
 
+    public Map<JobVertexID, JobVertex> getTaskVertices() {
+        return taskVertices;
+    }
+
     /** The job configuration attached to this job. */
     private Configuration jobConfiguration = new Configuration();
 

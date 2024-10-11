@@ -18,11 +18,13 @@
 
 package org.apache.flink.configuration;
 
+import org.apache.flink.annotation.Internal;
 import org.apache.flink.annotation.PublicEvolving;
 import org.apache.flink.annotation.docs.Documentation;
 import org.apache.flink.configuration.description.Description;
 
 import java.time.Duration;
+import java.util.List;
 
 import static org.apache.flink.configuration.ConfigOptions.key;
 import static org.apache.flink.configuration.CoreOptions.DEFAULT_PARALLELISM;
@@ -32,6 +34,16 @@ import static org.apache.flink.configuration.description.TextElement.code;
 /** Configuration options for the batch job execution. */
 @PublicEvolving
 public class BatchExecutionOptions {
+
+    @Internal
+    @Documentation.ExcludeFromDocumentation("Hidden for internal use only.")
+    public static final ConfigOption<List<String>> ADAPTIVE_STREAM_GRAPH_OPTIMIZATION_STRATEGIES =
+            key("execution.batch.adaptive.stream-graph-optimization.strategies")
+                    .stringType()
+                    .asList()
+                    .noDefaultValue()
+                    .withDescription(
+                            "Defines a comma-separated list of fully qualified class names implementing the StreamGraphOptimizationStrategy interface.");
 
     @Documentation.Section({Documentation.Sections.EXPERT_SCHEDULING})
     public static final ConfigOption<Boolean> ADAPTIVE_AUTO_PARALLELISM_ENABLED =

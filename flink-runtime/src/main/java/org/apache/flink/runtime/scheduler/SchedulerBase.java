@@ -299,8 +299,12 @@ public abstract class SchedulerBase implements SchedulerNG, CheckpointScheduling
      * @return the computed max parallelism
      */
     public static int getDefaultMaxParallelism(JobVertex vertex) {
+        return getDefaultMaxParallelism(vertex.getParallelism());
+    }
+
+    public static int getDefaultMaxParallelism(int parallelism) {
         return KeyGroupRangeAssignment.computeDefaultMaxParallelism(
-                normalizeParallelism(vertex.getParallelism()));
+                normalizeParallelism(parallelism));
     }
 
     public static VertexParallelismStore computeVertexParallelismStore(
@@ -1118,6 +1122,12 @@ public abstract class SchedulerBase implements SchedulerNG, CheckpointScheduling
     public CompletableFuture<CoordinationResponse> deliverCoordinationRequestToCoordinator(
             OperatorID operator, CoordinationRequest request) throws FlinkException {
 
+        return deliverCoordinationRequestToCoordinatorInternal(operator, request);
+    }
+
+    protected CompletableFuture<CoordinationResponse>
+            deliverCoordinationRequestToCoordinatorInternal(
+                    OperatorID operator, CoordinationRequest request) throws FlinkException {
         return operatorCoordinatorHandler.deliverCoordinationRequestToCoordinator(
                 operator, request);
     }

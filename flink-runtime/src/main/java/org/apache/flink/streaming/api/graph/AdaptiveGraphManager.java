@@ -27,6 +27,7 @@ import org.apache.flink.configuration.IllegalConfigurationException;
 import org.apache.flink.runtime.OperatorIDPair;
 import org.apache.flink.runtime.jobgraph.InputOutputFormatVertex;
 import org.apache.flink.runtime.jobgraph.IntermediateDataSet;
+import org.apache.flink.runtime.jobgraph.IntermediateDataSetID;
 import org.apache.flink.runtime.jobgraph.JobGraph;
 import org.apache.flink.runtime.jobgraph.JobVertex;
 import org.apache.flink.runtime.jobgraph.JobVertexID;
@@ -48,12 +49,10 @@ import org.apache.flink.streaming.runtime.partitioner.StreamPartitioner;
 import org.apache.flink.util.FlinkRuntimeException;
 import org.apache.flink.util.Preconditions;
 import org.apache.flink.util.SerializedValue;
-
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import javax.annotation.Nullable;
-
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Collections;
@@ -93,6 +92,7 @@ import static org.apache.flink.streaming.api.graph.StreamingJobGraphGenerator.se
 import static org.apache.flink.streaming.api.graph.StreamingJobGraphGenerator.setVertexDescription;
 import static org.apache.flink.streaming.api.graph.StreamingJobGraphGenerator.tryConvertPartitionerForDynamicGraph;
 import static org.apache.flink.streaming.api.graph.StreamingJobGraphGenerator.validateHybridShuffleExecuteInBatchMode;
+import static org.apache.flink.util.Preconditions.checkState;
 
 /** Default implementation for {@link AdaptiveGraphGenerator}. */
 public class AdaptiveGraphManager implements AdaptiveGraphGenerator {
@@ -925,6 +925,10 @@ public class AdaptiveGraphManager implements AdaptiveGraphGenerator {
         }
     }
 
+    public StreamNodeForwardGroup getStreamNodeForwardGroup(JobVertexID jobVertexId) {
+        return forwardGroupsByEndpointNodeIdCache.get(jobVertexId);
+    }
+
     private void generateHashesByStreamNode(StreamNode streamNode) {
         // Generate deterministic hashes for the nodes in order to identify them across
         // submission if they didn't change.
@@ -932,7 +936,7 @@ public class AdaptiveGraphManager implements AdaptiveGraphGenerator {
             return;
         }
         legacyStreamGraphHasher.generateHashesByStreamNode(streamNode, streamGraph, legacyHashes);
-        Preconditions.checkState(
+        checkState(
                 defaultStreamGraphHasher.generateHashesByStreamNode(
                         streamNode, streamGraph, hashes),
                 "Failed to generate hash for streamNode with ID '%s'",
@@ -975,5 +979,21 @@ public class AdaptiveGraphManager implements AdaptiveGraphGenerator {
                 Preconditions.checkNotNull(target.getOperatorFactory()).getChainingStrategy();
         return targetChainingStrategy == ChainingStrategy.HEAD_WITH_SOURCES
                 && isChainableInput(sourceOutEdge, streamGraph);
+    }
+
+    public List<Integer> getStreamNodeIdsByJobVertexId(JobVertexID vertexId) {
+        return new ArrayList<>();
+    }
+
+    public Integer getProducerStreamNodeId(IntermediateDataSetID key) {
+        return -1;
+    }
+
+    public void updateStreamNodeParallelism(int streamNodeId, int newParallelism) {
+        streamGraph.getStreamNode(streamNodeId).setParallelism(newParallelism);
+    }
+
+    public int getPendingOperatorsCount() {
+        return -1;
     }
 }
