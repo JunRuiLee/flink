@@ -53,7 +53,6 @@ import org.apache.flink.runtime.state.StateBackend;
 import org.apache.flink.runtime.state.StateBackendLoader;
 import org.apache.flink.util.DynamicCodeLoadingException;
 import org.apache.flink.util.SerializedValue;
-
 import org.slf4j.Logger;
 
 import java.io.IOException;
@@ -98,7 +97,8 @@ public class DefaultExecutionGraphBuilder {
             ExecutionJobVertex.Factory executionJobVertexFactory,
             MarkPartitionFinishedStrategy markPartitionFinishedStrategy,
             boolean nonFinishedHybridPartitionShouldBeUnknown,
-            JobManagerJobMetricGroup jobManagerJobMetricGroup)
+            JobManagerJobMetricGroup jobManagerJobMetricGroup,
+            int defaultMaxParallelism)
             throws JobExecutionException, JobException {
 
         checkNotNull(jobGraph, "job graph cannot be null");
@@ -170,7 +170,8 @@ public class DefaultExecutionGraphBuilder {
                         jobGraph.getJobStatusHooks(),
                         markPartitionFinishedStrategy,
                         taskDeploymentDescriptorFactory,
-                        jobStatusChangedListeners);
+                        jobStatusChangedListeners,
+                        defaultMaxParallelism);
 
         // set the basic properties
 
@@ -182,42 +183,8 @@ public class DefaultExecutionGraphBuilder {
             executionGraph.setJsonPlan("{}");
         }
 
-        // initialize the vertices that have a master initialization hook
-        // file output formats create directories here, input formats create splits
-
-        final long initMasterStart = System.nanoTime();
-        log.info("Running initialization on master for job {} ({}).", jobName, jobId);
-
-        for (JobVertex vertex : jobGraph.getVertices()) {
-            String executableClass = vertex.getInvokableClassName();
-            if (executableClass == null || executableClass.isEmpty()) {
-                throw new JobSubmissionException(
-                        jobId,
-                        "The vertex "
-                                + vertex.getID()
-                                + " ("
-                                + vertex.getName()
-                                + ") has no invokable class.");
-            }
-
-            try {
-                vertex.initializeOnMaster(
-                        new SimpleInitializeOnMasterContext(
-                                classLoader,
-                                vertexParallelismStore
-                                        .getParallelismInfo(vertex.getID())
-                                        .getParallelism()));
-            } catch (Throwable t) {
-                throw new JobExecutionException(
-                        jobId,
-                        "Cannot initialize task '" + vertex.getName() + "': " + t.getMessage(),
-                        t);
-            }
-        }
-
-        log.info(
-                "Successfully ran initialization on master in {} ms.",
-                (System.nanoTime() - initMasterStart) / 1_000_000);
+        initJobVerticesOnMaster(
+                jobGraph.getVertices(), classLoader, log, vertexParallelismStore, jobName, jobId);
 
         // topologically sort the job vertices and attach the graph to the existing one
         List<JobVertex> sortedTopology = jobGraph.getVerticesSortedTopologicallyFromSources();
@@ -228,7 +195,8 @@ public class DefaultExecutionGraphBuilder {
                     jobName,
                     jobId);
         }
-        executionGraph.attachJobGraph(sortedTopology, jobManagerJobMetricGroup);
+        executionGraph.attachJobGraph(
+                sortedTopology, jobManagerJobMetricGroup, jobGraph.getPendingOperatorsCount());
 
         if (log.isDebugEnabled()) {
             log.debug(
@@ -354,6 +322,52 @@ public class DefaultExecutionGraphBuilder {
         }
 
         return executionGraph;
+    }
+
+    public static void initJobVerticesOnMaster(
+            Iterable<JobVertex> jobVertices,
+            ClassLoader classLoader,
+            Logger log,
+            VertexParallelismStore vertexParallelismStore,
+            String jobName,
+            JobID jobId)
+            throws JobExecutionException {
+        // initialize the vertices that have a master initialization hook
+        // file output formats create directories here, input formats create splits
+
+        final long initMasterStart = System.nanoTime();
+        log.info("Running initialization on master for job {} ({}).", jobName, jobId);
+
+        for (JobVertex vertex : jobVertices) {
+            String executableClass = vertex.getInvokableClassName();
+            if (executableClass == null || executableClass.isEmpty()) {
+                throw new JobSubmissionException(
+                        jobId,
+                        "The vertex "
+                                + vertex.getID()
+                                + " ("
+                                + vertex.getName()
+                                + ") has no invokable class.");
+            }
+
+            try {
+                vertex.initializeOnMaster(
+                        new SimpleInitializeOnMasterContext(
+                                classLoader,
+                                vertexParallelismStore
+                                        .getParallelismInfo(vertex.getID())
+                                        .getParallelism()));
+            } catch (Throwable t) {
+                throw new JobExecutionException(
+                        jobId,
+                        "Cannot initialize task '" + vertex.getName() + "': " + t.getMessage(),
+                        t);
+            }
+        }
+
+        log.info(
+                "Successfully ran initialization on master in {} ms.",
+                (System.nanoTime() - initMasterStart) / 1_000_000);
     }
 
     public static boolean isCheckpointingEnabled(JobGraph jobGraph) {

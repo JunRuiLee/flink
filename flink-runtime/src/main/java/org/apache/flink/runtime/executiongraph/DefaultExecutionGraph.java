@@ -67,6 +67,7 @@ import org.apache.flink.runtime.metrics.groups.JobManagerJobMetricGroup;
 import org.apache.flink.runtime.operators.coordination.CoordinatorStore;
 import org.apache.flink.runtime.operators.coordination.CoordinatorStoreImpl;
 import org.apache.flink.runtime.query.KvStateLocationRegistry;
+import org.apache.flink.runtime.scheduler.DefaultVertexParallelismStore;
 import org.apache.flink.runtime.scheduler.InternalFailuresListener;
 import org.apache.flink.runtime.scheduler.SsgNetworkMemoryCalculationUtils;
 import org.apache.flink.runtime.scheduler.VertexParallelismInformation;
@@ -93,13 +94,11 @@ import org.apache.flink.util.SerializedValue;
 import org.apache.flink.util.TernaryBoolean;
 import org.apache.flink.util.concurrent.FutureUtils;
 import org.apache.flink.util.concurrent.ScheduledExecutorServiceAdapter;
-
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
-
 import java.io.IOException;
 import java.time.Duration;
 import java.util.ArrayList;
@@ -251,7 +250,7 @@ public class DefaultExecutionGraph implements ExecutionGraph, InternalExecutionG
 
     private final VertexAttemptNumberStore initialAttemptCounts;
 
-    private final VertexParallelismStore parallelismStore;
+    private VertexParallelismStore parallelismStore;
 
     // ------ Fields that are relevant to the execution and need to be cleared before archiving
     // -------
@@ -306,6 +305,10 @@ public class DefaultExecutionGraph implements ExecutionGraph, InternalExecutionG
 
     private final List<JobStatusChangedListener> jobStatusChangedListeners;
 
+    private final int defaultMaxParallelism;
+
+    private int pendingOperatorsCount;
+
     // --------------------------------------------------------------------------------------------
     //   Constructors
     // --------------------------------------------------------------------------------------------
@@ -332,7 +335,8 @@ public class DefaultExecutionGraph implements ExecutionGraph, InternalExecutionG
             List<JobStatusHook> jobStatusHooks,
             MarkPartitionFinishedStrategy markPartitionFinishedStrategy,
             TaskDeploymentDescriptorFactory taskDeploymentDescriptorFactory,
-            List<JobStatusChangedListener> jobStatusChangedListeners) {
+            List<JobStatusChangedListener> jobStatusChangedListeners,
+            int defaultMaxParallelism) {
 
         this.jobType = jobType;
         this.executionGraphId = new ExecutionGraphID();
@@ -404,6 +408,8 @@ public class DefaultExecutionGraph implements ExecutionGraph, InternalExecutionG
         this.taskDeploymentDescriptorFactory = checkNotNull(taskDeploymentDescriptorFactory);
 
         this.jobStatusChangedListeners = checkNotNull(jobStatusChangedListeners);
+
+        this.defaultMaxParallelism = defaultMaxParallelism;
 
         LOG.info(
                 "Created execution graph {} for job {}.",
@@ -835,12 +841,14 @@ public class DefaultExecutionGraph implements ExecutionGraph, InternalExecutionG
 
     @Override
     public void notifyNewlyInitializedJobVertices(List<ExecutionJobVertex> vertices) {
-        executionTopology.notifyExecutionGraphUpdated(this, vertices);
+        executionTopology.notifyExecutionGraphUpdatedWithInitializedJobVertices(this, vertices);
     }
 
     @Override
     public void attachJobGraph(
-            List<JobVertex> verticesToAttach, JobManagerJobMetricGroup jobManagerJobMetricGroup)
+            List<JobVertex> verticesToAttach,
+            JobManagerJobMetricGroup jobManagerJobMetricGroup,
+            int pendingOperatorsCount)
             throws JobException {
 
         assertRunningInJobMasterMainThread();
@@ -862,6 +870,34 @@ public class DefaultExecutionGraph implements ExecutionGraph, InternalExecutionG
 
         partitionGroupReleaseStrategy =
                 partitionGroupReleaseStrategyFactory.createInstance(getSchedulingTopology());
+    }
+
+    @Override
+    public void addNewJobVertices(
+            List<JobVertex> topologicallySorted,
+            JobManagerJobMetricGroup jobManagerJobMetricGroup,
+            VertexParallelismStore newVerticesParallelismStore,
+            int pendingOperatorsCount)
+            throws JobException {
+        DefaultVertexParallelismStore store = new DefaultVertexParallelismStore();
+
+        parallelismStore.getAllParallelismInfo().forEach(store::setParallelismInfo);
+        topologicallySorted.forEach(
+                vertex ->
+                        store.setParallelismInfo(
+                                vertex.getID(),
+                                newVerticesParallelismStore.getParallelismInfo(vertex.getID())));
+        parallelismStore = store;
+
+        attachJobVertices(topologicallySorted, jobManagerJobMetricGroup);
+
+        executionTopology.notifyExecutionGraphUpdatedWithAddedJobVertices(
+                DefaultExecutionTopology.computeLogicalPipelinedRegionsByJobVertexId(
+                        IterableUtils.toStream(getVerticesTopologically())
+                                .map(ExecutionJobVertex::getJobVertex)
+                                .collect(Collectors.toList())));
+
+        this.pendingOperatorsCount = pendingOperatorsCount;
     }
 
     /** Attach job vertices without initializing them. */
@@ -1196,7 +1232,7 @@ public class DefaultExecutionGraph implements ExecutionGraph, InternalExecutionG
     public void jobVertexFinished() {
         assertRunningInJobMasterMainThread();
         final int numFinished = ++numFinishedJobVertices;
-        if (numFinished == numJobVerticesTotal) {
+        if (numFinished == numJobVerticesTotal && pendingOperatorsCount == 0) {
             FutureUtils.assertNoException(
                     waitForAllExecutionsTermination().thenAccept(ignored -> jobFinished()));
         }
@@ -1714,6 +1750,11 @@ public class DefaultExecutionGraph implements ExecutionGraph, InternalExecutionG
     @Override
     public boolean isDynamic() {
         return isDynamic;
+    }
+
+    @Override
+    public int getDefaultMaxParallelism() {
+        return defaultMaxParallelism;
     }
 
     @Override

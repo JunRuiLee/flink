@@ -40,6 +40,7 @@ import org.apache.flink.runtime.jobgraph.tasks.CheckpointCoordinatorConfiguratio
 import org.apache.flink.runtime.metrics.groups.JobManagerJobMetricGroup;
 import org.apache.flink.runtime.query.KvStateLocationRegistry;
 import org.apache.flink.runtime.scheduler.InternalFailuresListener;
+import org.apache.flink.runtime.scheduler.VertexParallelismStore;
 import org.apache.flink.runtime.scheduler.strategy.SchedulingTopology;
 import org.apache.flink.runtime.state.CheckpointStorage;
 import org.apache.flink.runtime.state.StateBackend;
@@ -47,7 +48,6 @@ import org.apache.flink.util.OptionalFailure;
 
 import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
-
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
@@ -152,8 +152,16 @@ public interface ExecutionGraph extends AccessExecutionGraph {
 
     void setInternalTaskFailuresListener(InternalFailuresListener internalTaskFailuresListener);
 
-    void attachJobGraph(
+    default void attachJobGraph(
             List<JobVertex> topologicallySorted, JobManagerJobMetricGroup jobManagerJobMetricGroup)
+            throws JobException {
+        attachJobGraph(topologicallySorted, jobManagerJobMetricGroup, 0);
+    }
+
+    void attachJobGraph(
+            List<JobVertex> topologicallySorted,
+            JobManagerJobMetricGroup jobManagerJobMetricGroup,
+            int pendingOperatorsCount)
             throws JobException;
 
     void transitionToRunning();
@@ -247,6 +255,26 @@ public interface ExecutionGraph extends AccessExecutionGraph {
      * @param vertices The execution job vertices that are newly initialized.
      */
     void notifyNewlyInitializedJobVertices(List<ExecutionJobVertex> vertices);
+
+    /**
+     * Adds new job vertices to the execution graph based on the provided list of topologically
+     * sorted job vertices.
+     *
+     * @param sortedJobVertices a list of job vertices that are to be added, defined in topological
+     *     order.
+     * @param jobManagerJobMetricGroup the metric group associated with the job manager for
+     *     monitoring and metrics collection.
+     * @param newVerticesParallelismStore a store that maintains parallelism information for the
+     *     newly added job vertices.
+     * @param pendingOperatorsCount the number of operators that are currently pending addition to
+     *     be transferred to job vertices.
+     */
+    void addNewJobVertices(
+            List<JobVertex> sortedJobVertices,
+            JobManagerJobMetricGroup jobManagerJobMetricGroup,
+            VertexParallelismStore newVerticesParallelismStore,
+            int pendingOperatorsCount)
+            throws JobException;
 
     Optional<String> findVertexWithAttempt(final ExecutionAttemptID attemptId);
 

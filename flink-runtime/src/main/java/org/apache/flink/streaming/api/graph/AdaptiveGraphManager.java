@@ -48,12 +48,10 @@ import org.apache.flink.streaming.runtime.partitioner.StreamPartitioner;
 import org.apache.flink.util.FlinkRuntimeException;
 import org.apache.flink.util.Preconditions;
 import org.apache.flink.util.SerializedValue;
-
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import javax.annotation.Nullable;
-
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Collections;
@@ -925,6 +923,10 @@ public class AdaptiveGraphManager implements AdaptiveGraphGenerator {
         }
     }
 
+    public StreamNodeForwardGroup getStreamNodeForwardGroup(JobVertexID jobVertexId) {
+        return forwardGroupsByEndpointNodeIdCache.get(jobVertexId);
+    }
+
     private void generateHashesByStreamNode(StreamNode streamNode) {
         // Generate deterministic hashes for the nodes in order to identify them across
         // submission if they didn't change.
@@ -975,5 +977,13 @@ public class AdaptiveGraphManager implements AdaptiveGraphGenerator {
                 Preconditions.checkNotNull(target.getOperatorFactory()).getChainingStrategy();
         return targetChainingStrategy == ChainingStrategy.HEAD_WITH_SOURCES
                 && isChainableInput(sourceOutEdge, streamGraph);
+    }
+
+    public void updateStreamNodeParallelism(int streamNodeId, int newParallelism) {
+        streamGraph.getStreamNode(streamNodeId).setParallelism(newParallelism);
+    }
+
+    public int getPendingOperatorsCount() {
+        return -1;
     }
 }

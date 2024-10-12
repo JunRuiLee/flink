@@ -45,7 +45,6 @@ import org.apache.flink.runtime.scheduler.strategy.ResultPartitionState;
 import org.apache.flink.runtime.scheduler.strategy.SchedulingExecutionVertex;
 import org.apache.flink.runtime.scheduler.strategy.SchedulingTopology;
 import org.apache.flink.util.IterableUtils;
-
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -163,12 +162,9 @@ public class DefaultExecutionTopology implements SchedulingTopology {
         return edgeManager;
     }
 
-    private static Map<JobVertexID, DefaultLogicalPipelinedRegion>
-            computeLogicalPipelinedRegionsByJobVertexId(final ExecutionGraph executionGraph) {
-        List<JobVertex> topologicallySortedJobVertices =
-                IterableUtils.toStream(executionGraph.getVerticesTopologically())
-                        .map(ExecutionJobVertex::getJobVertex)
-                        .collect(Collectors.toList());
+    public static Map<JobVertexID, DefaultLogicalPipelinedRegion>
+            computeLogicalPipelinedRegionsByJobVertexId(
+                    final List<JobVertex> topologicallySortedJobVertices) {
 
         Iterable<DefaultLogicalPipelinedRegion> logicalPipelinedRegions =
                 DefaultLogicalTopology.fromTopologicallySortedJobVertices(
@@ -186,7 +182,22 @@ public class DefaultExecutionTopology implements SchedulingTopology {
         return logicalPipelinedRegionsByJobVertexId;
     }
 
-    public void notifyExecutionGraphUpdated(
+    public void notifyExecutionGraphUpdatedWithAddedJobVertices(
+            Map<JobVertexID, DefaultLogicalPipelinedRegion> newlyAddedJobVertices) {
+        Set<JobVertexID> existingKeys =
+                new HashSet<>(this.logicalPipelinedRegionsByJobVertexId.keySet());
+        Set<JobVertexID> newKeys = new HashSet<>(newlyAddedJobVertices.keySet());
+
+        newKeys.retainAll(existingKeys);
+        if (!newKeys.isEmpty()) {
+            throw new IllegalArgumentException(
+                    "Unexpected JobVertices that have already been added: " + newKeys);
+        }
+
+        this.logicalPipelinedRegionsByJobVertexId.putAll(newlyAddedJobVertices);
+    }
+
+    public void notifyExecutionGraphUpdatedWithInitializedJobVertices(
             final DefaultExecutionGraph executionGraph,
             final List<ExecutionJobVertex> newlyInitializedJobVertices) {
 
@@ -245,9 +256,12 @@ public class DefaultExecutionTopology implements SchedulingTopology {
                                         .map(ExecutionVertex::getID)
                                         .collect(Collectors.toList()),
                         edgeManager,
-                        computeLogicalPipelinedRegionsByJobVertexId(executionGraph));
+                        computeLogicalPipelinedRegionsByJobVertexId(
+                                IterableUtils.toStream(executionGraph.getVerticesTopologically())
+                                        .map(ExecutionJobVertex::getJobVertex)
+                                        .collect(Collectors.toList())));
 
-        schedulingTopology.notifyExecutionGraphUpdated(
+        schedulingTopology.notifyExecutionGraphUpdatedWithInitializedJobVertices(
                 executionGraph,
                 IterableUtils.toStream(executionGraph.getVerticesTopologically())
                         .filter(ExecutionJobVertex::isInitialized)

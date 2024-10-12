@@ -38,7 +38,6 @@ import org.apache.flink.util.IterableUtils;
 import org.apache.flink.util.SerializedValue;
 
 import javax.annotation.Nullable;
-
 import java.io.IOException;
 import java.net.URISyntaxException;
 import java.net.URL;
@@ -127,6 +126,8 @@ public class JobGraph implements ExecutionPlan {
 
     /** List of user-defined job status change hooks. */
     private List<JobStatusHook> jobStatusHooks = Collections.emptyList();
+
+    private int pendingOperatorsCount = 0;
 
     // --------------------------------------------------------------------------------------------
 
@@ -445,6 +446,14 @@ public class JobGraph implements ExecutionPlan {
             maxParallelism = Math.max(vertex.getParallelism(), maxParallelism);
         }
         return maxParallelism;
+    }
+
+    public int getPendingOperatorsCount() {
+        return pendingOperatorsCount;
+    }
+
+    public void setPendingOperatorsCount(int pendingOperatorsCount) {
+        this.pendingOperatorsCount = pendingOperatorsCount;
     }
 
     // --------------------------------------------------------------------------------------------

@@ -43,7 +43,6 @@ import org.apache.flink.runtime.scheduler.SchedulerBase;
 import org.apache.flink.runtime.scheduler.VertexParallelismStore;
 import org.apache.flink.runtime.shuffle.ShuffleMaster;
 import org.apache.flink.runtime.shuffle.ShuffleTestUtils;
-
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -86,6 +85,7 @@ public class TestingDefaultExecutionGraphBuilder {
             checkpointStatsTrackerFactory = metricGroup -> NoOpCheckpointStatsTracker.INSTANCE;
 
     private boolean nonFinishedHybridPartitionShouldBeUnknown = false;
+    private int defaultMaxParallelism;
 
     private TestingDefaultExecutionGraphBuilder() {}
 
@@ -212,7 +212,8 @@ public class TestingDefaultExecutionGraphBuilder {
                 executionJobVertexFactory,
                 markPartitionFinishedStrategy,
                 nonFinishedHybridPartitionShouldBeUnknown,
-                metricGroup);
+                metricGroup,
+                defaultMaxParallelism);
     }
 
     public DefaultExecutionGraph build(ScheduledExecutorService executorService)

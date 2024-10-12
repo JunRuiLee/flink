@@ -35,6 +35,7 @@ import org.apache.flink.runtime.executiongraph.MarkPartitionFinishedStrategy;
 import org.apache.flink.runtime.executiongraph.VertexAttemptNumberStore;
 import org.apache.flink.runtime.io.network.partition.JobMasterPartitionTracker;
 import org.apache.flink.runtime.jobgraph.JobGraph;
+import org.apache.flink.runtime.jobgraph.JobVertex;
 import org.apache.flink.runtime.jobgraph.SavepointRestoreSettings;
 import org.apache.flink.runtime.jobmaster.ExecutionDeploymentTracker;
 import org.apache.flink.runtime.jobmaster.ExecutionDeploymentTrackerDeploymentListenerAdapter;
@@ -67,6 +68,7 @@ public class DefaultExecutionGraphFactory implements ExecutionGraphFactory {
     private final ExecutionJobVertex.Factory executionJobVertexFactory;
 
     private final boolean nonFinishedHybridPartitionShouldBeUnknown;
+    private final int defaultMaxParallelism;
 
     public DefaultExecutionGraphFactory(
             Configuration configuration,
@@ -92,7 +94,8 @@ public class DefaultExecutionGraphFactory implements ExecutionGraphFactory {
                 jobMasterPartitionTracker,
                 false,
                 new ExecutionJobVertex.Factory(),
-                false);
+                false,
+                JobVertex.MAX_PARALLELISM_DEFAULT);
     }
 
     public DefaultExecutionGraphFactory(
@@ -108,7 +111,8 @@ public class DefaultExecutionGraphFactory implements ExecutionGraphFactory {
             JobMasterPartitionTracker jobMasterPartitionTracker,
             boolean isDynamicGraph,
             ExecutionJobVertex.Factory executionJobVertexFactory,
-            boolean nonFinishedHybridPartitionShouldBeUnknown) {
+            boolean nonFinishedHybridPartitionShouldBeUnknown,
+            int defaultMaxParallelism) {
         this.configuration = configuration;
         this.userCodeClassLoader = userCodeClassLoader;
         this.executionDeploymentTracker = executionDeploymentTracker;
@@ -122,6 +126,7 @@ public class DefaultExecutionGraphFactory implements ExecutionGraphFactory {
         this.isDynamicGraph = isDynamicGraph;
         this.executionJobVertexFactory = checkNotNull(executionJobVertexFactory);
         this.nonFinishedHybridPartitionShouldBeUnknown = nonFinishedHybridPartitionShouldBeUnknown;
+        this.defaultMaxParallelism = defaultMaxParallelism;
     }
 
     @Override
@@ -175,7 +180,8 @@ public class DefaultExecutionGraphFactory implements ExecutionGraphFactory {
                         executionJobVertexFactory,
                         markPartitionFinishedStrategy,
                         nonFinishedHybridPartitionShouldBeUnknown,
-                        jobManagerJobMetricGroup);
+                        jobManagerJobMetricGroup,
+                        defaultMaxParallelism);
 
         final CheckpointCoordinator checkpointCoordinator =
                 newExecutionGraph.getCheckpointCoordinator();

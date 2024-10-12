@@ -100,14 +100,12 @@ import org.apache.flink.runtime.taskmanager.TaskManagerLocation;
 import org.apache.flink.runtime.testtasks.NoOpInvokable;
 import org.apache.flink.runtime.testutils.DirectScheduledExecutorService;
 import org.apache.flink.runtime.util.ResourceCounter;
+import org.apache.flink.shaded.guava32.com.google.common.collect.Iterables;
 import org.apache.flink.util.ExecutorUtils;
 import org.apache.flink.util.FlinkException;
 import org.apache.flink.util.Preconditions;
 import org.apache.flink.util.concurrent.ManuallyTriggeredScheduledExecutor;
 import org.apache.flink.util.concurrent.ScheduledExecutor;
-
-import org.apache.flink.shaded.guava32.com.google.common.collect.Iterables;
-
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -2180,6 +2178,7 @@ public class DefaultSchedulerTest {
                         jobGraph,
                         mainThreadExecutor,
                         executor,
+                        scheduledExecutorService,
                         scheduledExecutorService,
                         taskRestartExecutor)
                 .setLogger(LOG)

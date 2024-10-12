@@ -45,6 +45,23 @@ public class ExecutionVertexInputInfo implements Serializable {
         this.subpartitionIndexRange = checkNotNull(subpartitionIndexRange);
     }
 
+    private boolean isHashConvertToBroadcast = false;
+
+    public ExecutionVertexInputInfo(
+            final int subtaskIndex,
+            final IndexRange partitionIndexRange,
+            final IndexRange subpartitionIndexRange,
+            boolean isHashConvertToBroadcast) {
+        this.subtaskIndex = subtaskIndex;
+        this.partitionIndexRange = checkNotNull(partitionIndexRange);
+        this.subpartitionIndexRange = checkNotNull(subpartitionIndexRange);
+        this.isHashConvertToBroadcast = isHashConvertToBroadcast;
+    }
+
+    public boolean isHashConvertToBroadcast() {
+        return isHashConvertToBroadcast;
+    }
+
     /** Get the subpartition range this subtask should consume. */
     public IndexRange getSubpartitionIndexRange() {
         return subpartitionIndexRange;

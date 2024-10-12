@@ -45,6 +45,8 @@ public class StreamEdge implements Serializable {
     private final int sourceId;
     private final int targetId;
 
+    private final StreamNode targetNode;
+
     /**
      * Note that this field doesn't have to be unique among all {@link StreamEdge}s. It's enough if
      * this field ensures that all logical instances of {@link StreamEdge} are unique, and {@link
@@ -149,6 +151,11 @@ public class StreamEdge implements Serializable {
                         + outputPartitioner
                         + "_"
                         + uniqueId;
+        this.targetNode = targetVertex;
+    }
+
+    public StreamNode getTargetNode() {
+        return targetNode;
     }
 
     public int getSourceId() {
@@ -157,6 +164,10 @@ public class StreamEdge implements Serializable {
 
     public int getTargetId() {
         return targetId;
+    }
+
+    public String getId() {
+        return edgeId;
     }
 
     public int getTypeNumber() {
@@ -237,9 +248,5 @@ public class StreamEdge implements Serializable {
 
     public IntermediateDataSetID getIntermediateDatasetIdToProduce() {
         return intermediateDatasetIdToProduce;
-    }
-
-    public String getId() {
-        return edgeId;
     }
 }
