@@ -31,6 +31,9 @@ import org.apache.flink.table.types.DataType;
 import org.apache.flink.types.Row;
 import org.apache.flink.types.RowKind;
 
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
@@ -99,17 +102,22 @@ public class TestingSinks {
 
     /** RowCollector for testing. */
     public static class RowCollector {
+
+        private static final Logger logger = LoggerFactory.getLogger(RowCollector.class.getName());
+
         private static final List<Tuple2<Boolean, Row>> SINK = new ArrayList<>();
 
         public static void addValue(Tuple2<Boolean, Row> value) {
             final Tuple2<Boolean, Row> copy = new Tuple2<>(value.f0, value.f1);
             synchronized (SINK) {
+                logger.info("Add row {}", copy);
                 SINK.add(copy);
             }
         }
 
         public static List<Tuple2<Boolean, Row>> getAndClearValues() {
             final List<Tuple2<Boolean, Row>> out = new ArrayList<>(SINK);
+            logger.info("clear sink");
             SINK.clear();
             return out;
         }
@@ -137,7 +145,7 @@ public class TestingSinks {
                             retractedString.add(k);
                         }
                     });
-
+            logger.info("Return retract string {}", retractedString);
             return retractedString;
         }
 
