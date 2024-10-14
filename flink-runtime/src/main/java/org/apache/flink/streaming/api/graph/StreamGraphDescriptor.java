@@ -156,20 +156,6 @@ public class StreamGraphDescriptor implements ExecutionPlan {
         return false;
     }
 
-    private SerializedValue<StreamGraph> serializeStreamGraph(
-            StreamGraph streamGraph, Executor serializationExecutor) throws Exception {
-        // 1. Serialize operator factories in parallel to accelerate serialization.
-        CompletableFuture<?> future =
-                serializeOperatorFactories(streamGraph.getStreamNodes(), serializationExecutor);
-
-        // 2. Serialize the StreamGraph.
-        SerializedValue<StreamGraph> serializedStreamGraph = new SerializedValue<>(streamGraph);
-
-        future.get();
-
-        return serializedStreamGraph;
-    }
-
     @Override
     public JobID getJobID() {
         return jobId;
@@ -189,34 +175,37 @@ public class StreamGraphDescriptor implements ExecutionPlan {
                     Collection<Tuple2<Integer, SerializedValue<StreamOperatorFactory<?>>>>>
             serializeOperatorFactories(
                     Collection<StreamNode> streamNodes, Executor serializationExecutor) {
-        return FutureUtils.combineAll(
-                streamNodes.stream()
-                        .filter(node -> node.getOperatorFactory() != null)
-                        .map(
-                                node ->
-                                        CompletableFuture.supplyAsync(
-                                                () -> {
-                                                    try {
-                                                        return Tuple2
-                                                                .<Integer,
-                                                                        SerializedValue<
-                                                                                StreamOperatorFactory<
-                                                                                        ?>>>
-                                                                        of(
-                                                                                node.getId(),
-                                                                                new SerializedValue<>(
+        List<CompletableFuture<Tuple2<Integer, SerializedValue<StreamOperatorFactory<?>>>>>
+                futures =
+                        streamNodes.stream()
+                                .filter(node -> node.getOperatorFactory() != null)
+                                .map(
+                                        node ->
+                                                CompletableFuture.supplyAsync(
+                                                        () -> {
+                                                            try {
+                                                                return Tuple2
+                                                                        .<Integer,
+                                                                                SerializedValue<
+                                                                                        StreamOperatorFactory<
+                                                                                                ?>>>
+                                                                                of(
                                                                                         node
-                                                                                                .getOperatorFactory()));
-                                                    } catch (IOException e) {
-                                                        throw new RuntimeException(
-                                                                String.format(
-                                                                        "Could not serialize stream node %s",
-                                                                        node),
-                                                                e);
-                                                    }
-                                                },
-                                                serializationExecutor))
-                        .collect(Collectors.toList()));
+                                                                                                .getId(),
+                                                                                        new SerializedValue<>(
+                                                                                                node
+                                                                                                        .getOperatorFactory()));
+                                                            } catch (Throwable throwable) {
+                                                                throw new RuntimeException(
+                                                                        String.format(
+                                                                                "Could not serialize stream node %s",
+                                                                                node),
+                                                                        throwable);
+                                                            }
+                                                        },
+                                                        serializationExecutor))
+                                .collect(Collectors.toList());
+        return FutureUtils.combineAll(futures);
     }
 
     public StreamGraph deserializeStreamGraph(
@@ -233,7 +222,7 @@ public class StreamGraphDescriptor implements ExecutionPlan {
         streamGraph.setExecutionConfig(serializedExecutionConfig.deserializeValue(userClassLoader));
 
         Collection<Tuple2<Integer, StreamOperatorFactory<?>>> streamNodeToOperatorFactories =
-                future.get();
+                future.join();
         streamNodeToOperatorFactories.forEach(
                 tuple2 -> streamGraph.getStreamNode(tuple2.f0).setOperatorFactory(tuple2.f1));
 
@@ -242,7 +231,7 @@ public class StreamGraphDescriptor implements ExecutionPlan {
 
     private CompletableFuture<Collection<Tuple2<Integer, StreamOperatorFactory<?>>>>
             deserializeOperators(ClassLoader userClassLoader, Executor serializationExecutor) {
-        return FutureUtils.combineAll(
+        List<CompletableFuture<Tuple2<Integer, StreamOperatorFactory<?>>>> futures =
                 streamNodeToSerializedOperatorFactories.stream()
                         .map(
                                 tuple2 ->
@@ -258,16 +247,17 @@ public class StreamGraphDescriptor implements ExecutionPlan {
                                                                         of(
                                                                                 tuple2.f0,
                                                                                 streamOperatorFactory);
-                                                    } catch (Exception e) {
+                                                    } catch (Throwable throwable) {
                                                         throw new RuntimeException(
                                                                 String.format(
                                                                         "Could not deserialize stream node %s",
                                                                         tuple2.f0),
-                                                                e);
+                                                                throwable);
                                                     }
                                                 },
                                                 serializationExecutor))
-                        .collect(Collectors.toList()));
+                        .collect(Collectors.toList());
+        return FutureUtils.combineAll(futures);
     }
 
     @Override
