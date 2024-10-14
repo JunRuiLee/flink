@@ -692,12 +692,12 @@ class StreamTableEnvironmentTests(PyFlinkStreamTableTestCase):
                  DataTypes.FIELD("k", DataTypes.DATE()),
                  DataTypes.FIELD("l", DataTypes.TIME()),
                  DataTypes.FIELD("m", DataTypes.TIMESTAMP(3)),
-                 DataTypes.FIELD("n", DataTypes.ARRAY(DataTypes.ROW([DataTypes.FIELD('ss2',
-                                                                                     DataTypes.STRING())]))),
+                 DataTypes.FIELD("n", DataTypes.ARRAY(DataTypes.ROW(
+                     [DataTypes.FIELD('ss2', DataTypes.STRING())]))),
                  DataTypes.FIELD("o", DataTypes.MAP(DataTypes.BIGINT(), DataTypes.ROW(
                      [DataTypes.FIELD('ss', DataTypes.STRING())]))),
-                 DataTypes.FIELD("p", DataTypes.DECIMAL(38, 18)), DataTypes.FIELD("q",
-                                                                                  DataTypes.DECIMAL(38, 18))]))
+                 DataTypes.FIELD("p", DataTypes.DECIMAL(38, 18)),
+                 DataTypes.FIELD("q", DataTypes.DECIMAL(38, 18))]))
         table_result = source.execute()
         with table_result.collect() as result:
             collected_result = []
