@@ -547,7 +547,8 @@ class DataStreamConversionTestCases(PyFlinkUTTestCase):
         t_env = StreamTableEnvironment.create(
             self.env,
             environment_settings=EnvironmentSettings.in_streaming_mode())
-        table = t_env.from_elements([(1, "Hi", "Hello"), (2, "Hello", "Hi")], ["a", "b", "c"])
+        table = t_env.from_elements([(1, "Hi", "Hello"), (2, "Hello", "Hi")],
+                                    ["a", "b", "c"])
         ds = t_env.to_append_stream(table=table, type_info=Types.ROW([Types.LONG(),
                                                                       Types.STRING(),
                                                                       Types.STRING()]))
@@ -563,7 +564,8 @@ class DataStreamConversionTestCases(PyFlinkUTTestCase):
         t_env = StreamTableEnvironment.create(
             self.env,
             environment_settings=EnvironmentSettings.in_streaming_mode())
-        table = t_env.from_elements([(1, "Hi", "Hello"), (2, "Hello", "Hi")], ["a", "b", "c"])
+        table = t_env.from_elements([(1, "Hi", "Hello"), (2, "Hello", "Hi")],
+                                    ["a", "b", "c"])
         ds = t_env.to_append_stream(table=table, type_info=Types.ROW([Types.LONG(),
                                                                       Types.STRING(),
                                                                       Types.STRING()]))
