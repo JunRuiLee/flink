@@ -19,7 +19,6 @@ import datetime
 import decimal
 import sys
 import unittest
-
 from py4j.protocol import Py4JJavaError
 from typing import Iterable
 
@@ -197,18 +196,18 @@ class TableEnvironmentTest(PyFlinkUTTestCase):
         t_env.create_temporary_table(
             "T",
             TableDescriptor.for_connector("fake")
-             .schema(schema)
-             .option("a", "Test")
-             .build())
+            .schema(schema)
+            .option("a", "Test")
+            .build())
 
         self.assertFalse(t_env.get_catalog(catalog).table_exists(ObjectPath(database, "T")))
         gateway = get_gateway()
 
         catalog_table = CatalogBaseTable(
             t_env._j_tenv.getCatalogManager()
-                 .getTable(gateway.jvm.ObjectIdentifier.of(catalog, database, "T"))
-                 .get()
-                 .getTable())
+            .getTable(gateway.jvm.ObjectIdentifier.of(catalog, database, "T"))
+            .get()
+            .getTable())
         self.assertEqual(schema, catalog_table.get_unresolved_schema())
         self.assertEqual("fake", catalog_table.get_options().get("connector"))
         self.assertEqual("Test", catalog_table.get_options().get("a"))
@@ -222,9 +221,9 @@ class TableEnvironmentTest(PyFlinkUTTestCase):
         self.t_env.create_table(
             "T",
             TableDescriptor.for_connector("fake")
-                  .schema(schema)
-                  .option("a", "Test")
-                  .build())
+            .schema(schema)
+            .option("a", "Test")
+            .build())
         object_path = ObjectPath(database, "T")
         self.assertTrue(self.t_env.get_catalog(catalog).table_exists(object_path))
 
@@ -408,7 +407,7 @@ class DataStreamConversionTestCases(PyFlinkUTTestCase):
         self.assert_equals(result, expected)
 
         ds = ds.map(lambda x: x, Types.ROW([Types.INT(), Types.STRING(), Types.STRING()])) \
-               .map(lambda x: x, Types.ROW([Types.INT(), Types.STRING(), Types.STRING()]))
+            .map(lambda x: x, Types.ROW([Types.INT(), Types.STRING(), Types.STRING()]))
         table = t_env.from_data_stream(ds, col('a'), col('b'), col('c'))
         table.execute_insert("ExprSink").wait()
         result = source_sink_utils.results()
@@ -424,10 +423,10 @@ class DataStreamConversionTestCases(PyFlinkUTTestCase):
 
         table = self.t_env.from_data_stream(ds,
                                             Schema.new_builder()
-                                                  .column("a", DataTypes.INT())
-                                                  .column("b", DataTypes.STRING())
-                                                  .column("c", DataTypes.STRING())
-                                                  .build())
+                                            .column("a", DataTypes.INT())
+                                            .column("b", DataTypes.STRING())
+                                            .column("c", DataTypes.STRING())
+                                            .build())
         result = table.execute()
         with result.collect() as result:
             collected_result = [str(item) for item in result]
@@ -451,9 +450,9 @@ class DataStreamConversionTestCases(PyFlinkUTTestCase):
 
         table = self.t_env.from_data_stream(ds,
                                             Schema.new_builder()
-                                                  .column_by_metadata("rowtime", "TIMESTAMP_LTZ(3)")
-                                                  .watermark("rowtime", "SOURCE_WATERMARK()")
-                                                  .build())
+                                            .column_by_metadata("rowtime", "TIMESTAMP_LTZ(3)")
+                                            .watermark("rowtime", "SOURCE_WATERMARK()")
+                                            .build())
         self.assertEqual("""(
   `a` BIGINT,
   `b` INT,
@@ -510,10 +509,10 @@ class DataStreamConversionTestCases(PyFlinkUTTestCase):
         table = self.t_env.from_changelog_stream(
             changelog_stream,
             Schema.new_builder()
-                  .column_by_metadata("rowtime", DataTypes.TIMESTAMP_LTZ(3))
-                  .column_by_expression("computed", str(col("f1").upper_case))
-                  .watermark("rowtime", str(source_watermark()))
-                  .build())
+            .column_by_metadata("rowtime", DataTypes.TIMESTAMP_LTZ(3))
+            .column_by_expression("computed", str(col("f1").upper_case))
+            .watermark("rowtime", str(source_watermark()))
+            .build())
 
         self.t_env.create_temporary_view("t", table)
 
@@ -542,6 +541,38 @@ class DataStreamConversionTestCases(PyFlinkUTTestCase):
         expected_results.sort()
         actual_results.sort()
         self.assertEqual(expected_results, actual_results)
+
+    def test_to_append_stream1(self):
+        self.env.set_parallelism(1)
+        t_env = StreamTableEnvironment.create(
+            self.env,
+            environment_settings=EnvironmentSettings.in_streaming_mode())
+        table = t_env.from_elements([(1, "Hi", "Hello"), (2, "Hello", "Hi")], ["a", "b", "c"])
+        ds = t_env.to_append_stream(table=table, type_info=Types.ROW([Types.LONG(),
+                                                                      Types.STRING(),
+                                                                      Types.STRING()]))
+        test_sink = DataStreamTestSinkFunction()
+        ds.add_sink(test_sink)
+        self.env.execute("test_to_append_stream")
+        result = test_sink.get_results(False)
+        expected = ['+I[1, Hi, Hello]', '+I[2, Hello, Hi]']
+        self.assertEqual(result, expected)
+
+    def test_to_append_stream2(self):
+        self.env.set_parallelism(1)
+        t_env = StreamTableEnvironment.create(
+            self.env,
+            environment_settings=EnvironmentSettings.in_streaming_mode())
+        table = t_env.from_elements([(1, "Hi", "Hello"), (2, "Hello", "Hi")], ["a", "b", "c"])
+        ds = t_env.to_append_stream(table=table, type_info=Types.ROW([Types.LONG(),
+                                                                      Types.STRING(),
+                                                                      Types.STRING()]))
+        test_sink = DataStreamTestSinkFunction()
+        ds.add_sink(test_sink)
+        self.env.execute("test_to_append_stream")
+        result = test_sink.get_results(False)
+        expected = ['+I[1, Hi, Hello]', '+I[2, Hello, Hi]']
+        self.assertEqual(result, expected)
 
     def test_to_append_stream(self):
         self.env.set_parallelism(1)
@@ -660,11 +691,11 @@ class StreamTableEnvironmentTests(PyFlinkStreamTableTestCase):
                  DataTypes.FIELD("l", DataTypes.TIME()),
                  DataTypes.FIELD("m", DataTypes.TIMESTAMP(3)),
                  DataTypes.FIELD("n", DataTypes.ARRAY(DataTypes.ROW([DataTypes.FIELD('ss2',
-                                                                     DataTypes.STRING())]))),
+                                                                                     DataTypes.STRING())]))),
                  DataTypes.FIELD("o", DataTypes.MAP(DataTypes.BIGINT(), DataTypes.ROW(
                      [DataTypes.FIELD('ss', DataTypes.STRING())]))),
                  DataTypes.FIELD("p", DataTypes.DECIMAL(38, 18)), DataTypes.FIELD("q",
-                 DataTypes.DECIMAL(38, 18))]))
+                                                                                  DataTypes.DECIMAL(38, 18))]))
         table_result = source.execute()
         with table_result.collect() as result:
             collected_result = []
