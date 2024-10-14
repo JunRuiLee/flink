@@ -35,6 +35,9 @@ import org.apache.flink.util.InstantiationUtil;
 import org.apache.flink.util.SerializedValue;
 import org.apache.flink.util.concurrent.FutureUtils;
 
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
 import java.io.IOException;
 import java.net.URL;
 import java.util.Collection;
@@ -102,6 +105,8 @@ public class StreamGraphDescriptor implements ExecutionPlan {
     private SavepointRestoreSettings savepointRestoreSettings;
 
     private final int maximumParallelism;
+
+    private static final Logger LOG = LoggerFactory.getLogger("DebugLogger");
 
     public StreamGraphDescriptor(StreamGraph streamGraph, Executor serializationExecutor)
             throws Exception {
@@ -179,6 +184,7 @@ public class StreamGraphDescriptor implements ExecutionPlan {
                 futures =
                         streamNodes.stream()
                                 .filter(node -> node.getOperatorFactory() != null)
+                                .peek(node -> LOG.info("Try serial node with id {}", node.getId()))
                                 .map(
                                         node ->
                                                 CompletableFuture.supplyAsync(
@@ -224,7 +230,10 @@ public class StreamGraphDescriptor implements ExecutionPlan {
         Collection<Tuple2<Integer, StreamOperatorFactory<?>>> streamNodeToOperatorFactories =
                 future.join();
         streamNodeToOperatorFactories.forEach(
-                tuple2 -> streamGraph.getStreamNode(tuple2.f0).setOperatorFactory(tuple2.f1));
+                tuple2 -> {
+                    LOG.info("Set operator factory for node {}", tuple2.f0);
+                    streamGraph.getStreamNode(tuple2.f0).setOperatorFactory(tuple2.f1);
+                });
 
         return streamGraph;
     }
@@ -233,6 +242,7 @@ public class StreamGraphDescriptor implements ExecutionPlan {
             deserializeOperators(ClassLoader userClassLoader, Executor serializationExecutor) {
         List<CompletableFuture<Tuple2<Integer, StreamOperatorFactory<?>>>> futures =
                 streamNodeToSerializedOperatorFactories.stream()
+                        .peek(tuple2 -> LOG.info("Deserial node with id {}", tuple2.f0))
                         .map(
                                 tuple2 ->
                                         CompletableFuture.supplyAsync(
@@ -257,6 +267,11 @@ public class StreamGraphDescriptor implements ExecutionPlan {
                                                 },
                                                 serializationExecutor))
                         .collect(Collectors.toList());
+
+        if (futures.size() != streamNodeToSerializedOperatorFactories.size()) {
+            throw new IllegalStateException("futures size is wrong !!!!");
+        }
+
         return FutureUtils.combineAll(futures);
     }
 
