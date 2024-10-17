@@ -75,11 +75,9 @@ import org.apache.flink.runtime.scheduler.strategy.VertexwiseSchedulingStrategy;
 import org.apache.flink.runtime.shuffle.ShuffleMaster;
 import org.apache.flink.runtime.util.SlotSelectionStrategyUtils;
 import org.apache.flink.streaming.api.graph.ExecutionPlan;
-import org.apache.flink.streaming.api.graph.StreamGraphDescriptor;
 import org.apache.flink.util.Preconditions;
 import org.apache.flink.util.concurrent.ScheduledExecutor;
 import org.apache.flink.util.concurrent.ScheduledExecutorServiceAdapter;
-
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -127,9 +125,11 @@ public class AdaptiveBatchSchedulerFactory implements SchedulerNGFactory {
         if (executionPlan instanceof JobGraph) {
             jobGraph = (JobGraph) executionPlan;
         } else {
+            checkState(
+                    executionPlan instanceof StreamGraphDescriptor, "Unsupported execution plan.");
             jobGraph =
                     ((StreamGraphDescriptor) executionPlan)
-                            .deserializeStreamGraph(userCodeLoader, futureExecutor)
+                            .getStreamGraph()
                             .getJobGraph(userCodeLoader);
         }
 

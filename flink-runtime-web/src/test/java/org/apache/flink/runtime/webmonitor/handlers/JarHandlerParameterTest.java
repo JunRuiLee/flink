@@ -32,7 +32,6 @@ import org.apache.flink.runtime.webmonitor.TestingDispatcherGateway;
 import org.apache.flink.runtime.webmonitor.retriever.GatewayRetriever;
 import org.apache.flink.runtime.webmonitor.testutils.ParameterProgram;
 import org.apache.flink.streaming.api.graph.ExecutionPlan;
-
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.RegisterExtension;
@@ -275,10 +274,17 @@ abstract class JarHandlerParameterTest<
     static ExecutionConfig getExecutionConfig(ExecutionPlan executionPlan) {
         ExecutionConfig executionConfig;
         try {
-            executionConfig =
-                    executionPlan
-                            .getSerializedExecutionConfig()
-                            .deserializeValue(ParameterProgram.class.getClassLoader());
+            if (executionPlan instanceof StreamGraphDescriptor) {
+                executionConfig =
+                        ((StreamGraphDescriptor) executionPlan)
+                                .getStreamGraph()
+                                .getExecutionConfig();
+            } else {
+                executionConfig =
+                        executionPlan
+                                .getSerializedExecutionConfig()
+                                .deserializeValue(ParameterProgram.class.getClassLoader());
+            }
         } catch (Exception e) {
             throw new AssertionError("Exception while deserializing ExecutionConfig.", e);
         }

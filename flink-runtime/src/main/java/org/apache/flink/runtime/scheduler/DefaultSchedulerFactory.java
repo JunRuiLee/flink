@@ -42,9 +42,7 @@ import org.apache.flink.runtime.metrics.groups.JobManagerJobMetricGroup;
 import org.apache.flink.runtime.rpc.FatalErrorHandler;
 import org.apache.flink.runtime.shuffle.ShuffleMaster;
 import org.apache.flink.streaming.api.graph.ExecutionPlan;
-import org.apache.flink.streaming.api.graph.StreamGraphDescriptor;
 import org.apache.flink.util.concurrent.ScheduledExecutorServiceAdapter;
-
 import org.slf4j.Logger;
 
 import java.time.Duration;
@@ -54,6 +52,7 @@ import java.util.concurrent.ScheduledExecutorService;
 
 import static org.apache.flink.runtime.scheduler.DefaultSchedulerComponents.createSchedulerComponents;
 import static org.apache.flink.runtime.scheduler.SchedulerBase.computeVertexParallelismStore;
+import static org.apache.flink.util.Preconditions.checkState;
 
 /** Factory for {@link DefaultScheduler}. */
 public class DefaultSchedulerFactory implements SchedulerNGFactory {
@@ -87,9 +86,11 @@ public class DefaultSchedulerFactory implements SchedulerNGFactory {
         if (executionPlan instanceof JobGraph) {
             jobGraph = (JobGraph) executionPlan;
         } else {
+            checkState(
+                    executionPlan instanceof StreamGraphDescriptor, "Unsupported execution plan.");
             jobGraph =
                     ((StreamGraphDescriptor) executionPlan)
-                            .deserializeStreamGraph(userCodeLoader, futureExecutor)
+                            .getStreamGraph()
                             .getJobGraph(userCodeLoader);
         }
 

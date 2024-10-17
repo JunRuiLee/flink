@@ -114,7 +114,6 @@ import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.stream.Collectors;
 
-import static org.apache.flink.util.Preconditions.checkArgument;
 import static org.apache.flink.util.Preconditions.checkNotNull;
 import static org.apache.flink.util.Preconditions.checkState;
 
@@ -1194,7 +1193,7 @@ public class StreamingJobGraphGenerator {
                 .set(
                         CheckpointingOptions.ENABLE_CHECKPOINTS_AFTER_TASKS_FINISH,
                         streamGraph.isEnableCheckpointsAfterTasksFinish());
-        config.setCheckpointMode(getCheckpointingMode(checkpointCfg));
+        config.setCheckpointMode(StreamGraph.getCheckpointingMode(checkpointCfg));
         config.setUnalignedCheckpointsEnabled(checkpointCfg.isUnalignedCheckpointsEnabled());
         config.setUnalignedCheckpointsSplittableTimersEnabled(
                 checkpointCfg.isUnalignedCheckpointsInterruptibleTimersEnabled());
@@ -1480,24 +1479,6 @@ public class StreamingJobGraphGenerator {
                         "ForwardForUnspecifiedPartitioner should only be used in dynamic graph.");
                 edge.setPartitioner(new RescalePartitioner<>());
             }
-        }
-    }
-
-    private static CheckpointingMode getCheckpointingMode(CheckpointConfig checkpointConfig) {
-        CheckpointingMode checkpointingMode = checkpointConfig.getCheckpointingConsistencyMode();
-
-        checkArgument(
-                checkpointingMode == CheckpointingMode.EXACTLY_ONCE
-                        || checkpointingMode == CheckpointingMode.AT_LEAST_ONCE,
-                "Unexpected checkpointing mode.");
-
-        if (checkpointConfig.isCheckpointingEnabled()) {
-            return checkpointingMode;
-        } else {
-            // the "at-least-once" input handler is slightly cheaper (in the absence of
-            // checkpoints),
-            // so we use that one if checkpointing is not enabled
-            return CheckpointingMode.AT_LEAST_ONCE;
         }
     }
 

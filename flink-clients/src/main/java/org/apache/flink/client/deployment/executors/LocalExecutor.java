@@ -29,9 +29,7 @@ import org.apache.flink.core.execution.JobStatusChangedListenerUtils;
 import org.apache.flink.core.execution.PipelineExecutor;
 import org.apache.flink.runtime.minicluster.MiniCluster;
 import org.apache.flink.runtime.minicluster.MiniClusterConfiguration;
-import org.apache.flink.streaming.api.graph.ExecutionPlan;
 import org.apache.flink.util.concurrent.ExecutorThreadFactory;
-
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -93,16 +91,17 @@ public class LocalExecutor implements PipelineExecutor {
         // we only support attached execution with the local executor.
         checkState(configuration.get(DeploymentOptions.ATTACHED));
 
-        final ExecutionPlan executionPlan =
-                PipelineExecutorUtils.getStreamGraphWrapper(pipeline, configuration);
+        final StreamGraphDescriptor streamGraphDescriptor =
+                PipelineExecutorUtils.getStreamGraphDescriptor(pipeline, configuration);
 
+        streamGraphDescriptor.serializeStreamGraph();
         return PerJobMiniClusterFactory.createWithFactory(effectiveConfig, miniClusterFactory)
-                .submitJob(executionPlan, userCodeClassloader)
+                .submitJob(streamGraphDescriptor, userCodeClassloader)
                 .whenComplete(
                         (ignored, throwable) -> {
                             if (throwable == null) {
                                 PipelineExecutorUtils.notifyJobStatusListeners(
-                                        pipeline, executionPlan, jobStatusChangedListeners);
+                                        pipeline, streamGraphDescriptor, jobStatusChangedListeners);
                             } else {
                                 LOG.error(
                                         "Failed to submit job graph to local mini cluster.",

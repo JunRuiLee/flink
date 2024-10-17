@@ -34,14 +34,12 @@ import org.apache.flink.core.execution.PipelineExecutorFactory;
 import org.apache.flink.core.execution.PipelineExecutorServiceLoader;
 import org.apache.flink.core.fs.FileSystem;
 import org.apache.flink.core.fs.Path;
-import org.apache.flink.runtime.jobgraph.JobGraph;
 import org.apache.flink.runtime.jobgraph.SavepointRestoreSettings;
 import org.apache.flink.runtime.minicluster.MiniCluster;
 import org.apache.flink.runtime.minicluster.MiniClusterJobClient;
 import org.apache.flink.streaming.api.graph.StreamGraph;
 import org.apache.flink.util.AbstractID;
 import org.apache.flink.util.concurrent.ExecutorThreadFactory;
-
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -170,20 +168,23 @@ public class MiniClusterPipelineExecutorServiceLoader implements PipelineExecuto
         public CompletableFuture<JobClient> execute(
                 Pipeline pipeline, Configuration configuration, ClassLoader userCodeClassLoader)
                 throws Exception {
-            final JobGraph jobGraph =
-                    PipelineExecutorUtils.getJobGraph(pipeline, configuration, userCodeClassLoader);
-            if (jobGraph.getSavepointRestoreSettings() == SavepointRestoreSettings.none()
-                    && pipeline instanceof StreamGraph) {
-                jobGraph.setSavepointRestoreSettings(
+            final StreamGraphDescriptor streamGraphDescriptor =
+                    PipelineExecutorUtils.getStreamGraphDescriptor(pipeline, configuration);
+            if (streamGraphDescriptor.getSavepointRestoreSettings()
+                    == SavepointRestoreSettings.none()) {
+                streamGraphDescriptor.setSavepointRestoreSettings(
                         ((StreamGraph) pipeline).getSavepointRestoreSettings());
             }
+
             return miniCluster
-                    .submitJob(jobGraph)
+                    .submitJob(streamGraphDescriptor)
                     .whenComplete(
                             (ignored, throwable) -> {
                                 if (throwable == null) {
                                     PipelineExecutorUtils.notifyJobStatusListeners(
-                                            pipeline, jobGraph, jobStatusChangedListeners);
+                                            pipeline,
+                                            streamGraphDescriptor,
+                                            jobStatusChangedListeners);
                                 } else {
                                     LOG.error(
                                             "Failed to submit job graph to mini cluster.",

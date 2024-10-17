@@ -30,22 +30,15 @@ import org.apache.flink.configuration.ExecutionOptions;
 import org.apache.flink.configuration.PipelineOptionsInternal;
 import org.apache.flink.core.execution.JobStatusChangedListener;
 import org.apache.flink.runtime.jobgraph.JobGraph;
-import org.apache.flink.runtime.util.Hardware;
 import org.apache.flink.streaming.api.graph.ExecutionPlan;
 import org.apache.flink.streaming.api.graph.StreamGraph;
-import org.apache.flink.streaming.api.graph.StreamGraphDescriptor;
 import org.apache.flink.streaming.runtime.execution.DefaultJobCreatedEvent;
-import org.apache.flink.util.concurrent.ExecutorThreadFactory;
-
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import javax.annotation.Nonnull;
-
 import java.net.MalformedURLException;
 import java.util.List;
-import java.util.concurrent.ExecutorService;
-import java.util.concurrent.Executors;
 
 import static org.apache.flink.util.Preconditions.checkNotNull;
 import static org.apache.flink.util.Preconditions.checkState;
@@ -129,7 +122,7 @@ public class PipelineExecutorUtils {
                 });
     }
 
-    public static StreamGraphDescriptor getStreamGraphWrapper(
+    public static StreamGraphDescriptor getStreamGraphDescriptor(
             @Nonnull final Pipeline pipeline, @Nonnull final Configuration configuration)
             throws Exception {
         checkNotNull(pipeline);
@@ -156,22 +149,6 @@ public class PipelineExecutorUtils {
         streamGraph.setSavepointRestoreSettings(
                 executionConfigAccessor.getSavepointRestoreSettings());
 
-        final ExecutorService serializationExecutor =
-                Executors.newFixedThreadPool(
-                        Math.max(
-                                1,
-                                Math.min(
-                                        Hardware.getNumberCPUCores(),
-                                        streamGraph.getExecutionConfig().getParallelism())),
-                        new ExecutorThreadFactory("flink-operator-serialization-io"));
-
-        StreamGraphDescriptor streamGraphDescriptor;
-        try {
-            streamGraphDescriptor = new StreamGraphDescriptor(streamGraph, serializationExecutor);
-        } finally {
-            serializationExecutor.shutdown();
-        }
-
-        return streamGraphDescriptor;
+        return new StreamGraphDescriptor(streamGraph);
     }
 }

@@ -64,6 +64,23 @@ public enum JobMasterServiceLeadershipRunnerFactory implements JobManagerRunnerF
             long initializationTimestamp)
             throws Exception {
 
+        final LibraryCacheManager.ClassLoaderLease classLoaderLease =
+                jobManagerServices
+                        .getLibraryCacheManager()
+                        .registerClassLoaderLease(executionPlan.getJobID());
+
+        final ClassLoader userCodeClassLoader =
+                classLoaderLease
+                        .getOrResolveClassLoader(
+                                executionPlan.getUserJarBlobKeys(), executionPlan.getClasspaths())
+                        .asClassLoader();
+
+        if (executionPlan instanceof StreamGraphDescriptor) {
+            ((StreamGraphDescriptor) executionPlan)
+                    .deserializeStreamGraph(
+                            userCodeClassLoader, jobManagerServices.getFutureExecutor());
+        }
+
         checkArgument(!executionPlan.isEmpty(), "The given job is empty");
 
         final JobMasterConfiguration jobMasterConfiguration =
@@ -85,17 +102,6 @@ public enum JobMasterServiceLeadershipRunnerFactory implements JobManagerRunnerF
                             == JobManagerOptions.SchedulerType.Adaptive,
                     "Adaptive Scheduler is required for reactive mode");
         }
-
-        final LibraryCacheManager.ClassLoaderLease classLoaderLease =
-                jobManagerServices
-                        .getLibraryCacheManager()
-                        .registerClassLoaderLease(executionPlan.getJobID());
-
-        final ClassLoader userCodeClassLoader =
-                classLoaderLease
-                        .getOrResolveClassLoader(
-                                executionPlan.getUserJarBlobKeys(), executionPlan.getClasspaths())
-                        .asClassLoader();
 
         final DefaultJobMasterServiceFactory jobMasterServiceFactory =
                 new DefaultJobMasterServiceFactory(

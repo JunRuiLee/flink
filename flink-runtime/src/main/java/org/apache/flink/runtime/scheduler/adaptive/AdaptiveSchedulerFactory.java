@@ -45,14 +45,14 @@ import org.apache.flink.runtime.scheduler.SchedulerNGFactory;
 import org.apache.flink.runtime.scheduler.adaptive.allocator.SlotSharingSlotAllocator;
 import org.apache.flink.runtime.shuffle.ShuffleMaster;
 import org.apache.flink.streaming.api.graph.ExecutionPlan;
-import org.apache.flink.streaming.api.graph.StreamGraphDescriptor;
-
 import org.slf4j.Logger;
 
 import java.time.Duration;
 import java.util.Collection;
 import java.util.concurrent.Executor;
 import java.util.concurrent.ScheduledExecutorService;
+
+import static org.apache.flink.util.Preconditions.checkState;
 
 /** Factory for the adaptive scheduler. */
 public class AdaptiveSchedulerFactory implements SchedulerNGFactory {
@@ -88,9 +88,11 @@ public class AdaptiveSchedulerFactory implements SchedulerNGFactory {
         if (executionPlan instanceof JobGraph) {
             jobGraph = (JobGraph) executionPlan;
         } else {
+            checkState(
+                    executionPlan instanceof StreamGraphDescriptor, "Unsupported execution plan.");
             jobGraph =
                     ((StreamGraphDescriptor) executionPlan)
-                            .deserializeStreamGraph(userCodeLoader, futureExecutor)
+                            .getStreamGraph()
                             .getJobGraph(userCodeLoader);
         }
 

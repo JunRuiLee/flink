@@ -112,14 +112,12 @@ import org.apache.flink.util.concurrent.ExponentialBackoffRetryStrategy;
 import org.apache.flink.util.concurrent.FutureUtils;
 import org.apache.flink.util.function.BiFunctionWithException;
 import org.apache.flink.util.function.FunctionUtils;
-
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
 import javax.annotation.concurrent.GuardedBy;
-
 import java.io.IOException;
 import java.net.InetAddress;
 import java.net.InetSocketAddress;
@@ -1063,27 +1061,46 @@ public class MiniCluster implements AutoCloseableAsync {
     }
 
     public CompletableFuture<JobSubmissionResult> submitJob(ExecutionPlan executionPlan) {
-        // When MiniCluster uses the local RPC, the provided ExecutionPlan is passed directly to the
-        // Dispatcher. This means that any mutations to the JG can affect the Dispatcher behaviour,
-        // so we rather clone it to guard against this.
-        final ExecutionPlan clonedExecutionPlan = InstantiationUtil.cloneUnchecked(executionPlan);
-        checkRestoreModeForChangelogStateBackend(clonedExecutionPlan);
         final CompletableFuture<DispatcherGateway> dispatcherGatewayFuture =
                 getDispatcherGatewayFuture();
         final CompletableFuture<InetSocketAddress> blobServerAddressFuture =
                 createBlobServerAddress(dispatcherGatewayFuture);
         final CompletableFuture<Void> jarUploadFuture =
-                uploadAndSetJobFiles(blobServerAddressFuture, clonedExecutionPlan);
+                uploadAndSetJobFiles(blobServerAddressFuture, executionPlan);
+        final CompletableFuture<ExecutionPlan> cloneExecutionPlanFuture =
+                jarUploadFuture.thenApply(
+                        ignored -> {
+                            if (executionPlan instanceof StreamGraphDescriptor) {
+                                try {
+                                    ((StreamGraphDescriptor) executionPlan).serializeStreamGraph();
+                                } catch (Exception e) {
+                                    throw new RuntimeException(e);
+                                }
+                            }
+
+                            // When MiniCluster uses the local RPC, the provided ExecutionPlan
+                            // is passed directly to the
+                            // Dispatcher. This means that any mutations to the JG can affect
+                            // the Dispatcher behaviour,
+                            // so we rather clone it to guard against this.
+                            final ExecutionPlan clonedExecutionPlan =
+                                    InstantiationUtil.cloneUnchecked(executionPlan);
+                            checkRestoreModeForChangelogStateBackend(clonedExecutionPlan);
+
+                            return clonedExecutionPlan;
+                        });
+
         final CompletableFuture<Acknowledge> acknowledgeCompletableFuture =
-                jarUploadFuture
+                cloneExecutionPlanFuture
                         .thenCombine(
                                 dispatcherGatewayFuture,
-                                (Void ack, DispatcherGateway dispatcherGateway) ->
+                                (ExecutionPlan clonedExecutionPlan,
+                                        DispatcherGateway dispatcherGateway) ->
                                         dispatcherGateway.submitJob(
                                                 clonedExecutionPlan, rpcTimeout))
                         .thenCompose(Function.identity());
         return acknowledgeCompletableFuture.thenApply(
-                (Acknowledge ignored) -> new JobSubmissionResult(clonedExecutionPlan.getJobID()));
+                (Acknowledge ignored) -> new JobSubmissionResult(executionPlan.getJobID()));
     }
 
     // HACK: temporary hack to make the randomized changelog state backend tests work with forced

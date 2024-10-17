@@ -75,15 +75,14 @@ import org.apache.flink.streaming.runtime.tasks.SourceOperatorStreamTask;
 import org.apache.flink.streaming.runtime.tasks.SourceStreamTask;
 import org.apache.flink.streaming.runtime.tasks.TwoInputStreamTask;
 import org.apache.flink.util.FlinkRuntimeException;
+import org.apache.flink.util.InstantiationUtil;
 import org.apache.flink.util.OutputTag;
 import org.apache.flink.util.SerializedValue;
 import org.apache.flink.util.TernaryBoolean;
-
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import javax.annotation.Nullable;
-
 import java.io.IOException;
 import java.io.Serializable;
 import java.net.URISyntaxException;
@@ -107,7 +106,7 @@ import static org.apache.flink.util.Preconditions.checkNotNull;
  * jobgraph for the execution.
  */
 @Internal
-public class StreamGraph implements Pipeline, Serializable {
+public class StreamGraph implements Pipeline, ExecutionPlan {
 
     private static final long serialVersionUID = 1L;
 
@@ -131,17 +130,17 @@ public class StreamGraph implements Pipeline, Serializable {
     /** Flag to indicate whether to put all vertices into the same slot sharing group by default. */
     private boolean allVerticesInSameSlotSharingGroupByDefault = true;
 
-    private Map<Integer, StreamNode> streamNodes;
+    private transient Map<Integer, StreamNode> streamNodes;
     private Set<Integer> sources;
     private Set<Integer> sinks;
-    private Map<Integer, Tuple2<Integer, OutputTag>> virtualSideOutputNodes;
-    private Map<Integer, Tuple3<Integer, StreamPartitioner<?>, StreamExchangeMode>>
+    private transient Map<Integer, Tuple2<Integer, OutputTag>> virtualSideOutputNodes;
+    private transient Map<Integer, Tuple3<Integer, StreamPartitioner<?>, StreamExchangeMode>>
             virtualPartitionNodes;
 
     protected Map<Integer, String> vertexIDtoBrokerID;
     protected Map<Integer, Long> vertexIDtoLoopTimeout;
-    private StateBackend stateBackend;
-    private CheckpointStorage checkpointStorage;
+    private transient StateBackend stateBackend;
+    private transient CheckpointStorage checkpointStorage;
     private InternalTimeServiceManager.Provider timerServiceProvider;
     private transient LineageGraph lineageGraph;
     private JobType jobType = JobType.STREAMING;
@@ -173,6 +172,8 @@ public class StreamGraph implements Pipeline, Serializable {
 
     /** Set of JAR files required to run this job. */
     private final List<Path> userJars = new ArrayList<>();
+
+    private boolean isPartialResourceConfigured;
 
     public StreamGraph(
             Configuration jobConfiguration,
@@ -206,6 +207,7 @@ public class StreamGraph implements Pipeline, Serializable {
         return executionConfig;
     }
 
+    @Override
     public Configuration getJobConfiguration() {
         return jobConfiguration;
     }
@@ -227,6 +229,10 @@ public class StreamGraph implements Pipeline, Serializable {
     }
 
     public CheckpointingMode getCheckpointingMode() {
+        return getCheckpointingMode(this.checkpointConfig);
+    }
+
+    public static CheckpointingMode getCheckpointingMode(CheckpointConfig checkpointConfig) {
         CheckpointingMode checkpointingMode = checkpointConfig.getCheckpointingConsistencyMode();
 
         checkArgument(
@@ -241,6 +247,14 @@ public class StreamGraph implements Pipeline, Serializable {
             // checkpoints), so we use that one if checkpointing is not enabled
             return CheckpointingMode.AT_LEAST_ONCE;
         }
+    }
+
+    public void serializeUserDefinedObjects() {
+        // 实现代码，用于序列化用户定义的对象
+    }
+
+    public void deserializeUserDefinedObjects(SerializedValue<?> serializedValue) {
+        // 实现代码，用于反序列化用户定义的对象
     }
 
     public JobCheckpointingSettings getJobCheckpointingSettings() {
@@ -271,6 +285,7 @@ public class StreamGraph implements Pipeline, Serializable {
      *
      * @return The list of assigned user jar paths
      */
+    @Override
     public List<Path> getUserJars() {
         return userJars;
     }
@@ -389,10 +404,17 @@ public class StreamGraph implements Pipeline, Serializable {
                 serializedHooks);
     }
 
+    @Override
     public void setSavepointRestoreSettings(SavepointRestoreSettings savepointRestoreSettings) {
         this.savepointRestoreSettings = savepointRestoreSettings;
     }
 
+    @Override
+    public SerializedValue<ExecutionConfig> getSerializedExecutionConfig() {
+        return null;
+    }
+
+    @Override
     public SavepointRestoreSettings getSavepointRestoreSettings() {
         return savepointRestoreSettings;
     }
@@ -942,8 +964,19 @@ public class StreamGraph implements Pipeline, Serializable {
         }
     }
 
+    @Override
     public boolean isDynamic() {
         return dynamic;
+    }
+
+    @Override
+    public JobCheckpointingSettings getCheckpointingSettings() {
+        return null;
+    }
+
+    @Override
+    public boolean isEmpty() {
+        return false;
     }
 
     public void setParallelism(Integer vertexId, int parallelism, boolean parallelismConfigured) {
@@ -1168,6 +1201,12 @@ public class StreamGraph implements Pipeline, Serializable {
         this.jobType = jobType;
     }
 
+    @Override
+    public String getName() {
+        return jobName;
+    }
+
+    @Override
     public JobType getJobType() {
         return jobType;
     }
@@ -1226,7 +1265,8 @@ public class StreamGraph implements Pipeline, Serializable {
         this.jobId = jobId;
     }
 
-    public JobID getJobId() {
+    @Override
+    public JobID getJobID() {
         return jobId;
     }
 
@@ -1265,8 +1305,14 @@ public class StreamGraph implements Pipeline, Serializable {
      *
      * @return list of BLOB keys referring to the JAR files required to run this job
      */
+    @Override
     public List<PermanentBlobKey> getUserJarBlobKeys() {
         return this.userJarBlobKeys;
+    }
+
+    @Override
+    public List<URL> getClasspaths() {
+        return classpath;
     }
 
     public void setUserJarBlobKeys(List<PermanentBlobKey> userJarBlobKeys) {
@@ -1281,8 +1327,45 @@ public class StreamGraph implements Pipeline, Serializable {
         userArtifacts.putIfAbsent(name, file);
     }
 
+    @Override
     public Map<String, DistributedCache.DistributedCacheEntry> getUserArtifacts() {
         return userArtifacts;
+    }
+
+    @Override
+    public void addUserJarBlobKey(PermanentBlobKey key) {
+        if (key == null) {
+            throw new IllegalArgumentException();
+        }
+
+        if (!userJarBlobKeys.contains(key)) {
+            userJarBlobKeys.add(key);
+        }
+    }
+
+    @Override
+    public void setUserArtifactBlobKey(String entryName, PermanentBlobKey blobKey)
+            throws IOException {
+        byte[] serializedBlobKey;
+        serializedBlobKey = InstantiationUtil.serializeObject(blobKey);
+
+        userArtifacts.computeIfPresent(
+                entryName,
+                (key, originalEntry) ->
+                        new DistributedCache.DistributedCacheEntry(
+                                originalEntry.filePath,
+                                originalEntry.isExecutable,
+                                serializedBlobKey,
+                                originalEntry.isZipped));
+    }
+
+    @Override
+    public void writeUserArtifactEntriesToConfiguration() {
+        for (Map.Entry<String, DistributedCache.DistributedCacheEntry> userArtifact :
+                userArtifacts.entrySet()) {
+            DistributedCache.writeFileInfoToConfig(
+                    userArtifact.getKey(), userArtifact.getValue(), jobConfiguration);
+        }
     }
 
     public void setUserArtifacts(
@@ -1291,6 +1374,7 @@ public class StreamGraph implements Pipeline, Serializable {
         this.userArtifacts.putAll(userArtifacts);
     }
 
+    @Override
     public int getMaximumParallelism() {
         int maxParallelism = -1;
         for (StreamNode node : streamNodes.values()) {
@@ -1303,11 +1387,65 @@ public class StreamGraph implements Pipeline, Serializable {
         this.initialClientHeartbeatTimeout = initialClientHeartbeatTimeout;
     }
 
+    @Override
     public long getInitialClientHeartbeatTimeout() {
         return initialClientHeartbeatTimeout;
     }
 
+    @Override
+    public boolean isPartialResourceConfigured() {
+        return isPartialResourceConfigured;
+    }
+
+    private boolean isPartialResourceConfigured(StreamGraph streamGraph) {
+        boolean hasVerticesWithUnknownResource = false;
+        boolean hasVerticesWithConfiguredResource = false;
+
+        for (StreamNode streamNode : streamGraph.getStreamNodes()) {
+            if (streamNode.getMinResources() == ResourceSpec.UNKNOWN) {
+                hasVerticesWithUnknownResource = true;
+            } else {
+                hasVerticesWithConfiguredResource = true;
+            }
+
+            if (hasVerticesWithUnknownResource && hasVerticesWithConfiguredResource) {
+                return true;
+            }
+        }
+
+        return false;
+    }
+
     public void setExecutionConfig(ExecutionConfig executionConfig) {
         this.executionConfig = executionConfig;
+    }
+
+    /**
+     * A static inner class that holds user-defined objects for serialization and deserialization
+     * purposes.
+     */
+    private static class UserDefinedObjectsHolder implements Serializable {
+
+        // private transient Map<Integer, StreamNode> streamNodes;
+        //    private Set<Integer> sources;
+        //    private Set<Integer> sinks;
+        //    private transient Map<Integer, Tuple2<Integer, OutputTag>> virtualSideOutputNodes;
+        //    private transient Map<Integer, Tuple3<Integer, StreamPartitioner<?>,
+        // StreamExchangeMode>>
+        //            virtualPartitionNodes;
+        //
+        //    protected Map<Integer, String> vertexIDtoBrokerID;
+        //    protected Map<Integer, Long> vertexIDtoLoopTimeout;
+        //    private transient StateBackend stateBackend;
+        //    private transient CheckpointStorage checkpointStorage;
+        //    private transient Set<Tuple2<StreamNode, StreamNode>> iterationSourceSinkPairs;
+        public UserDefinedObjectsHolder(
+                Map<Integer, StreamNode> streamNodes,
+                Map<Integer, Tuple2<Integer, OutputTag>> virtualSideOutputNodes,
+                Map<Integer, Tuple3<Integer, StreamPartitioner<?>, StreamExchangeMode>>
+                        virtualPartitionNodes,
+                StateBackend stateBackend,
+                CheckpointStorage checkpointStorage,
+                Set<Tuple2<StreamNode, StreamNode>> iterationSourceSinkPairs) {}
     }
 }
