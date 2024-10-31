@@ -155,7 +155,7 @@ public class DefaultScheduler extends SchedulerBase implements SchedulerOperatio
                 jobStatusListener,
                 executionGraphFactory,
                 vertexParallelismStore,
-                StreamGraphSchedulingContext);
+                streamGraphSchedulingContext);
 
         this.log = log;
 

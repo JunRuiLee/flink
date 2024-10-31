@@ -178,7 +178,7 @@ public class DefaultExecutionGraphFactory implements ExecutionGraphFactory {
                         markPartitionFinishedStrategy,
                         nonFinishedHybridPartitionShouldBeUnknown,
                         jobManagerJobMetricGroup,
-                        StreamGraphSchedulingContext);
+                        streamGraphSchedulingContext);
 
         final CheckpointCoordinator checkpointCoordinator =
                 newExecutionGraph.getCheckpointCoordinator();
