@@ -107,6 +107,10 @@ public class IntermediateResult {
                 .forEach(jobEdge -> consumerVertices.add(jobEdge.getTarget().getID()));
     }
 
+    public boolean isAllConsumerVerticesCreated() {
+        return intermediateDataSet.isAllConsumerVerticesCreated();
+    }
+
     public void setPartition(int partitionNumber, IntermediateResultPartition partition) {
         if (partition == null || partitionNumber < 0 || partitionNumber >= numParallelProducers) {
             throw new IllegalArgumentException();

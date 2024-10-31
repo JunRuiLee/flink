@@ -22,7 +22,9 @@ import org.apache.flink.configuration.Configuration;
 import org.apache.flink.runtime.concurrent.ComponentMainThreadExecutorServiceAdapter;
 import org.apache.flink.runtime.io.network.partition.ResultPartitionType;
 import org.apache.flink.runtime.jobgraph.DistributionPattern;
+import org.apache.flink.runtime.jobgraph.IntermediateDataSet;
 import org.apache.flink.runtime.jobgraph.IntermediateDataSetID;
+import org.apache.flink.runtime.jobgraph.JobEdge;
 import org.apache.flink.runtime.jobgraph.JobGraph;
 import org.apache.flink.runtime.jobgraph.JobGraphBuilder;
 import org.apache.flink.runtime.jobgraph.JobGraphTestUtils;
@@ -34,6 +36,11 @@ import org.apache.flink.runtime.scheduler.adaptivebatch.AdaptiveBatchScheduler;
 import org.apache.flink.runtime.scheduler.strategy.ConsumedPartitionGroup;
 import org.apache.flink.runtime.testtasks.NoOpInvokable;
 import org.apache.flink.runtime.testutils.DirectScheduledExecutorService;
+import org.apache.flink.streaming.api.graph.StreamEdge;
+import org.apache.flink.streaming.api.graph.StreamNode;
+import org.apache.flink.streaming.api.operators.StreamOperator;
+import org.apache.flink.streaming.runtime.partitioner.ShufflePartitioner;
+import org.apache.flink.streaming.runtime.tasks.SourceStreamTask;
 import org.apache.flink.testutils.TestingUtils;
 import org.apache.flink.testutils.executor.TestExecutorExtension;
 
@@ -156,6 +163,66 @@ public class IntermediateResultPartitionTest {
 
         result.resetForNewExecution();
         assertThat(partition1.canBeReleased()).isFalse();
+    }
+
+    @Test
+    void testReleasePartitionGroupsWhen() throws Exception {
+        JobVertex source = new JobVertex("source");
+        source.setInvokableClass(NoOpInvokable.class);
+
+        JobVertex sink1 = new JobVertex("sink1");
+        sink1.setInvokableClass(NoOpInvokable.class);
+
+        JobVertex sink2 = new JobVertex("sink2");
+        sink2.setInvokableClass(NoOpInvokable.class);
+
+        // At first, create job graph with topology: source -> sink1
+        IntermediateDataSetID dataSetId = new IntermediateDataSetID();
+        sink1.connectNewDataSetAsInput(
+                source,
+                DistributionPattern.ALL_TO_ALL,
+                ResultPartitionType.BLOCKING,
+                dataSetId,
+                false);
+        JobGraph jobGraph = JobGraphTestUtils.batchJobGraph(source, sink1);
+
+        SchedulerBase scheduler =
+                new DefaultSchedulerBuilder(
+                                jobGraph,
+                                ComponentMainThreadExecutorServiceAdapter.forMainThread(),
+                                new DirectScheduledExecutorService())
+                        .build();
+
+        IntermediateDataSet dataSet = source.getProducedDataSets().get(0);
+        ExecutionJobVertex ejv = scheduler.getExecutionJobVertex(source.getID());
+        IntermediateResult result = ejv.getProducedDataSets()[0];
+
+        // add two stream edges
+        StreamNode sourceVertexDummy =
+                new StreamNode(
+                        0, null, null, (StreamOperator<?>) null, null, SourceStreamTask.class);
+        StreamNode targetVertexDummy =
+                new StreamNode(
+                        0, null, null, (StreamOperator<?>) null, null, SourceStreamTask.class);
+        dataSet.addOutputStreamEdge(
+                new StreamEdge(
+                        sourceVertexDummy, targetVertexDummy, 0, new ShufflePartitioner(), null));
+        dataSet.addOutputStreamEdge(
+                new StreamEdge(
+                        sourceVertexDummy, targetVertexDummy, 0, new ShufflePartitioner(), null));
+
+        // mark partition can be released
+        IntermediateResultPartition partition = result.getPartitions()[0];
+        assertThat(partition.canBeReleased()).isFalse();
+        List<ConsumedPartitionGroup> consumedPartitionGroup =
+                partition.getConsumedPartitionGroups();
+        partition.markPartitionGroupReleasable(consumedPartitionGroup.get(0));
+
+        assertThat(partition.canBeReleased()).isFalse();
+
+        // add a new job edge consumer
+        dataSet.addConsumer(new JobEdge(dataSet, sink2, DistributionPattern.ALL_TO_ALL, false));
+        assertThat(partition.canBeReleased()).isTrue();
     }
 
     @Test
