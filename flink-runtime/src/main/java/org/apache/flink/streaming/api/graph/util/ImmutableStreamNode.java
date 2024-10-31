@@ -66,4 +66,12 @@ public class ImmutableStreamNode {
     public @Nullable StreamOperatorFactory<?> getOperatorFactory() {
         return streamNode.getOperatorFactory();
     }
+
+    public int getMaxParallelism() {
+        return streamNode.getMaxParallelism();
+    }
+
+    public int getParallelism() {
+        return streamNode.getParallelism();
+    }
 }
