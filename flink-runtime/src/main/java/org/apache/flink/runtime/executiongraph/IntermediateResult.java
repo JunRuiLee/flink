@@ -258,6 +258,10 @@ public class IntermediateResult {
         return intermediateDataSet.isBroadcast();
     }
 
+    public boolean isOptimizedToBroadcast() {
+        return intermediateDataSet.isOptimizedToBroadcast();
+    }
+
     public int getConnectionIndex() {
         return connectionIndex;
     }

@@ -26,6 +26,7 @@ import org.apache.flink.streaming.api.graph.StreamGraph;
 import org.apache.flink.streaming.api.graph.StreamNode;
 import org.apache.flink.testutils.TestingUtils;
 import org.apache.flink.testutils.executor.TestExecutorExtension;
+import org.apache.flink.util.DynamicCodeLoadingException;
 
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.RegisterExtension;
@@ -45,7 +46,7 @@ class DefaultStreamGraphSchedulingContextTest {
             TestingUtils.defaultExecutorExtension();
 
     @Test
-    void testGetParallelismAndMaxParallelism() {
+    void testGetParallelismAndMaxParallelism() throws DynamicCodeLoadingException {
         int sourceParallelism = 3;
         int sinkParallelism = 4;
         int sourceMaxParallelism = 5;
@@ -76,7 +77,7 @@ class DefaultStreamGraphSchedulingContextTest {
     }
 
     @Test
-    void testGetDefaultMaxParallelism() {
+    void testGetDefaultMaxParallelism() throws DynamicCodeLoadingException {
         int sourceParallelism = 3;
         int sinkParallelism = -1;
         int sourceMaxParallelism = -1;
@@ -107,7 +108,7 @@ class DefaultStreamGraphSchedulingContextTest {
     }
 
     @Test
-    public void testGetPendingOperatorCount() {
+    public void testGetPendingOperatorCount() throws DynamicCodeLoadingException {
         StreamGraph streamGraph = getStreamGraph();
         DefaultAdaptiveExecutionHandler executionHandler =
                 getDefaultAdaptiveExecutionHandler(streamGraph);
@@ -156,7 +157,7 @@ class DefaultStreamGraphSchedulingContextTest {
     }
 
     private static DefaultAdaptiveExecutionHandler getDefaultAdaptiveExecutionHandler(
-            StreamGraph streamGraph) {
+            StreamGraph streamGraph) throws DynamicCodeLoadingException {
         return new DefaultAdaptiveExecutionHandler(
                 Thread.currentThread().getContextClassLoader(),
                 streamGraph,
@@ -164,7 +165,7 @@ class DefaultStreamGraphSchedulingContextTest {
     }
 
     private static StreamGraphSchedulingContext getStreamGraphSchedulingContext(
-            StreamGraph streamGraph, int defaultMaxParallelism) {
+            StreamGraph streamGraph, int defaultMaxParallelism) throws DynamicCodeLoadingException {
         return getDefaultAdaptiveExecutionHandler(streamGraph)
                 .createStreamGraphSchedulingContext(defaultMaxParallelism);
     }
