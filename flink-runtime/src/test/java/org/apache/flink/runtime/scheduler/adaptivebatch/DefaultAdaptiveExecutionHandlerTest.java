@@ -40,6 +40,7 @@ import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.RegisterExtension;
 
 import java.util.ArrayList;
+import java.util.Collection;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.HashSet;
@@ -105,9 +106,17 @@ class DefaultAdaptiveExecutionHandlerTest {
     @Test
     void testOptimizeStreamGraph() throws DynamicCodeLoadingException {
         StreamGraph streamGraph = createStreamGraph();
-        Iterator<StreamNode> streamNodeIterator = streamGraph.getStreamNodes().iterator();
-        StreamNode source = streamNodeIterator.next();
-        StreamNode map = streamNodeIterator.next();
+        Collection<StreamNode> streamNodes = streamGraph.getStreamNodes();
+        StreamNode source =
+                streamNodes.stream()
+                        .filter(node -> node.getOperatorName().contains("Source"))
+                        .findFirst()
+                        .get();
+        StreamNode map =
+                streamNodes.stream()
+                        .filter(node -> node.getOperatorName().contains("Map"))
+                        .findFirst()
+                        .get();
 
         assertThat(source.getOutEdges().get(0).getPartitioner())
                 .isInstanceOf(ForwardPartitioner.class);

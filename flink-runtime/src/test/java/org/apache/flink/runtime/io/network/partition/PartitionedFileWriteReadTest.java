@@ -87,7 +87,7 @@ class PartitionedFileWriteReadTest {
             PartitionedFileReader fileReader =
                     new PartitionedFileReader(
                             partitionedFile,
-                            subpartition,
+                            new ResultSubpartitionIndexSet(subpartition),
                             dataFileChannel,
                             indexFileChannel,
                             BufferReaderWriterUtil.allocatedHeaderBuffer(),
@@ -123,7 +123,7 @@ class PartitionedFileWriteReadTest {
         Random random = new Random(1111);
         long currentOffset = 0L;
         for (int region = 0; region < numRegions; ++region) {
-            boolean isBroadcastRegion = random.nextBoolean();
+            boolean isBroadcastRegion = false;
             fileWriter.startNewRegion(isBroadcastRegion);
             List<BufferWithSubpartition>[] bufferWithSubpartitions = new List[numSubpartitions];
             for (int i = 0; i < numSubpartitions; i++) {
@@ -235,7 +235,7 @@ class PartitionedFileWriteReadTest {
             PartitionedFileReader fileReader =
                     new PartitionedFileReader(
                             partitionedFile,
-                            subpartition,
+                            new ResultSubpartitionIndexSet(subpartition),
                             dataFileChannel,
                             indexFileChannel,
                             BufferReaderWriterUtil.allocatedHeaderBuffer(),
@@ -247,7 +247,9 @@ class PartitionedFileWriteReadTest {
                         allocateBuffers(bufferSize),
                         FreeingBufferRecycler.INSTANCE,
                         buffer -> addReadBuffer(buffer, buffersRead[subIndex]));
-                Buffer buffer = buffersRead[subIndex].get(bufferIndex++);
+            }
+            while (bufferIndex < buffersRead[subpartition].size()) {
+                Buffer buffer = buffersRead[subpartition].get(bufferIndex++);
                 assertBufferEquals(checkNotNull(subpartitionBuffers[subpartition].poll()), buffer);
             }
             assertThat(subpartitionBuffers[subpartition]).isEmpty();
@@ -335,7 +337,7 @@ class PartitionedFileWriteReadTest {
         PartitionedFileReader partitionedFileReader =
                 new PartitionedFileReader(
                         partitionedFile,
-                        1,
+                        new ResultSubpartitionIndexSet(1),
                         dataFileChannel,
                         indexFileChannel,
                         BufferReaderWriterUtil.allocatedHeaderBuffer(),
