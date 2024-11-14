@@ -81,7 +81,8 @@ class DefaultStreamGraphContextTest {
                         streamGraph,
                         forwardGroupsByEndpointNodeIdCache,
                         frozenNodeToStartNodeMap,
-                        opIntermediateOutputsCaches);
+                        opIntermediateOutputsCaches,
+                        Thread.currentThread().getContextClassLoader());
 
         StreamNode sourceNode =
                 streamGraph.getStreamNode(streamGraph.getSourceIDs().iterator().next());

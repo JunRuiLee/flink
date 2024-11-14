@@ -27,7 +27,7 @@ import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 
 /** Tests for AdaptiveBroadcastJoinProcessor. */
-class AdaptiveBroadcastJoinTest extends TableTestBase {
+class AdaptiveJoinTest extends TableTestBase {
 
     private BatchTableTestUtil util;
 

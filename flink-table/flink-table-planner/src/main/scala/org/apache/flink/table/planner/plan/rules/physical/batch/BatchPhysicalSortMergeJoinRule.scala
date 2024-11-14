@@ -73,7 +73,7 @@ class BatchPhysicalSortMergeJoinRule
     val providedTraitSet = call.getPlanner
       .emptyTraitSet()
       .replace(FlinkConventions.BATCH_PHYSICAL)
-    val withHint = JoinUtil.isJoinStrategyHintMatched(join.getHints, JoinStrategy.SHUFFLE_MERGE)
+    val withHint = JoinUtil.isJoinStrategyHint(join.getHints)
     // do not try to remove redundant sort for shorter optimization time
     val newJoin = new BatchPhysicalSortMergeJoin(
       join.getCluster,

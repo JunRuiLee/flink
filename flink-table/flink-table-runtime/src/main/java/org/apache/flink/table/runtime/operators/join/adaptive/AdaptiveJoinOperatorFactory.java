@@ -18,40 +18,41 @@
 package org.apache.flink.table.runtime.operators.join.adaptive;
 
 import org.apache.flink.annotation.Internal;
+import org.apache.flink.api.java.tuple.Tuple2;
 import org.apache.flink.configuration.ReadableConfig;
 import org.apache.flink.streaming.api.operators.AbstractStreamOperatorFactory;
-import org.apache.flink.streaming.api.operators.AdaptiveBroadcastJoin;
+import org.apache.flink.streaming.api.operators.AdaptiveJoin;
 import org.apache.flink.streaming.api.operators.StreamOperator;
 import org.apache.flink.streaming.api.operators.StreamOperatorFactory;
 import org.apache.flink.streaming.api.operators.StreamOperatorParameters;
 import org.apache.flink.table.planner.loader.PlannerModule;
 import org.apache.flink.util.InstantiationUtil;
+import org.apache.flink.util.Preconditions;
 
 import java.io.IOException;
 
 /**
- * Adaptive broadcast join factory.
+ * Adaptive join factory.
  *
- * <p>Note: This class will hold an {@link AdaptiveBroadcastJoin} and serve as a proxy class to
- * provide an interface externally. Due to runtime access visibility constraints with the
- * table-planner module, the {@link AdaptiveBroadcastJoin} object will be serialized during the
- * Table Planner phase and will only be lazily deserialized before the dynamic generation of the
- * JobGraph.
+ * <p>Note: This class will hold an {@link AdaptiveJoin} and serve as a proxy class to provide an
+ * interface externally. Due to runtime access visibility constraints with the table-planner module,
+ * the {@link AdaptiveJoin} object will be serialized during the Table Planner phase and will only
+ * be lazily deserialized before the dynamic generation of the JobGraph.
  *
  * @param <OUT> The output type of the operator
  */
 @Internal
-public class AdaptiveBroadcastJoinOperatorFactory<OUT> extends AbstractStreamOperatorFactory<OUT>
-        implements AdaptiveBroadcastJoin {
+public class AdaptiveJoinOperatorFactory<OUT> extends AbstractStreamOperatorFactory<OUT>
+        implements AdaptiveJoin {
     private static final long serialVersionUID = 1L;
 
     private final byte[] adaptiveJoinSerialized;
 
-    private transient AdaptiveBroadcastJoin adaptiveBroadcastJoin;
+    private transient AdaptiveJoin adaptiveJoin;
 
     private StreamOperatorFactory<OUT> finalFactory;
 
-    public AdaptiveBroadcastJoinOperatorFactory(byte[] adaptiveJoinSerialized) {
+    public AdaptiveJoinOperatorFactory(byte[] adaptiveJoinSerialized) {
         this.adaptiveJoinSerialized = adaptiveJoinSerialized;
     }
 
@@ -60,25 +61,19 @@ public class AdaptiveBroadcastJoinOperatorFactory<OUT> extends AbstractStreamOpe
             ClassLoader classLoader, ReadableConfig config) {
         checkAndLazyInitialize();
         this.finalFactory =
-                (StreamOperatorFactory<OUT>)
-                        adaptiveBroadcastJoin.genOperatorFactory(classLoader, config);
+                (StreamOperatorFactory<OUT>) adaptiveJoin.genOperatorFactory(classLoader, config);
         return this.finalFactory;
     }
 
     @Override
-    public void markActualBuildSide(int side, boolean isBroadcast) {
+    public Tuple2<Boolean, Boolean> enrichAndCheckBroadcast(
+            long leftInputSize, long rightInputSize, long threshold) {
         checkAndLazyInitialize();
-        this.adaptiveBroadcastJoin.markActualBuildSide(side, isBroadcast);
-    }
-
-    @Override
-    public boolean canBeBuildSide(int side) {
-        checkAndLazyInitialize();
-        return this.adaptiveBroadcastJoin.canBeBuildSide(side);
+        return adaptiveJoin.enrichAndCheckBroadcast(leftInputSize, rightInputSize, threshold);
     }
 
     private void checkAndLazyInitialize() {
-        if (this.adaptiveBroadcastJoin == null) {
+        if (this.adaptiveJoin == null) {
             lazyInitialize();
         }
     }
@@ -86,6 +81,11 @@ public class AdaptiveBroadcastJoinOperatorFactory<OUT> extends AbstractStreamOpe
     @Override
     public <T extends StreamOperator<OUT>> T createStreamOperator(
             StreamOperatorParameters<OUT> parameters) {
+        Preconditions.checkNotNull(
+                finalFactory,
+                String.format(
+                        "The OperatorFactory of task [%s] have not been initialized.",
+                        parameters.getContainingTask()));
         if (finalFactory instanceof AbstractStreamOperatorFactory) {
             ((AbstractStreamOperatorFactory<OUT>) finalFactory)
                     .setProcessingTimeService(processingTimeService);
@@ -100,24 +100,26 @@ public class AdaptiveBroadcastJoinOperatorFactory<OUT> extends AbstractStreamOpe
     }
 
     private void lazyInitialize() {
-        ClassLoader[] classLoaders =
-                new ClassLoader[] {
-                    Thread.currentThread().getContextClassLoader(),
-                    PlannerModule.getInstance().getSubmoduleClassLoader()
-                };
-
-        for (ClassLoader classLoader : classLoaders) {
-            try {
-                this.adaptiveBroadcastJoin =
-                        InstantiationUtil.deserializeObject(adaptiveJoinSerialized, classLoader);
-                return;
-            } catch (ClassNotFoundException | IOException e) {
-                if (classLoader != classLoaders[classLoaders.length - 1]) {
-                    continue;
-                }
+        if (!tryInitializeAdaptiveBroadcastJoin(Thread.currentThread().getContextClassLoader())) {
+            boolean isSuccess =
+                    tryInitializeAdaptiveBroadcastJoin(
+                            PlannerModule.getInstance().getSubmoduleClassLoader());
+            if (!isSuccess) {
                 throw new RuntimeException(
-                        "Failed to deserialize object with all available class loaders.", e);
+                        "Failed to deserialize AdaptiveBroadcastJoin instance. "
+                                + "Please check whether the flink-table-planner-loader.jar is in the classpath.");
             }
         }
+    }
+
+    private boolean tryInitializeAdaptiveBroadcastJoin(ClassLoader classLoader) {
+        try {
+            this.adaptiveJoin =
+                    InstantiationUtil.deserializeObject(adaptiveJoinSerialized, classLoader);
+        } catch (ClassNotFoundException | IOException e) {
+            return false;
+        }
+
+        return true;
     }
 }

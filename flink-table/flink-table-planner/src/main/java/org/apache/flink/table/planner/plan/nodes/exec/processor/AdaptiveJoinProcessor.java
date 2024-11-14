@@ -22,13 +22,13 @@ import org.apache.flink.configuration.JobManagerOptions;
 import org.apache.flink.table.api.TableConfig;
 import org.apache.flink.table.api.TableException;
 import org.apache.flink.table.api.config.OptimizerConfigOptions;
-import org.apache.flink.table.planner.plan.nodes.exec.AdaptiveBroadcastJoinExecNode;
+import org.apache.flink.table.planner.plan.nodes.exec.AdaptiveJoinExecNode;
 import org.apache.flink.table.planner.plan.nodes.exec.ExecEdge;
 import org.apache.flink.table.planner.plan.nodes.exec.ExecNode;
 import org.apache.flink.table.planner.plan.nodes.exec.ExecNodeGraph;
 import org.apache.flink.table.planner.plan.nodes.exec.InputProperty;
 import org.apache.flink.table.planner.plan.nodes.exec.InputProperty.DistributionType;
-import org.apache.flink.table.planner.plan.nodes.exec.batch.BatchExecAdaptiveBroadcastJoin;
+import org.apache.flink.table.planner.plan.nodes.exec.batch.BatchExecAdaptiveJoin;
 import org.apache.flink.table.planner.plan.nodes.exec.batch.BatchExecExchange;
 import org.apache.flink.table.planner.plan.nodes.exec.stream.StreamExecNode;
 import org.apache.flink.table.planner.plan.nodes.exec.visitor.AbstractExecNodeExactlyOnceVisitor;
@@ -45,14 +45,14 @@ import static org.apache.flink.table.planner.plan.nodes.exec.InputProperty.Distr
  * A {@link ExecNodeGraphProcessor} which replace the qualified join nodes into adaptive broadcast
  * join nodes.
  */
-public class AdaptiveBroadcastJoinProcessor implements ExecNodeGraphProcessor {
+public class AdaptiveJoinProcessor implements ExecNodeGraphProcessor {
 
     @Override
     public ExecNodeGraph process(ExecNodeGraph execGraph, ProcessorContext context) {
         if (execGraph.getRootNodes().get(0) instanceof StreamExecNode) {
             throw new TableException("StreamExecNode is not supported yet");
         }
-        if (!isAdaptiveBroadcastJoinEnabled(context)) {
+        if (!isAdaptiveJoinEnabled(context)) {
             return execGraph;
         }
 
@@ -99,11 +99,9 @@ public class AdaptiveBroadcastJoinProcessor implements ExecNodeGraphProcessor {
             return node;
         }
         ExecNode<?> newNode = node;
-        if (node instanceof AdaptiveBroadcastJoinExecNode
-                && ((AdaptiveBroadcastJoinExecNode) node)
-                        .canBeTransformedToAdaptiveBroadcastJoin()) {
-            BatchExecAdaptiveBroadcastJoin adaptiveJoin =
-                    ((AdaptiveBroadcastJoinExecNode) node).toAdaptiveBroadcastJoinNode();
+        if (node instanceof AdaptiveJoinExecNode
+                && ((AdaptiveJoinExecNode) node).canBeTransformedToAdaptiveJoin()) {
+            BatchExecAdaptiveJoin adaptiveJoin = ((AdaptiveJoinExecNode) node).toAdaptiveJoinNode();
             replaceInputEdge(adaptiveJoin, node);
             newNode = adaptiveJoin;
         }
@@ -126,7 +124,7 @@ public class AdaptiveBroadcastJoinProcessor implements ExecNodeGraphProcessor {
                 .anyMatch(exchange -> checkKeepInputAsIsExisted(exchange.getInputProperties()));
     }
 
-    private boolean isAdaptiveBroadcastJoinEnabled(ProcessorContext context) {
+    private boolean isAdaptiveJoinEnabled(ProcessorContext context) {
         TableConfig tableConfig = context.getPlanner().getTableConfig();
         boolean isAdaptiveBroadcastJoinEnabled =
                 tableConfig.get(

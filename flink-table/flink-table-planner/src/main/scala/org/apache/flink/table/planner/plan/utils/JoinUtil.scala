@@ -282,7 +282,7 @@ object JoinUtil {
     }
   }
 
-  def getLargeManagedMemory(joinType: FlinkJoinType, config: ExecNodeConfig): Long = {
+  def getLargeManagedMemory(joinType: FlinkJoinType, config: ReadableConfig): Long = {
     val hashJoinManagedMemory =
       config.get(ExecutionConfigOptions.TABLE_EXEC_RESOURCE_HASH_JOIN_MEMORY).getBytes
     // The memory used by SortMergeJoinIterator that buffer the matched rows, each side needs
@@ -299,16 +299,7 @@ object JoinUtil {
     Math.max(hashJoinManagedMemory, sortMergeJoinManagedMemory)
   }
 
-  def isJoinStrategyHintMatched(
-      relHints: ImmutableList[RelHint],
-      joinStrategy: JoinStrategy): Boolean = {
-    relHints.forEach(
-      relHint => {
-        if (JoinStrategy.isJoinStrategy(relHint.hintName)) {
-          JoinStrategy.valueOf(relHint.hintName) == joinStrategy
-        }
-      })
-
-    false
+  def isJoinStrategyHint(relHints: ImmutableList[RelHint]): Boolean = {
+    relHints.exists(relHint => JoinStrategy.isJoinStrategy(relHint.hintName))
   }
 }

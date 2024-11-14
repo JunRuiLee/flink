@@ -23,6 +23,7 @@ import org.apache.flink.runtime.jobgraph.forwardgroup.ForwardGroupComputeUtil;
 import org.apache.flink.runtime.jobgraph.forwardgroup.StreamNodeForwardGroup;
 import org.apache.flink.streaming.api.graph.util.ImmutableStreamGraph;
 import org.apache.flink.streaming.api.graph.util.StreamEdgeUpdateRequestInfo;
+import org.apache.flink.streaming.api.graph.util.StreamNodeUpdateRequestInfo;
 import org.apache.flink.streaming.runtime.partitioner.ForwardPartitioner;
 import org.apache.flink.streaming.runtime.partitioner.RescalePartitioner;
 import org.apache.flink.streaming.runtime.partitioner.StreamPartitioner;
@@ -53,9 +54,10 @@ public class DefaultStreamGraphContext implements StreamGraphContext {
             StreamGraph streamGraph,
             Map<Integer, StreamNodeForwardGroup> startAndEndNodeIdToForwardGroupMap,
             Map<Integer, Integer> frozenNodeToStartNodeMap,
-            Map<Integer, Map<StreamEdge, NonChainedOutput>> opIntermediateOutputsCaches) {
+            Map<Integer, Map<StreamEdge, NonChainedOutput>> opIntermediateOutputsCaches,
+            ClassLoader userClassloader) {
         this.streamGraph = streamGraph;
-        this.immutableStreamGraph = new ImmutableStreamGraph(streamGraph);
+        this.immutableStreamGraph = new ImmutableStreamGraph(streamGraph, userClassloader);
         this.startAndEndNodeIdToForwardGroupMap = startAndEndNodeIdToForwardGroupMap;
         this.frozenNodeToStartNodeMap = frozenNodeToStartNodeMap;
         this.opIntermediateOutputsCaches = opIntermediateOutputsCaches;
@@ -68,6 +70,16 @@ public class DefaultStreamGraphContext implements StreamGraphContext {
 
     @Override
     public boolean modifyStreamEdge(List<StreamEdgeUpdateRequestInfo> requestInfos) {
+        for (StreamEdgeUpdateRequestInfo requestInfo : requestInfos) {
+            StreamEdge targetEdge =
+                    getStreamEdge(
+                            requestInfo.getSourceId(),
+                            requestInfo.getTargetId(),
+                            requestInfo.getEdgeId());
+            if (targetEdge != null) {
+                targetEdge.setTypeNumber(requestInfo.getTypeNumber());
+            }
+        }
         // We first verify the legality of all requestInfos to ensure that all requests can be
         // modified atomically.
         for (StreamEdgeUpdateRequestInfo requestInfo : requestInfos) {
@@ -86,6 +98,23 @@ public class DefaultStreamGraphContext implements StreamGraphContext {
             if (newPartitioner != null) {
                 modifyOutputPartitioner(targetEdge, newPartitioner);
             }
+        }
+
+        return true;
+    }
+
+    @Override
+    public boolean modifyStreamNode(List<StreamNodeUpdateRequestInfo> requestInfos) {
+        for (StreamNodeUpdateRequestInfo requestInfo : requestInfos) {
+            StreamNode streamNode = streamGraph.getStreamNode(requestInfo.getNodeId());
+            if (requestInfo.getTypeSerializersIn().length
+                    != streamNode.getTypeSerializersIn().length) {
+                LOG.info(
+                        "Modification for node {} is not allowed as the array size of typeSerializersIn is not matched.",
+                        requestInfo.getNodeId());
+                return false;
+            }
+            streamNode.setSerializersIn(requestInfo.getTypeSerializersIn());
         }
 
         return true;

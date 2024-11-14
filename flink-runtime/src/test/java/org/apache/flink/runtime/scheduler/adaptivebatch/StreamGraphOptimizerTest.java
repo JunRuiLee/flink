@@ -22,6 +22,7 @@ import org.apache.flink.configuration.Configuration;
 import org.apache.flink.streaming.api.graph.StreamGraphContext;
 import org.apache.flink.streaming.api.graph.util.ImmutableStreamGraph;
 import org.apache.flink.streaming.api.graph.util.StreamEdgeUpdateRequestInfo;
+import org.apache.flink.streaming.api.graph.util.StreamNodeUpdateRequestInfo;
 
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -66,6 +67,12 @@ class StreamGraphOptimizerTest {
                     @Override
                     public boolean modifyStreamEdge(
                             List<StreamEdgeUpdateRequestInfo> requestInfos) {
+                        return false;
+                    }
+
+                    @Override
+                    public boolean modifyStreamNode(
+                            List<StreamNodeUpdateRequestInfo> requestInfos) {
                         return false;
                     }
                 };

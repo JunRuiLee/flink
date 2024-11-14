@@ -166,7 +166,8 @@ public class AdaptiveGraphManager implements AdaptiveGraphGenerator {
                         streamGraph,
                         startAndEndNodeIdToForwardGroupMap,
                         frozenNodeToStartNodeMap,
-                        intermediateOutputsCaches);
+                        intermediateOutputsCaches,
+                        userClassloader);
 
         this.jobGraph = createAndInitializeJobGraph(streamGraph, jobId);
 

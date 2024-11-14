@@ -18,6 +18,7 @@
 package org.apache.flink.table.planner.plan.utils
 
 import org.apache.flink.api.common.operators.Order
+import org.apache.flink.configuration.ReadableConfig
 import org.apache.flink.table.api.TableException
 import org.apache.flink.table.planner.calcite.FlinkPlannerImpl
 import org.apache.flink.table.planner.codegen.sort.SortCodeGenerator
@@ -123,7 +124,7 @@ object SortUtil {
   }
 
   def newSortGen(
-      config: ExecNodeConfig,
+      config: ReadableConfig,
       classLoader: ClassLoader,
       originalKeys: Array[Int],
       inputType: RowType): SortCodeGenerator = {

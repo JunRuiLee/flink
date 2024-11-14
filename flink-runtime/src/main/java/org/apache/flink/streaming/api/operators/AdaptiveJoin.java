@@ -18,6 +18,7 @@
 package org.apache.flink.streaming.api.operators;
 
 import org.apache.flink.annotation.Internal;
+import org.apache.flink.api.java.tuple.Tuple2;
 import org.apache.flink.configuration.ReadableConfig;
 
 import java.io.Serializable;
@@ -28,7 +29,7 @@ import java.io.Serializable;
  * meets the conditions. If not, the join operator can revert to its original implementation.
  */
 @Internal
-public interface AdaptiveBroadcastJoin extends Serializable {
+public interface AdaptiveJoin extends Serializable {
 
     /**
      * Generates a StreamOperatorFactory for this join operator using the provided ClassLoader and
@@ -41,18 +42,15 @@ public interface AdaptiveBroadcastJoin extends Serializable {
     StreamOperatorFactory<?> genOperatorFactory(ClassLoader classLoader, ReadableConfig config);
 
     /**
-     * Marks the actual build side of the join operation, indicating whether it can be broadcast.
+     * Enrich the input data sizes and checks for broadcast support.
      *
-     * @param side the input side to be marked as the build side.
-     * @param isBroadcast true if the input side should be treated as a broadcast side.
+     * @param leftInputBytes The size of the left input in bytes.
+     * @param rightInputBytes The size of the right input in bytes.
+     * @param threshold The threshold for enabling broadcast hash join.
+     * @return A Tuple2 instance. The first element of tuple is true if join can convert to
+     *     broadcast hash join, false else. The second element of tuple is true if left side is
+     *     smaller, false else.
      */
-    void markActualBuildSide(int side, boolean isBroadcast);
-
-    /**
-     * Determines if the input side of the join node can be optimized as a broadcast hash join.
-     *
-     * @param side the input side to evaluate.
-     * @return true if the input side can be optimized as a broadcast hash join.
-     */
-    boolean canBeBuildSide(int side);
+    Tuple2<Boolean, Boolean> enrichAndCheckBroadcast(
+            long leftInputBytes, long rightInputBytes, long threshold);
 }

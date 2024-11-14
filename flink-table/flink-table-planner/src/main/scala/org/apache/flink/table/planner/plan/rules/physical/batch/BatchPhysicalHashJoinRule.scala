@@ -111,7 +111,7 @@ class BatchPhysicalHashJoinRule
       val newLeft = RelOptRule.convert(left, leftRequiredTrait)
       val newRight = RelOptRule.convert(right, rightRequiredTrait)
       val providedTraitSet = join.getTraitSet.replace(FlinkConventions.BATCH_PHYSICAL)
-      val withHint = JoinUtil.isJoinStrategyHintMatched(join.getHints, JoinStrategy.SHUFFLE_HASH)
+      val withHint = JoinUtil.isJoinStrategyHint(join.getHints)
 
       val newJoin = new BatchPhysicalHashJoin(
         join.getCluster,

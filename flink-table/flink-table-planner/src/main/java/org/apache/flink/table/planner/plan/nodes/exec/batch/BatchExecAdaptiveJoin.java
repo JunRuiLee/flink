@@ -20,14 +20,11 @@ package org.apache.flink.table.planner.plan.nodes.exec.batch;
 
 import org.apache.flink.api.dag.Transformation;
 import org.apache.flink.configuration.ReadableConfig;
-import org.apache.flink.streaming.api.operators.AdaptiveBroadcastJoin;
+import org.apache.flink.streaming.api.operators.AdaptiveJoin;
 import org.apache.flink.streaming.api.operators.StreamOperatorFactory;
 import org.apache.flink.table.api.TableException;
-import org.apache.flink.table.api.config.ExecutionConfigOptions;
 import org.apache.flink.table.data.RowData;
-import org.apache.flink.table.planner.adaptive.AdaptiveBroadcastJoinOperatorGenerator;
-import org.apache.flink.table.planner.codegen.CodeGeneratorContext;
-import org.apache.flink.table.planner.codegen.ProjectionCodeGenerator;
+import org.apache.flink.table.planner.adaptive.AdaptiveJoinOperatorGenerator;
 import org.apache.flink.table.planner.delegation.PlannerBase;
 import org.apache.flink.table.planner.plan.nodes.exec.ExecEdge;
 import org.apache.flink.table.planner.plan.nodes.exec.ExecNodeBase;
@@ -35,49 +32,36 @@ import org.apache.flink.table.planner.plan.nodes.exec.ExecNodeConfig;
 import org.apache.flink.table.planner.plan.nodes.exec.ExecNodeContext;
 import org.apache.flink.table.planner.plan.nodes.exec.InputProperty;
 import org.apache.flink.table.planner.plan.nodes.exec.SingleTransformationTranslator;
+import org.apache.flink.table.planner.plan.nodes.exec.spec.JoinSpec;
 import org.apache.flink.table.planner.plan.nodes.exec.utils.ExecNodeUtil;
 import org.apache.flink.table.planner.plan.utils.JoinUtil;
 import org.apache.flink.table.planner.plan.utils.OperatorType;
-import org.apache.flink.table.planner.plan.utils.SorMergeJoinOperatorUtil;
 import org.apache.flink.table.runtime.generated.GeneratedJoinCondition;
-import org.apache.flink.table.runtime.operators.join.FlinkJoinType;
-import org.apache.flink.table.runtime.operators.join.SortMergeJoinFunction;
-import org.apache.flink.table.runtime.operators.join.adaptive.AdaptiveBroadcastJoinOperatorFactory;
+import org.apache.flink.table.runtime.operators.join.adaptive.AdaptiveJoinOperatorFactory;
 import org.apache.flink.table.runtime.typeutils.InternalTypeInfo;
-import org.apache.flink.table.types.logical.LogicalType;
 import org.apache.flink.table.types.logical.RowType;
 import org.apache.flink.util.InstantiationUtil;
 
-import org.apache.calcite.rex.RexNode;
-
 import java.io.IOException;
 import java.util.List;
-import java.util.stream.IntStream;
 
 /** {@link BatchExecNode} for Adaptive Broadcast Join. */
-public class BatchExecAdaptiveBroadcastJoin extends ExecNodeBase<RowData>
+public class BatchExecAdaptiveJoin extends ExecNodeBase<RowData>
         implements BatchExecNode<RowData>, SingleTransformationTranslator<RowData> {
 
-    private final FlinkJoinType joinType;
-    private final int[] leftKeys;
-    private final int[] rightKeys;
-    private final boolean[] filterNulls;
+    private final JoinSpec joinSpec;
     private final boolean leftIsBuild;
     private final int estimatedLeftAvgRowSize;
     private final int estimatedRightAvgRowSize;
     private final long estimatedLeftRowCount;
     private final long estimatedRightRowCount;
     private final boolean tryDistinctBuildRow;
-    private final RexNode condition;
     private final String description;
     private final OperatorType originalJoin;
 
-    public BatchExecAdaptiveBroadcastJoin(
+    public BatchExecAdaptiveJoin(
             ReadableConfig tableConfig,
-            FlinkJoinType joinType,
-            int[] leftKeys,
-            int[] rightKeys,
-            boolean[] filterNulls,
+            JoinSpec joinSpec,
             int estimatedLeftAvgRowSize,
             int estimatedRightAvgRowSize,
             long estimatedLeftRowCount,
@@ -87,27 +71,21 @@ public class BatchExecAdaptiveBroadcastJoin extends ExecNodeBase<RowData>
             List<InputProperty> inputProperties,
             RowType outputType,
             String description,
-            RexNode condition,
             OperatorType originalJoin) {
         super(
                 ExecNodeContext.newNodeId(),
-                ExecNodeContext.newContext(BatchExecAdaptiveBroadcastJoin.class),
-                ExecNodeContext.newPersistedConfig(
-                        BatchExecAdaptiveBroadcastJoin.class, tableConfig),
+                ExecNodeContext.newContext(BatchExecAdaptiveJoin.class),
+                ExecNodeContext.newPersistedConfig(BatchExecAdaptiveJoin.class, tableConfig),
                 inputProperties,
                 outputType,
                 description);
-        this.joinType = joinType;
-        this.leftKeys = leftKeys;
-        this.rightKeys = rightKeys;
-        this.filterNulls = filterNulls;
-        this.leftIsBuild = leftIsBuild;
+        this.joinSpec = joinSpec;
         this.estimatedLeftAvgRowSize = estimatedLeftAvgRowSize;
         this.estimatedRightAvgRowSize = estimatedRightAvgRowSize;
         this.estimatedLeftRowCount = estimatedLeftRowCount;
         this.estimatedRightRowCount = estimatedRightRowCount;
+        this.leftIsBuild = leftIsBuild;
         this.tryDistinctBuildRow = tryDistinctBuildRow;
-        this.condition = condition;
         this.description = description;
         this.originalJoin = originalJoin;
     }
@@ -126,88 +104,38 @@ public class BatchExecAdaptiveBroadcastJoin extends ExecNodeBase<RowData>
         // get input types
         RowType leftType = (RowType) leftInputEdge.getOutputType();
         RowType rightType = (RowType) rightInputEdge.getOutputType();
-
-        LogicalType[] keyFieldTypes =
-                IntStream.of(leftKeys).mapToObj(leftType::getTypeAt).toArray(LogicalType[]::new);
-        RowType keyType = RowType.of(keyFieldTypes);
-
+        long managedMemory = JoinUtil.getLargeManagedMemory(joinSpec.getJoinType(), config);
         GeneratedJoinCondition condFunc =
                 JoinUtil.generateConditionFunction(
                         config,
                         planner.getFlinkContext().getClassLoader(),
-                        condition,
+                        joinSpec.getNonEquiCondition().orElse(null),
                         leftType,
                         rightType);
 
-        // operator
-        long externalBufferMemory =
-                config.get(ExecutionConfigOptions.TABLE_EXEC_RESOURCE_EXTERNAL_BUFFER_MEMORY)
-                        .getBytes();
-        long managedMemory = JoinUtil.getLargeManagedMemory(joinType, config);
-
-        // sort merge join function
-        SortMergeJoinFunction sortMergeJoinFunction =
-                SorMergeJoinOperatorUtil.getSortMergeJoinFunction(
-                        planner.getFlinkContext().getClassLoader(),
-                        config,
-                        joinType,
+        AdaptiveJoinOperatorGenerator adaptiveJoin =
+                new AdaptiveJoinOperatorGenerator(
+                        joinSpec.getLeftKeys(),
+                        joinSpec.getRightKeys(),
+                        joinSpec.getJoinType(),
+                        joinSpec.getFilterNulls(),
                         leftType,
                         rightType,
-                        leftKeys,
-                        rightKeys,
-                        keyType,
-                        leftIsBuild,
-                        filterNulls,
                         condFunc,
-                        1.0 * externalBufferMemory / managedMemory);
-
-        boolean compressionEnabled =
-                config.get(ExecutionConfigOptions.TABLE_EXEC_SPILL_COMPRESSION_ENABLED);
-        int compressionBlockSize =
-                (int)
-                        config.get(ExecutionConfigOptions.TABLE_EXEC_SPILL_COMPRESSION_BLOCK_SIZE)
-                                .getBytes();
-        AdaptiveBroadcastJoin adaptiveBroadcastJoin =
-                new AdaptiveBroadcastJoinOperatorGenerator(
-                        keyType,
-                        leftType,
-                        rightType,
-                        leftKeys,
-                        rightKeys,
-                        ProjectionCodeGenerator.generateProjection(
-                                new CodeGeneratorContext(
-                                        config, planner.getFlinkContext().getClassLoader()),
-                                "HashJoinLeftProjection",
-                                leftType,
-                                keyType,
-                                leftKeys),
-                        ProjectionCodeGenerator.generateProjection(
-                                new CodeGeneratorContext(
-                                        config, planner.getFlinkContext().getClassLoader()),
-                                "HashJoinRightProjection",
-                                rightType,
-                                keyType,
-                                rightKeys),
                         estimatedLeftAvgRowSize,
-                        estimatedLeftRowCount,
                         estimatedRightAvgRowSize,
+                        estimatedLeftRowCount,
                         estimatedRightRowCount,
-                        condFunc,
-                        leftIsBuild,
-                        compressionEnabled,
-                        compressionBlockSize,
-                        sortMergeJoinFunction,
-                        joinType,
-                        originalJoin,
-                        filterNulls,
-                        tryDistinctBuildRow);
+                        tryDistinctBuildRow,
+                        managedMemory,
+                        originalJoin);
 
         return ExecNodeUtil.createTwoInputTransformation(
                 leftInputTransform,
                 rightInputTransform,
                 createTransformationName(config),
                 createTransformationDescription(config),
-                getAdaptiveBroadcastJoinOperatorFactory(adaptiveBroadcastJoin),
+                getAdaptiveBroadcastJoinOperatorFactory(adaptiveJoin),
                 InternalTypeInfo.of(getOutputType()),
                 rightInputTransform.getParallelism(),
                 managedMemory,
@@ -215,11 +143,10 @@ public class BatchExecAdaptiveBroadcastJoin extends ExecNodeBase<RowData>
     }
 
     private StreamOperatorFactory<RowData> getAdaptiveBroadcastJoinOperatorFactory(
-            AdaptiveBroadcastJoin adaptiveBroadcastJoin) {
+            AdaptiveJoin adaptiveJoin) {
         try {
-            byte[] adaptiveJoinSerialized =
-                    InstantiationUtil.serializeObject(adaptiveBroadcastJoin);
-            return new AdaptiveBroadcastJoinOperatorFactory<>(adaptiveJoinSerialized);
+            byte[] adaptiveJoinSerialized = InstantiationUtil.serializeObject(adaptiveJoin);
+            return new AdaptiveJoinOperatorFactory<>(adaptiveJoinSerialized);
         } catch (IOException e) {
             throw new TableException("Adaptive broadcast join operator serialized failed.", e);
         }
@@ -227,7 +154,7 @@ public class BatchExecAdaptiveBroadcastJoin extends ExecNodeBase<RowData>
 
     @Override
     public String getDescription() {
-        return "AdaptiveBroadcastJoin("
+        return "AdaptiveJoin("
                 + "originalJoin=["
                 + originalJoin
                 + "], "
