@@ -29,6 +29,7 @@ import org.apache.flink.runtime.io.network.api.CheckpointBarrier;
 import org.apache.flink.runtime.io.network.buffer.Buffer;
 import org.apache.flink.runtime.io.network.buffer.CompositeBuffer;
 import org.apache.flink.runtime.io.network.buffer.FileRegionBuffer;
+import org.apache.flink.runtime.io.network.buffer.FullyFilledBuffer;
 import org.apache.flink.runtime.io.network.logger.NetworkActionsLogger;
 import org.apache.flink.runtime.io.network.partition.BufferAvailabilityListener;
 import org.apache.flink.runtime.io.network.partition.PartitionNotFoundException;
@@ -44,7 +45,10 @@ import org.slf4j.LoggerFactory;
 import javax.annotation.Nullable;
 
 import java.io.IOException;
+import java.util.ArrayDeque;
 import java.util.Collections;
+import java.util.Deque;
+import java.util.List;
 import java.util.Optional;
 import java.util.Timer;
 import java.util.TimerTask;
@@ -116,6 +120,7 @@ public class LocalInputChannel extends InputChannel implements BufferAvailabilit
 
     @Override
     protected void requestSubpartitions() throws IOException {
+        checkState(pendingBuffers.isEmpty());
 
         boolean retriggerRequest = false;
         boolean notifyDataAvailable = false;
@@ -222,9 +227,15 @@ public class LocalInputChannel extends InputChannel implements BufferAvailabilit
         return subpartitionView.peekNextBufferSubpartitionId();
     }
 
+    private final Deque<BufferAndBacklog> pendingBuffers = new ArrayDeque<>();
+
     @Override
     public Optional<BufferAndAvailability> getNextBuffer() throws IOException {
         checkError();
+
+        if (!pendingBuffers.isEmpty()) {
+            return getBufferAndAvailability(pendingBuffers.removeFirst());
+        }
 
         ResultSubpartitionView subpartitionView = this.subpartitionView;
         if (subpartitionView == null) {
@@ -267,6 +278,27 @@ public class LocalInputChannel extends InputChannel implements BufferAvailabilit
 
         Buffer buffer = next.buffer();
 
+        if (buffer instanceof FullyFilledBuffer) {
+            List<Buffer> partialBuffers = ((FullyFilledBuffer) buffer).getPartialBuffers();
+            int seq = next.getSequenceNumber();
+            for (Buffer partialBuffer : partialBuffers) {
+                pendingBuffers.add(
+                        new BufferAndBacklog(
+                                partialBuffer,
+                                next.buffersInBacklog(),
+                                buffer.getDataType(),
+                                seq++));
+            }
+
+            return getBufferAndAvailability(pendingBuffers.removeFirst());
+        }
+
+        return getBufferAndAvailability(next);
+    }
+
+    private Optional<BufferAndAvailability> getBufferAndAvailability(BufferAndBacklog next)
+            throws IOException {
+        Buffer buffer = next.buffer();
         if (buffer instanceof FileRegionBuffer) {
             buffer = ((FileRegionBuffer) buffer).readInto(inputGate.getUnpooledSegment());
         }

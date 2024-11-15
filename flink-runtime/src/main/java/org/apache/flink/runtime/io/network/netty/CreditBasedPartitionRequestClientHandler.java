@@ -19,8 +19,11 @@
 package org.apache.flink.runtime.io.network.netty;
 
 import org.apache.flink.annotation.VisibleForTesting;
+import org.apache.flink.core.memory.MemorySegment;
+import org.apache.flink.core.memory.MemorySegmentFactory;
 import org.apache.flink.runtime.io.network.ConnectionID;
 import org.apache.flink.runtime.io.network.NetworkClientHandler;
+import org.apache.flink.runtime.io.network.buffer.NetworkBuffer;
 import org.apache.flink.runtime.io.network.netty.exception.LocalTransportException;
 import org.apache.flink.runtime.io.network.netty.exception.RemoteTransportException;
 import org.apache.flink.runtime.io.network.netty.exception.TransportException;
@@ -39,9 +42,11 @@ import org.slf4j.LoggerFactory;
 
 import java.io.IOException;
 import java.net.SocketAddress;
+import java.nio.ByteBuffer;
 import java.util.ArrayDeque;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentMap;
+import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.atomic.AtomicReference;
 
 import static org.apache.flink.util.Preconditions.checkNotNull;
@@ -358,11 +363,48 @@ class CreditBasedPartitionRequestClientHandler extends ChannelInboundHandlerAdap
         if (bufferOrEvent.isBuffer() && bufferOrEvent.bufferSize == 0) {
             inputChannel.onEmptyBuffer(bufferOrEvent.sequenceNumber, bufferOrEvent.backlog);
         } else if (bufferOrEvent.getBuffer() != null) {
-            inputChannel.onBuffer(
-                    bufferOrEvent.getBuffer(),
-                    bufferOrEvent.sequenceNumber,
-                    bufferOrEvent.backlog,
-                    bufferOrEvent.subpartitionId);
+            if (bufferOrEvent.numOfPartialBuffers > 0) {
+                int offset = 0;
+
+                int seq = bufferOrEvent.sequenceNumber;
+                AtomicInteger waitToBeReleased =
+                        new AtomicInteger(bufferOrEvent.numOfPartialBuffers);
+                for (int i = 0; i < bufferOrEvent.numOfPartialBuffers; i++) {
+                    int size = bufferOrEvent.getList().get(i);
+                    ByteBuffer nioBuffer = bufferOrEvent.getBuffer().getNioBuffer(offset, size);
+
+                    MemorySegment segment;
+                    if (nioBuffer.isDirect()) {
+                        segment = MemorySegmentFactory.wrapOffHeapMemory(nioBuffer);
+                    } else {
+                        byte[] bytes = nioBuffer.array();
+                        segment = MemorySegmentFactory.wrap(bytes);
+                    }
+
+                    inputChannel.onBuffer(
+                            new NetworkBuffer(
+                                    segment,
+                                    memorySegment -> {
+                                        if (waitToBeReleased.decrementAndGet() == 0) {
+                                            bufferOrEvent.getBuffer().recycleBuffer();
+                                        }
+                                    },
+                                    bufferOrEvent.dataType,
+                                    bufferOrEvent.isCompressed,
+                                    size),
+                            seq++,
+                            i == bufferOrEvent.numOfPartialBuffers - 1 ? bufferOrEvent.backlog : -1,
+                            bufferOrEvent.subpartitionId);
+                    offset += size;
+                }
+            } else {
+                inputChannel.onBuffer(
+                        bufferOrEvent.getBuffer(),
+                        bufferOrEvent.sequenceNumber,
+                        bufferOrEvent.backlog,
+                        bufferOrEvent.subpartitionId);
+            }
+
         } else {
             throw new IllegalStateException(
                     "The read buffer is null in credit-based input channel.");
