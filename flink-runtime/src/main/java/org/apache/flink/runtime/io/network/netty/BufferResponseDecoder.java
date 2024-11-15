@@ -140,6 +140,7 @@ class BufferResponseDecoder extends NettyMessageDecoder {
         decodedDataBufferSize = 0;
 
         messageHeaderBuffer.clear();
+        partialBytes = null;
     }
 
     @Override
@@ -149,5 +150,7 @@ class BufferResponseDecoder extends NettyMessageDecoder {
         }
 
         messageHeaderBuffer.release();
+
+        partialBytes = null;
     }
 }
