@@ -23,6 +23,7 @@ import org.apache.flink.annotation.VisibleForTesting;
 import org.apache.flink.api.common.JobID;
 import org.apache.flink.api.common.JobStatus;
 import org.apache.flink.api.java.tuple.Tuple2;
+import org.apache.flink.configuration.BatchExecutionOptions;
 import org.apache.flink.configuration.BlobServerOptions;
 import org.apache.flink.configuration.CheckpointingOptions;
 import org.apache.flink.configuration.ClusterOptions;
@@ -35,6 +36,7 @@ import org.apache.flink.configuration.WebOptions;
 import org.apache.flink.core.execution.CheckpointType;
 import org.apache.flink.core.execution.SavepointFormatType;
 import org.apache.flink.core.failure.FailureEnricher;
+import org.apache.flink.core.fs.Path;
 import org.apache.flink.metrics.MetricGroup;
 import org.apache.flink.runtime.blob.BlobServer;
 import org.apache.flink.runtime.checkpoint.CheckpointStatsSnapshot;
@@ -54,6 +56,7 @@ import org.apache.flink.runtime.executiongraph.ArchivedExecutionGraph;
 import org.apache.flink.runtime.executiongraph.ArchivedExecutionJobVertex;
 import org.apache.flink.runtime.heartbeat.HeartbeatServices;
 import org.apache.flink.runtime.highavailability.HighAvailabilityServices;
+import org.apache.flink.runtime.highavailability.HighAvailabilityServicesUtils;
 import org.apache.flink.runtime.highavailability.JobResultEntry;
 import org.apache.flink.runtime.highavailability.JobResultStore;
 import org.apache.flink.runtime.highavailability.JobResultStoreOptions;
@@ -90,6 +93,9 @@ import org.apache.flink.runtime.rpc.FencedRpcEndpoint;
 import org.apache.flink.runtime.rpc.RpcService;
 import org.apache.flink.runtime.rpc.RpcServiceUtils;
 import org.apache.flink.runtime.scheduler.ExecutionGraphInfo;
+import org.apache.flink.runtime.shuffle.ShuffleMaster;
+import org.apache.flink.runtime.shuffle.ShuffleMasterSnapshot;
+import org.apache.flink.runtime.shuffle.ShuffleMasterSnapshotUtil;
 import org.apache.flink.runtime.webmonitor.retriever.GatewayRetriever;
 import org.apache.flink.streaming.api.graph.ExecutionPlan;
 import org.apache.flink.streaming.api.graph.StreamingJobGraphGenerator;
@@ -368,6 +374,51 @@ public abstract class Dispatcher extends FencedRpcEndpoint<DispatcherId>
 
     private void startDispatcherServices() throws Exception {
         try {
+            ShuffleMaster<?> shuffleMaster = jobManagerSharedServices.getShuffleMaster();
+            boolean isJobRecoveryEnabled =
+                    configuration.get(BatchExecutionOptions.JOB_RECOVERY_ENABLED)
+                            && shuffleMaster.supportsBatchSnapshot();
+            if (isJobRecoveryEnabled) {
+                String clusterId = configuration.get(HighAvailabilityOptions.HA_CLUSTER_ID);
+                Path path =
+                        new Path(
+                                HighAvailabilityServicesUtils.getClusterHighAvailableStoragePath(
+                                        configuration),
+                                "shuffleMaster-snapshot");
+
+                if (ShuffleMasterSnapshotUtil.isShuffleMasterSnapshotExist(path, clusterId)) {
+                    ShuffleMasterSnapshot snapshot =
+                            ShuffleMasterSnapshotUtil.readSnapshot(path, clusterId);
+
+                    log.info("Restore shuffle master state from cluster level snapshot.");
+                    shuffleMaster.restoreClusterLevelState(snapshot);
+                } else {
+                    shuffleMaster.restoreClusterLevelState(null);
+
+                    CompletableFuture<ShuffleMasterSnapshot> snapshotFuture =
+                            new CompletableFuture<>();
+
+                    jobManagerSharedServices
+                            .getIoExecutor()
+                            .execute(
+                                    () -> {
+                                        log.info("Take a cluster level shuffle master snapshot.");
+                                        shuffleMaster.snapshotCLusterLevelState(snapshotFuture);
+                                        snapshotFuture.thenAccept(
+                                                shuffleMasterSnapshot -> {
+                                                    try {
+                                                        ShuffleMasterSnapshotUtil.writeSnapshot(
+                                                                shuffleMasterSnapshot,
+                                                                path,
+                                                                clusterId);
+                                                    } catch (IOException e) {
+                                                        throw new RuntimeException(e);
+                                                    }
+                                                });
+                                    });
+                }
+            }
+
             registerDispatcherMetrics(jobManagerMetricGroup);
         } catch (Exception e) {
             handleStartDispatcherServicesException(e);

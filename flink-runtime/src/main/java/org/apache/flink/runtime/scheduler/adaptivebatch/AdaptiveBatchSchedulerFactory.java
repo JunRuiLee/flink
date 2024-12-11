@@ -170,7 +170,8 @@ public class AdaptiveBatchSchedulerFactory implements SchedulerNGFactory {
                     new FileSystemJobEventStore(jobGraph.getJobID(), jobMasterConfiguration);
             JobEventManager jobEventManager = new JobEventManager(jobEventStore);
             jobRecoveryHandler =
-                    new DefaultBatchJobRecoveryHandler(jobEventManager, jobMasterConfiguration);
+                    new DefaultBatchJobRecoveryHandler(
+                            jobEventManager, jobMasterConfiguration, jobGraph.getJobID());
         } else {
             jobRecoveryHandler = new DummyBatchJobRecoveryHandler();
         }

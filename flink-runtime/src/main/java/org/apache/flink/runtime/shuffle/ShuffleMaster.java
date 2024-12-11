@@ -141,12 +141,22 @@ public interface ShuffleMaster<T extends ShuffleDescriptor> extends AutoCloseabl
     }
 
     /** Triggers a snapshot of the shuffle master's state. */
-    default void snapshotState(
+    default void snapshotCLusterLevelState(
+            CompletableFuture<ShuffleMasterSnapshot> snapshotFuture) {}
+
+    /** Triggers a snapshot of the shuffle master's state which related the specified job. */
+    default void snapshotJobLevelState(
             CompletableFuture<ShuffleMasterSnapshot> snapshotFuture,
-            ShuffleMasterSnapshotContext context) {}
+            ShuffleMasterSnapshotContext context,
+            JobID jobId) {}
 
     /** Restores the state of the shuffle master from the provided snapshots. */
-    default void restoreState(List<ShuffleMasterSnapshot> snapshots) {}
+    default void restoreClusterLevelState(ShuffleMasterSnapshot snapshot) {}
+
+    /**
+     * Restores the state of the shuffle master from the provided snapshots for the specified job.
+     */
+    default void restoreJobLevelState(List<ShuffleMasterSnapshot> snapshots, JobID jobId) {}
 
     /**
      * Notifies that the recovery process of result partitions has started.
