@@ -235,7 +235,7 @@ class DefaultExecutionTopologyTest {
                 executionGraph, Collections.singletonList(ejv1));
 
         // Operating execution topology graph: 2. notify job vertex2 added
-        adapter.notifyExecutionGraphUpdatedWithNewlyJobVertices(
+        adapter.notifyExecutionGraphUpdatedWithNewJobVertices(
                 Arrays.asList(jobVertex1, jobVertex2));
 
         // Operating execution topology graph: 3. notify job vertex2 initialized

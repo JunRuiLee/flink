@@ -182,7 +182,7 @@ public class DefaultExecutionTopology implements SchedulingTopology {
         return logicalPipelinedRegionsByJobVertexId;
     }
 
-    public void notifyExecutionGraphUpdatedWithNewlyJobVertices(
+    public void notifyExecutionGraphUpdatedWithNewJobVertices(
             List<JobVertex> topologicallySortedJobVertices) {
         this.logicalPipelinedRegionsByJobVertexId =
                 DefaultExecutionTopology.computeLogicalPipelinedRegionsByJobVertexId(

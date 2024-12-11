@@ -104,8 +104,8 @@ public class IntermediateResult {
         this.executionPlanSchedulingContext = checkNotNull(executionPlanSchedulingContext);
     }
 
-    public boolean isAllConsumerVerticesCreated() {
-        return intermediateDataSet.isAllConsumerVerticesCreated();
+    public boolean areAllConsumerVerticesCreated() {
+        return intermediateDataSet.areAllConsumerVerticesCreated();
     }
 
     public void setPartition(int partitionNumber, IntermediateResultPartition partition) {

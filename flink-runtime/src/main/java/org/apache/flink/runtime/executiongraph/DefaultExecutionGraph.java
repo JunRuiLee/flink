@@ -897,7 +897,7 @@ public class DefaultExecutionGraph implements ExecutionGraph, InternalExecutionG
                 IterableUtils.toStream(getVerticesTopologically())
                         .map(ExecutionJobVertex::getJobVertex)
                         .collect(Collectors.toList());
-        executionTopology.notifyExecutionGraphUpdatedWithNewlyJobVertices(
+        executionTopology.notifyExecutionGraphUpdatedWithNewJobVertices(
                 topologicallySortedJobVertices);
     }
 

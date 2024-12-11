@@ -91,7 +91,7 @@ public class IntermediateResultPartition {
 
         // for dynamic graph, if any consumer vertex is still not initialized or not transfer to
         // job vertex, this result partition can not be released
-        if (!totalResult.isAllConsumerVerticesCreated()) {
+        if (!totalResult.areAllConsumerVerticesCreated()) {
             return false;
         }
         for (JobVertexID jobVertexId : totalResult.getConsumerVertices()) {
