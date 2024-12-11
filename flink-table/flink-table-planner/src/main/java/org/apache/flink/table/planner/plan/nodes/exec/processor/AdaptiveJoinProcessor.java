@@ -98,6 +98,7 @@ public class AdaptiveJoinProcessor implements ExecNodeGraphProcessor {
                 || isUpstreamNodeKeepInputAsIs(node.getInputEdges())) {
             return node;
         }
+
         ExecNode<?> newNode = node;
         if (node instanceof AdaptiveJoinExecNode
                 && ((AdaptiveJoinExecNode) node).canBeTransformedToAdaptiveJoin()) {

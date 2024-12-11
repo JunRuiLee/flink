@@ -20,7 +20,6 @@ package org.apache.flink.table.planner.plan.nodes.exec.batch;
 
 import org.apache.flink.api.dag.Transformation;
 import org.apache.flink.configuration.ReadableConfig;
-import org.apache.flink.streaming.api.operators.AdaptiveJoin;
 import org.apache.flink.streaming.api.operators.StreamOperatorFactory;
 import org.apache.flink.table.api.TableException;
 import org.apache.flink.table.data.RowData;
@@ -37,6 +36,7 @@ import org.apache.flink.table.planner.plan.nodes.exec.utils.ExecNodeUtil;
 import org.apache.flink.table.planner.plan.utils.JoinUtil;
 import org.apache.flink.table.planner.plan.utils.OperatorType;
 import org.apache.flink.table.runtime.generated.GeneratedJoinCondition;
+import org.apache.flink.table.runtime.operators.join.AdaptiveJoin;
 import org.apache.flink.table.runtime.operators.join.adaptive.AdaptiveJoinOperatorFactory;
 import org.apache.flink.table.runtime.typeutils.InternalTypeInfo;
 import org.apache.flink.table.types.logical.RowType;
@@ -128,6 +128,7 @@ public class BatchExecAdaptiveJoin extends ExecNodeBase<RowData>
                         estimatedRightRowCount,
                         tryDistinctBuildRow,
                         managedMemory,
+                        leftIsBuild,
                         originalJoin);
 
         return ExecNodeUtil.createTwoInputTransformation(

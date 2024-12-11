@@ -21,15 +21,18 @@ import org.apache.flink.annotation.Internal;
 import org.apache.flink.api.java.tuple.Tuple2;
 import org.apache.flink.configuration.ReadableConfig;
 import org.apache.flink.streaming.api.operators.AbstractStreamOperatorFactory;
-import org.apache.flink.streaming.api.operators.AdaptiveJoin;
 import org.apache.flink.streaming.api.operators.StreamOperator;
 import org.apache.flink.streaming.api.operators.StreamOperatorFactory;
 import org.apache.flink.streaming.api.operators.StreamOperatorParameters;
 import org.apache.flink.table.planner.loader.PlannerModule;
+import org.apache.flink.table.runtime.operators.join.AdaptiveJoin;
 import org.apache.flink.util.InstantiationUtil;
 import org.apache.flink.util.Preconditions;
 
+import javax.annotation.Nullable;
+
 import java.io.IOException;
+import java.util.function.Function;
 
 /**
  * Adaptive join factory.
@@ -48,11 +51,12 @@ public class AdaptiveJoinOperatorFactory<OUT> extends AbstractStreamOperatorFact
 
     private final byte[] adaptiveJoinSerialized;
 
-    private transient AdaptiveJoin adaptiveJoin;
+    @Nullable private transient AdaptiveJoin adaptiveJoin;
 
-    private StreamOperatorFactory<OUT> finalFactory;
+    @Nullable private StreamOperatorFactory<OUT> finalFactory;
 
     public AdaptiveJoinOperatorFactory(byte[] adaptiveJoinSerialized) {
+        Preconditions.checkNotNull(adaptiveJoinSerialized);
         this.adaptiveJoinSerialized = adaptiveJoinSerialized;
     }
 
@@ -66,10 +70,20 @@ public class AdaptiveJoinOperatorFactory<OUT> extends AbstractStreamOperatorFact
     }
 
     @Override
-    public Tuple2<Boolean, Boolean> enrichAndCheckBroadcast(
-            long leftInputSize, long rightInputSize, long threshold) {
+    public Tuple2<Boolean, Boolean> tryBroadcastOptimization(
+            Long leftInputSize,
+            Long rightInputSize,
+            Long threshold,
+            Function<Boolean, Boolean> tryTransformEdges) {
         checkAndLazyInitialize();
-        return adaptiveJoin.enrichAndCheckBroadcast(leftInputSize, rightInputSize, threshold);
+        return adaptiveJoin.tryBroadcastOptimization(
+                leftInputSize, rightInputSize, threshold, tryTransformEdges);
+    }
+
+    @Override
+    public boolean isLeftBuild() {
+        checkAndLazyInitialize();
+        return adaptiveJoin.isLeftBuild();
     }
 
     private void checkAndLazyInitialize() {
@@ -96,7 +110,9 @@ public class AdaptiveJoinOperatorFactory<OUT> extends AbstractStreamOperatorFact
 
     @Override
     public Class<? extends StreamOperator> getStreamOperatorClass(ClassLoader classLoader) {
-        return finalFactory.getStreamOperatorClass(classLoader);
+        throw new UnsupportedOperationException(
+                "The method should not be invoked in the "
+                        + "adaptive join operator for batch jobs.");
     }
 
     private void lazyInitialize() {

@@ -21,7 +21,9 @@ package org.apache.flink.streaming.api.graph;
 import org.apache.flink.annotation.Internal;
 import org.apache.flink.runtime.jobgraph.forwardgroup.ForwardGroupComputeUtil;
 import org.apache.flink.runtime.jobgraph.forwardgroup.StreamNodeForwardGroup;
+import org.apache.flink.streaming.api.graph.util.ImmutableStreamEdge;
 import org.apache.flink.streaming.api.graph.util.ImmutableStreamGraph;
+import org.apache.flink.streaming.api.graph.util.ImmutableStreamNode;
 import org.apache.flink.streaming.api.graph.util.StreamEdgeUpdateRequestInfo;
 import org.apache.flink.streaming.api.graph.util.StreamNodeUpdateRequestInfo;
 import org.apache.flink.streaming.runtime.partitioner.ForwardPartitioner;
@@ -49,18 +51,21 @@ public class DefaultStreamGraphContext implements StreamGraphContext {
     private final Map<Integer, StreamNodeForwardGroup> startAndEndNodeIdToForwardGroupMap;
     private final Map<Integer, Integer> frozenNodeToStartNodeMap;
     private final Map<Integer, Map<StreamEdge, NonChainedOutput>> opIntermediateOutputsCaches;
+    private final Set<Integer> finishedStreamNodeIds;
 
     public DefaultStreamGraphContext(
             StreamGraph streamGraph,
             Map<Integer, StreamNodeForwardGroup> startAndEndNodeIdToForwardGroupMap,
             Map<Integer, Integer> frozenNodeToStartNodeMap,
             Map<Integer, Map<StreamEdge, NonChainedOutput>> opIntermediateOutputsCaches,
+            Set<Integer> finishedStreamNodeIds,
             ClassLoader userClassloader) {
         this.streamGraph = streamGraph;
         this.immutableStreamGraph = new ImmutableStreamGraph(streamGraph, userClassloader);
         this.startAndEndNodeIdToForwardGroupMap = startAndEndNodeIdToForwardGroupMap;
         this.frozenNodeToStartNodeMap = frozenNodeToStartNodeMap;
         this.opIntermediateOutputsCaches = opIntermediateOutputsCaches;
+        this.finishedStreamNodeIds = finishedStreamNodeIds;
     }
 
     @Override
@@ -76,7 +81,7 @@ public class DefaultStreamGraphContext implements StreamGraphContext {
                             requestInfo.getSourceId(),
                             requestInfo.getTargetId(),
                             requestInfo.getEdgeId());
-            if (targetEdge != null) {
+            if (targetEdge != null && requestInfo.getTypeNumber() != 0) {
                 targetEdge.setTypeNumber(requestInfo.getTypeNumber());
             }
         }
@@ -115,6 +120,17 @@ public class DefaultStreamGraphContext implements StreamGraphContext {
                 return false;
             }
             streamNode.setSerializersIn(requestInfo.getTypeSerializersIn());
+        }
+
+        return true;
+    }
+
+    @Override
+    public boolean areAllUpstreamNodesFinished(ImmutableStreamNode streamNode) {
+        for (ImmutableStreamEdge streamEdge : streamNode.getInEdges()) {
+            if (!finishedStreamNodeIds.contains(streamEdge.getSourceId())) {
+                return false;
+            }
         }
 
         return true;

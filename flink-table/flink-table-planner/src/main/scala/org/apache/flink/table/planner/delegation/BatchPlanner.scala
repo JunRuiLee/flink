@@ -35,7 +35,7 @@ import org.apache.flink.table.planner.plan.nodes.exec.utils.ExecNodePlanDumper
 import org.apache.flink.table.planner.plan.optimize.{BatchCommonSubGraphBasedOptimizer, Optimizer}
 import org.apache.flink.table.planner.plan.utils.FlinkRelOptUtil
 import org.apache.flink.table.planner.utils.{DummyStreamExecutionEnvironment, Logging}
-import org.apache.flink.table.runtime.strategy.AdaptiveBroadcastJoinOptimizationStrategy
+import org.apache.flink.table.runtime.strategy.{AdaptiveBroadcastJoinOptimizationStrategy, PostProcessAdaptiveJoinStrategy}
 
 import org.apache.calcite.plan.{ConventionTraitDef, RelTrait, RelTraitDef}
 import org.apache.calcite.rel.RelCollationTraitDef
@@ -112,6 +112,7 @@ class BatchPlanner(
         != OptimizerConfigOptions.AdaptiveBroadcastJoinStrategy.NONE
     ) {
       optimizationStrategies.add(classOf[AdaptiveBroadcastJoinOptimizationStrategy].getName)
+      optimizationStrategies.add(classOf[PostProcessAdaptiveJoinStrategy].getName)
     }
     configuration.set(
       StreamGraphOptimizationStrategy.STREAM_GRAPH_OPTIMIZATION_STRATEGY,
