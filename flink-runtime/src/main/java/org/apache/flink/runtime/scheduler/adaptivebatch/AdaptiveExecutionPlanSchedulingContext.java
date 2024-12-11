@@ -35,7 +35,7 @@ import static org.apache.flink.util.Preconditions.checkNotNull;
 import static org.apache.flink.util.Preconditions.checkState;
 
 /**
- * The {@code AdaptiveExecutionPlanSchedulingContext} class implements the {@link
+ * The {@link AdaptiveExecutionPlanSchedulingContext} class implements the {@link
  * ExecutionPlanSchedulingContext} interface to provide a dynamic scheduling context that adapts
  * execution plans based on runtime conditions.
  */

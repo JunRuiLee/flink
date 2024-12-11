@@ -35,8 +35,10 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.concurrent.Executor;
 
+import static org.apache.flink.util.Preconditions.checkArgument;
+
 /**
- * The {@code DefaultAdaptiveExecutionHandler} implements the {@link AdaptiveExecutionHandler}
+ * The {@link DefaultAdaptiveExecutionHandler} implements the {@link AdaptiveExecutionHandler}
  * interface to provide an incrementally generated job graph.
  *
  * <p>This handler can modify the execution plan before downstream job vertices are created,
@@ -124,6 +126,10 @@ public class DefaultAdaptiveExecutionHandler implements AdaptiveExecutionHandler
                 adaptiveGraphManager.getStreamNodeForwardGroupByVertexId(jobVertexId);
         if (forwardGroup != null && !forwardGroup.isParallelismDecided()) {
             forwardGroup.setParallelism(parallelism);
+        } else if (forwardGroup != null) {
+            checkArgument(
+                    forwardGroup.getParallelism() == parallelism,
+                    "Incompatible parallelism for forward group.");
         }
     }
 

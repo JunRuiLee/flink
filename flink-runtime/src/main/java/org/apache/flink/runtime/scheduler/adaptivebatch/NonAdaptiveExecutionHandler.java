@@ -31,10 +31,11 @@ import org.slf4j.LoggerFactory;
 
 import java.util.Map;
 
+import static org.apache.flink.util.Preconditions.checkArgument;
 import static org.apache.flink.util.Preconditions.checkNotNull;
 
 /**
- * A {@code NonAdaptiveExecutionHandler} implements the {@link AdaptiveExecutionHandler} interface
+ * A {@link NonAdaptiveExecutionHandler} implements the {@link AdaptiveExecutionHandler} interface
  * to provide an immutable static job graph.
  */
 public class NonAdaptiveExecutionHandler implements AdaptiveExecutionHandler {
@@ -90,6 +91,10 @@ public class NonAdaptiveExecutionHandler implements AdaptiveExecutionHandler {
         JobVertexForwardGroup forwardGroup = forwardGroupsByJobVertexId.get(jobVertexId);
         if (forwardGroup != null && !forwardGroup.isParallelismDecided()) {
             forwardGroup.setParallelism(parallelism);
+        } else if (forwardGroup != null) {
+            checkArgument(
+                    forwardGroup.getParallelism() == parallelism,
+                    "Incompatible parallelism for forward group.");
         }
     }
 

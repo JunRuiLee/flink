@@ -30,7 +30,7 @@ import java.util.stream.Collectors;
 import static org.apache.flink.util.Preconditions.checkState;
 
 /**
- * The {@code NonAdaptiveExecutionPlanSchedulingContext} is a final class that implements a
+ * The {@link NonAdaptiveExecutionPlanSchedulingContext} is a final class that implements a
  * scheduling context for execution plans that do not require adaptive changes.
  */
 public final class NonAdaptiveExecutionPlanSchedulingContext
