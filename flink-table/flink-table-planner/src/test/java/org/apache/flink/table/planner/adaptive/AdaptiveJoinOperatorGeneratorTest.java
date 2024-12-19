@@ -71,7 +71,7 @@ class AdaptiveJoinOperatorGeneratorTest extends Int2HashJoinOperatorTestBase {
         assertThat(adaptiveJoin.tryBroadcastOptimization(2L, 10L, 1L, areEdgesCanBeTransformed))
                 .isEqualTo(new Tuple2<>(false, true));
         assertThat(adaptiveJoin.tryBroadcastOptimization(10L, 2L, 1L, areEdgesCanBeTransformed))
-                .isEqualTo(new Tuple2<>(false, true));
+                .isEqualTo(new Tuple2<>(false, false));
     }
 
     @Test
@@ -91,11 +91,11 @@ class AdaptiveJoinOperatorGeneratorTest extends Int2HashJoinOperatorTestBase {
         assertThat(adaptiveJoin.tryBroadcastOptimization(2L, 10L, 5L, areEdgesCanBeTransformed))
                 .isEqualTo(new Tuple2<>(true, true));
         assertThat(adaptiveJoin.tryBroadcastOptimization(10L, 2L, 5L, areEdgesCanBeTransformed))
-                .isEqualTo(new Tuple2<>(false, true));
+                .isEqualTo(new Tuple2<>(false, false));
         assertThat(adaptiveJoin.tryBroadcastOptimization(2L, 10L, 1L, areEdgesCanBeTransformed))
                 .isEqualTo(new Tuple2<>(false, true));
         assertThat(adaptiveJoin.tryBroadcastOptimization(10L, 2L, 1L, areEdgesCanBeTransformed))
-                .isEqualTo(new Tuple2<>(false, true));
+                .isEqualTo(new Tuple2<>(false, false));
     }
 
     @Test
@@ -143,7 +143,7 @@ class AdaptiveJoinOperatorGeneratorTest extends Int2HashJoinOperatorTestBase {
         assertThat(adaptiveJoin.tryBroadcastOptimization(2L, 10L, 1L, areEdgesCanBeTransformed))
                 .isEqualTo(new Tuple2<>(false, true));
         assertThat(adaptiveJoin.tryBroadcastOptimization(10L, 2L, 1L, areEdgesCanBeTransformed))
-                .isEqualTo(new Tuple2<>(false, true));
+                .isEqualTo(new Tuple2<>(false, false));
     }
 
     // ---------------------- Test the correctness of the generated join operator -----------------
