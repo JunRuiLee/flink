@@ -858,16 +858,14 @@ public class AdaptiveBatchScheduler extends DefaultScheduler {
         // global default max parallelism.
         return computeVertexParallelismStore(
                 vertices,
-                v -> computeMaxParallelism(v.getParallelism(), defaultMaxParallelism),
+                v -> {
+                    if (v.getParallelism() > 0) {
+                        return getDefaultMaxParallelism(v);
+                    } else {
+                        return defaultMaxParallelism;
+                    }
+                },
                 Function.identity());
-    }
-
-    public static int computeMaxParallelism(int parallelism, int defaultMaxParallelism) {
-        if (parallelism > 0) {
-            return getDefaultMaxParallelism(parallelism);
-        } else {
-            return defaultMaxParallelism;
-        }
     }
 
     private static void resetDynamicParallelism(Iterable<JobVertex> vertices) {

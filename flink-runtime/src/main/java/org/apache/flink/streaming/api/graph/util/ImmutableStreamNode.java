@@ -60,12 +60,4 @@ public class ImmutableStreamNode {
     public int getId() {
         return streamNode.getId();
     }
-
-    public int getMaxParallelism() {
-        return streamNode.getMaxParallelism();
-    }
-
-    public int getParallelism() {
-        return streamNode.getParallelism();
-    }
 }

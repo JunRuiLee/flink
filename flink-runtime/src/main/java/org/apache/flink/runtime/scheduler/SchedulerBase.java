@@ -299,12 +299,8 @@ public abstract class SchedulerBase implements SchedulerNG, CheckpointScheduling
      * @return the computed max parallelism
      */
     public static int getDefaultMaxParallelism(JobVertex vertex) {
-        return getDefaultMaxParallelism(vertex.getParallelism());
-    }
-
-    public static int getDefaultMaxParallelism(int parallelism) {
         return KeyGroupRangeAssignment.computeDefaultMaxParallelism(
-                normalizeParallelism(parallelism));
+                normalizeParallelism(vertex.getParallelism()));
     }
 
     public static VertexParallelismStore computeVertexParallelismStore(
