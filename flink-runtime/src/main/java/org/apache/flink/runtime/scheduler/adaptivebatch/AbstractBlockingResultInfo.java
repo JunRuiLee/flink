@@ -22,7 +22,6 @@ import org.apache.flink.annotation.VisibleForTesting;
 import org.apache.flink.runtime.executiongraph.ResultPartitionBytes;
 import org.apache.flink.runtime.jobgraph.IntermediateDataSetID;
 
-import java.util.Collections;
 import java.util.HashMap;
 import java.util.Map;
 
@@ -45,14 +44,11 @@ abstract class AbstractBlockingResultInfo implements BlockingResultInfo {
     protected final Map<Integer, long[]> subpartitionBytesByPartitionIndex;
 
     AbstractBlockingResultInfo(
-            IntermediateDataSetID resultId,
-            int numOfPartitions,
-            int numOfSubpartitions,
-            Map<Integer, long[]> subpartitionBytesByPartitionIndex) {
+            IntermediateDataSetID resultId, int numOfPartitions, int numOfSubpartitions) {
         this.resultId = checkNotNull(resultId);
         this.numOfPartitions = numOfPartitions;
         this.numOfSubpartitions = numOfSubpartitions;
-        this.subpartitionBytesByPartitionIndex = new HashMap<>(subpartitionBytesByPartitionIndex);
+        this.subpartitionBytesByPartitionIndex = new HashMap<>();
     }
 
     @Override
@@ -75,10 +71,5 @@ abstract class AbstractBlockingResultInfo implements BlockingResultInfo {
     @VisibleForTesting
     int getNumOfRecordedPartitions() {
         return subpartitionBytesByPartitionIndex.size();
-    }
-
-    @Override
-    public Map<Integer, long[]> getSubpartitionBytesByPartitionIndex() {
-        return Collections.unmodifiableMap(subpartitionBytesByPartitionIndex);
     }
 }

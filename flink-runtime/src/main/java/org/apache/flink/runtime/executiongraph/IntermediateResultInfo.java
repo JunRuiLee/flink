@@ -29,21 +29,9 @@ public interface IntermediateResultInfo {
     IntermediateDataSetID getResultId();
 
     /**
-     * Checks whether there is a single subpartition that contains all the produced data.
+     * Whether it is a broadcast result.
      *
-     * @return true if one subpartition that contains all the data; false otherwise.
-     */
-    boolean isSingleSubpartitionContainsAllData();
-
-    /**
-     * Determines whether the associated intermediate data set uses a broadcast distribution
-     * pattern.
-     *
-     * <p>A broadcast distribution pattern indicates that all data produced by this intermediate
-     * data set should be broadcast to every downstream consumer.
-     *
-     * @return true if the intermediate data set is using a broadcast distribution pattern; false
-     *     otherwise.
+     * @return whether it is a broadcast result
      */
     boolean isBroadcast();
 

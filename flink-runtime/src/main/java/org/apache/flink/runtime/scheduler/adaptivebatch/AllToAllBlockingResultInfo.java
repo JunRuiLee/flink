@@ -18,7 +18,6 @@
 
 package org.apache.flink.runtime.scheduler.adaptivebatch;
 
-import org.apache.flink.annotation.VisibleForTesting;
 import org.apache.flink.runtime.executiongraph.IndexRange;
 import org.apache.flink.runtime.executiongraph.ResultPartitionBytes;
 import org.apache.flink.runtime.jobgraph.IntermediateDataSetID;
@@ -27,9 +26,7 @@ import javax.annotation.Nullable;
 
 import java.util.Arrays;
 import java.util.Collections;
-import java.util.HashMap;
 import java.util.List;
-import java.util.Map;
 import java.util.Optional;
 import java.util.stream.Collectors;
 
@@ -38,55 +35,27 @@ import static org.apache.flink.util.Preconditions.checkState;
 /** Information of All-To-All result. */
 public class AllToAllBlockingResultInfo extends AbstractBlockingResultInfo {
 
-    private final boolean singleSubpartitionContainsAllData;
-
-    private boolean isBroadcast;
+    private final boolean isBroadcast;
 
     /**
      * Aggregated subpartition bytes, which aggregates the subpartition bytes with the same
      * subpartition index in different partitions. Note that We can aggregate them because they will
      * be consumed by the same downstream task.
      */
-    @Nullable protected List<Long> aggregatedSubpartitionBytes;
+    @Nullable private List<Long> aggregatedSubpartitionBytes;
 
-    @VisibleForTesting
     AllToAllBlockingResultInfo(
             IntermediateDataSetID resultId,
             int numOfPartitions,
             int numOfSubpartitions,
-            boolean isBroadcast,
-            boolean singleSubpartitionContainsAllData) {
-        this(
-                resultId,
-                numOfPartitions,
-                numOfSubpartitions,
-                singleSubpartitionContainsAllData,
-                new HashMap<>());
+            boolean isBroadcast) {
+        super(resultId, numOfPartitions, numOfSubpartitions);
         this.isBroadcast = isBroadcast;
-    }
-
-    AllToAllBlockingResultInfo(
-            IntermediateDataSetID resultId,
-            int numOfPartitions,
-            int numOfSubpartitions,
-            boolean singleSubpartitionContainsAllData,
-            Map<Integer, long[]> subpartitionBytesByPartitionIndex) {
-        super(resultId, numOfPartitions, numOfSubpartitions, subpartitionBytesByPartitionIndex);
-        this.singleSubpartitionContainsAllData = singleSubpartitionContainsAllData;
     }
 
     @Override
     public boolean isBroadcast() {
         return isBroadcast;
-    }
-
-    @Override
-    public boolean isSingleSubpartitionContainsAllData() {
-        return singleSubpartitionContainsAllData;
-    }
-
-    void setBroadcast(boolean isBroadcast) {
-        this.isBroadcast = isBroadcast;
     }
 
     @Override
@@ -114,7 +83,7 @@ public class AllToAllBlockingResultInfo extends AbstractBlockingResultInfo {
         List<Long> bytes =
                 Optional.ofNullable(aggregatedSubpartitionBytes)
                         .orElse(getAggregatedSubpartitionBytesInternal());
-        if (singleSubpartitionContainsAllData) {
+        if (isBroadcast) {
             return bytes.get(0);
         } else {
             return bytes.stream().reduce(0L, Long::sum);

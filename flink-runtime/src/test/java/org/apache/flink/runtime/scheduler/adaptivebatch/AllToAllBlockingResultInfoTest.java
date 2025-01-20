@@ -32,19 +32,18 @@ class AllToAllBlockingResultInfoTest {
 
     @Test
     void testGetNumBytesProducedForNonBroadcast() {
-        testGetNumBytesProduced(false, false, 192L);
+        testGetNumBytesProduced(false, 192L);
     }
 
     @Test
     void testGetNumBytesProducedForBroadcast() {
-        testGetNumBytesProduced(true, true, 96L);
-        testGetNumBytesProduced(true, false, 192L);
+        testGetNumBytesProduced(true, 96L);
     }
 
     @Test
     void testGetNumBytesProducedWithIndexRange() {
         AllToAllBlockingResultInfo resultInfo =
-                new AllToAllBlockingResultInfo(new IntermediateDataSetID(), 2, 2, false, false);
+                new AllToAllBlockingResultInfo(new IntermediateDataSetID(), 2, 2, false);
         resultInfo.recordPartitionInfo(0, new ResultPartitionBytes(new long[] {32L, 64L}));
         resultInfo.recordPartitionInfo(1, new ResultPartitionBytes(new long[] {128L, 256L}));
 
@@ -58,7 +57,7 @@ class AllToAllBlockingResultInfoTest {
     @Test
     void testGetAggregatedSubpartitionBytes() {
         AllToAllBlockingResultInfo resultInfo =
-                new AllToAllBlockingResultInfo(new IntermediateDataSetID(), 2, 2, false, false);
+                new AllToAllBlockingResultInfo(new IntermediateDataSetID(), 2, 2, false);
         resultInfo.recordPartitionInfo(0, new ResultPartitionBytes(new long[] {32L, 64L}));
         resultInfo.recordPartitionInfo(1, new ResultPartitionBytes(new long[] {128L, 256L}));
 
@@ -68,9 +67,8 @@ class AllToAllBlockingResultInfoTest {
     @Test
     void testGetBytesWithPartialPartitionInfos() {
         AllToAllBlockingResultInfo resultInfo =
-                new AllToAllBlockingResultInfo(new IntermediateDataSetID(), 2, 2, false, false);
+                new AllToAllBlockingResultInfo(new IntermediateDataSetID(), 2, 2, false);
         resultInfo.recordPartitionInfo(0, new ResultPartitionBytes(new long[] {32L, 64L}));
-        resultInfo.aggregateSubpartitionBytes();
 
         assertThatThrownBy(resultInfo::getNumBytesProduced)
                 .isInstanceOf(IllegalStateException.class);
@@ -81,7 +79,7 @@ class AllToAllBlockingResultInfoTest {
     @Test
     void testRecordPartitionInfoMultiTimes() {
         AllToAllBlockingResultInfo resultInfo =
-                new AllToAllBlockingResultInfo(new IntermediateDataSetID(), 2, 2, false, false);
+                new AllToAllBlockingResultInfo(new IntermediateDataSetID(), 2, 2, false);
 
         ResultPartitionBytes partitionBytes1 = new ResultPartitionBytes(new long[] {32L, 64L});
         ResultPartitionBytes partitionBytes2 = new ResultPartitionBytes(new long[] {64L, 128L});
@@ -117,15 +115,9 @@ class AllToAllBlockingResultInfoTest {
         assertThat(resultInfo.getNumOfRecordedPartitions()).isZero();
     }
 
-    private void testGetNumBytesProduced(
-            boolean isBroadcast, boolean singleSubpartitionContainsAllData, long expectedBytes) {
+    private void testGetNumBytesProduced(boolean isBroadcast, long expectedBytes) {
         AllToAllBlockingResultInfo resultInfo =
-                new AllToAllBlockingResultInfo(
-                        new IntermediateDataSetID(),
-                        2,
-                        2,
-                        isBroadcast,
-                        singleSubpartitionContainsAllData);
+                new AllToAllBlockingResultInfo(new IntermediateDataSetID(), 2, 2, isBroadcast);
         resultInfo.recordPartitionInfo(0, new ResultPartitionBytes(new long[] {32L, 32L}));
         resultInfo.recordPartitionInfo(1, new ResultPartitionBytes(new long[] {64L, 64L}));
 

@@ -32,14 +32,11 @@ import org.apache.flink.runtime.jobgraph.JobVertexID;
 import org.apache.flink.shaded.guava32.com.google.common.collect.Iterables;
 
 import org.junit.jupiter.api.Test;
-import org.junit.jupiter.params.ParameterizedTest;
-import org.junit.jupiter.params.provider.ValueSource;
 
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.List;
-import java.util.Map;
 import java.util.Set;
 import java.util.stream.Collectors;
 
@@ -107,9 +104,8 @@ class DefaultVertexParallelismAndInputInfosDeciderTest {
 
     @Test
     void testDecideParallelismWithMaxSubpartitionLimitation() {
-        BlockingResultInfo resultInfo1 =
-                new TestingBlockingResultInfo(false, false, 1L, 1024, 1024);
-        BlockingResultInfo resultInfo2 = new TestingBlockingResultInfo(false, false, 1L, 512, 512);
+        BlockingResultInfo resultInfo1 = new TestingBlockingResultInfo(false, 1L, 1024, 1024);
+        BlockingResultInfo resultInfo2 = new TestingBlockingResultInfo(false, 1L, 512, 512);
 
         int parallelism =
                 createDeciderAndDecideParallelism(
@@ -210,19 +206,13 @@ class DefaultVertexParallelismAndInputInfosDeciderTest {
                         new IndexRange(8, 9)));
     }
 
-    @ParameterizedTest
-    @ValueSource(booleans = {true, false})
-    void testAllEdgesAllToAllAndOneIsBroadcast(boolean singleSubpartitionContainsAllData) {
+    @Test
+    void testAllEdgesAllToAllAndOneIsBroadcast() {
         AllToAllBlockingResultInfo resultInfo1 =
                 createAllToAllBlockingResultInfo(
-                        new long[] {10L, 15L, 13L, 12L, 1L, 10L, 8L, 20L, 12L, 17L}, false, false);
+                        new long[] {10L, 15L, 13L, 12L, 1L, 10L, 8L, 20L, 12L, 17L});
         AllToAllBlockingResultInfo resultInfo2 =
-                createAllToAllBlockingResultInfo(
-                        singleSubpartitionContainsAllData
-                                ? new long[] {10L}
-                                : new long[] {1L, 1L, 1L, 1L, 1L, 1L, 1L, 1L, 1L, 1L},
-                        true,
-                        singleSubpartitionContainsAllData);
+                createAllToAllBlockingResultInfo(new long[] {10L}, true);
 
         ParallelismAndInputInfos parallelismAndInputInfos =
                 createDeciderAndDecideParallelismAndInputInfos(
@@ -234,30 +224,17 @@ class DefaultVertexParallelismAndInputInfosDeciderTest {
         checkAllToAllJobVertexInputInfo(
                 parallelismAndInputInfos.getJobVertexInputInfos().get(resultInfo1.getResultId()),
                 Arrays.asList(new IndexRange(0, 4), new IndexRange(5, 8), new IndexRange(9, 9)));
-        if (singleSubpartitionContainsAllData) {
-            checkAllToAllJobVertexInputInfo(
-                    parallelismAndInputInfos
-                            .getJobVertexInputInfos()
-                            .get(resultInfo2.getResultId()),
-                    Arrays.asList(
-                            new IndexRange(0, 0), new IndexRange(0, 0), new IndexRange(0, 0)));
-        } else {
-            checkAllToAllJobVertexInputInfo(
-                    parallelismAndInputInfos
-                            .getJobVertexInputInfos()
-                            .get(resultInfo2.getResultId()),
-                    Arrays.asList(
-                            new IndexRange(0, 9), new IndexRange(0, 9), new IndexRange(0, 9)));
-        }
+        checkAllToAllJobVertexInputInfo(
+                parallelismAndInputInfos.getJobVertexInputInfos().get(resultInfo2.getResultId()),
+                Arrays.asList(new IndexRange(0, 0), new IndexRange(0, 0), new IndexRange(0, 0)));
     }
 
     @Test
     void testAllEdgesBroadcast() {
-        AllToAllBlockingResultInfo resultInfo1;
-        AllToAllBlockingResultInfo resultInfo2;
-        resultInfo1 = createAllToAllBlockingResultInfo(new long[] {10L}, true, false);
-        resultInfo2 = createAllToAllBlockingResultInfo(new long[] {10L}, true, false);
-
+        AllToAllBlockingResultInfo resultInfo1 =
+                createAllToAllBlockingResultInfo(new long[] {10L}, true);
+        AllToAllBlockingResultInfo resultInfo2 =
+                createAllToAllBlockingResultInfo(new long[] {10L}, true);
         ParallelismAndInputInfos parallelismAndInputInfos =
                 createDeciderAndDecideParallelismAndInputInfos(
                         1, 10, 60L, Arrays.asList(resultInfo1, resultInfo2));
@@ -265,15 +242,12 @@ class DefaultVertexParallelismAndInputInfosDeciderTest {
         assertThat(parallelismAndInputInfos.getParallelism()).isOne();
         assertThat(parallelismAndInputInfos.getJobVertexInputInfos()).hasSize(2);
 
-        List<IndexRange> expectedSubpartitionRanges =
-                Collections.singletonList(new IndexRange(0, 0));
-
         checkAllToAllJobVertexInputInfo(
                 parallelismAndInputInfos.getJobVertexInputInfos().get(resultInfo1.getResultId()),
-                expectedSubpartitionRanges);
+                Collections.singletonList(new IndexRange(0, 0)));
         checkAllToAllJobVertexInputInfo(
                 parallelismAndInputInfos.getJobVertexInputInfos().get(resultInfo2.getResultId()),
-                expectedSubpartitionRanges);
+                Collections.singletonList(new IndexRange(0, 0)));
     }
 
     @Test
@@ -385,8 +359,7 @@ class DefaultVertexParallelismAndInputInfosDeciderTest {
         long[] subpartitionBytes = new long[1024];
         Arrays.fill(subpartitionBytes, 1L);
         AllToAllBlockingResultInfo resultInfo =
-                new AllToAllBlockingResultInfo(
-                        new IntermediateDataSetID(), 1024, 1024, false, false);
+                new AllToAllBlockingResultInfo(new IntermediateDataSetID(), 1024, 1024, false);
         for (int i = 0; i < 1024; ++i) {
             resultInfo.recordPartitionInfo(i, new ResultPartitionBytes(subpartitionBytes));
         }
@@ -534,13 +507,11 @@ class DefaultVertexParallelismAndInputInfosDeciderTest {
 
     private AllToAllBlockingResultInfo createAllToAllBlockingResultInfo(
             long[] aggregatedSubpartitionBytes) {
-        return createAllToAllBlockingResultInfo(aggregatedSubpartitionBytes, false, false);
+        return createAllToAllBlockingResultInfo(aggregatedSubpartitionBytes, false);
     }
 
     private AllToAllBlockingResultInfo createAllToAllBlockingResultInfo(
-            long[] aggregatedSubpartitionBytes,
-            boolean isBroadcast,
-            boolean isSingleSubpartitionContainsAllData) {
+            long[] aggregatedSubpartitionBytes, boolean isBroadcast) {
         // For simplicity, we configure only one partition here, so the aggregatedSubpartitionBytes
         // is equivalent to the subpartition bytes of partition0
         AllToAllBlockingResultInfo resultInfo =
@@ -548,8 +519,7 @@ class DefaultVertexParallelismAndInputInfosDeciderTest {
                         new IntermediateDataSetID(),
                         1,
                         aggregatedSubpartitionBytes.length,
-                        isBroadcast,
-                        isSingleSubpartitionContainsAllData);
+                        isBroadcast);
         resultInfo.recordPartitionInfo(0, new ResultPartitionBytes(aggregatedSubpartitionBytes));
         return resultInfo;
     }
@@ -582,31 +552,17 @@ class DefaultVertexParallelismAndInputInfosDeciderTest {
     private static class TestingBlockingResultInfo implements BlockingResultInfo {
 
         private final boolean isBroadcast;
-        private final boolean singleSubpartitionContainsAllData;
         private final long producedBytes;
         private final int numPartitions;
         private final int numSubpartitions;
 
-        private TestingBlockingResultInfo(
-                boolean isBroadcast,
-                boolean singleSubpartitionContainsAllData,
-                long producedBytes) {
-            this(
-                    isBroadcast,
-                    singleSubpartitionContainsAllData,
-                    producedBytes,
-                    MAX_PARALLELISM,
-                    MAX_PARALLELISM);
+        private TestingBlockingResultInfo(boolean isBroadcast, long producedBytes) {
+            this(isBroadcast, producedBytes, MAX_PARALLELISM, MAX_PARALLELISM);
         }
 
         private TestingBlockingResultInfo(
-                boolean isBroadcast,
-                boolean singleSubpartitionContainsAllData,
-                long producedBytes,
-                int numPartitions,
-                int numSubpartitions) {
+                boolean isBroadcast, long producedBytes, int numPartitions, int numSubpartitions) {
             this.isBroadcast = isBroadcast;
-            this.singleSubpartitionContainsAllData = singleSubpartitionContainsAllData;
             this.producedBytes = producedBytes;
             this.numPartitions = numPartitions;
             this.numSubpartitions = numSubpartitions;
@@ -620,11 +576,6 @@ class DefaultVertexParallelismAndInputInfosDeciderTest {
         @Override
         public boolean isBroadcast() {
             return isBroadcast;
-        }
-
-        @Override
-        public boolean isSingleSubpartitionContainsAllData() {
-            return singleSubpartitionContainsAllData;
         }
 
         @Override
@@ -666,10 +617,10 @@ class DefaultVertexParallelismAndInputInfosDeciderTest {
     }
 
     private static BlockingResultInfo createFromBroadcastResult(long producedBytes) {
-        return new TestingBlockingResultInfo(true, true, producedBytes);
+        return new TestingBlockingResultInfo(true, producedBytes);
     }
 
     private static BlockingResultInfo createFromNonBroadcastResult(long producedBytes) {
-        return new TestingBlockingResultInfo(false, false, producedBytes);
+        return new TestingBlockingResultInfo(false, producedBytes);
     }
 }

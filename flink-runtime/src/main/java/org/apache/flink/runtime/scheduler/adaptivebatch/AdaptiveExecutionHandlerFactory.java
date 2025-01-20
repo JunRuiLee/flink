@@ -21,7 +21,6 @@ package org.apache.flink.runtime.scheduler.adaptivebatch;
 import org.apache.flink.runtime.jobgraph.JobGraph;
 import org.apache.flink.streaming.api.graph.ExecutionPlan;
 import org.apache.flink.streaming.api.graph.StreamGraph;
-import org.apache.flink.util.DynamicCodeLoadingException;
 
 import java.util.concurrent.Executor;
 
@@ -47,8 +46,7 @@ public class AdaptiveExecutionHandlerFactory {
     public static AdaptiveExecutionHandler create(
             ExecutionPlan executionPlan,
             ClassLoader userClassLoader,
-            Executor serializationExecutor)
-            throws DynamicCodeLoadingException {
+            Executor serializationExecutor) {
         if (executionPlan instanceof JobGraph) {
             return new NonAdaptiveExecutionHandler((JobGraph) executionPlan);
         } else {
