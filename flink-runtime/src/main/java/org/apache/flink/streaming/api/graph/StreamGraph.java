@@ -20,7 +20,6 @@ package org.apache.flink.streaming.api.graph;
 import org.apache.flink.annotation.Internal;
 import org.apache.flink.annotation.VisibleForTesting;
 import org.apache.flink.api.common.ExecutionConfig;
-import org.apache.flink.api.common.InvalidProgramException;
 import org.apache.flink.api.common.JobID;
 import org.apache.flink.api.common.attribute.Attribute;
 import org.apache.flink.api.common.cache.DistributedCache;
@@ -100,7 +99,6 @@ import java.util.Collection;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.HashSet;
-import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
@@ -1116,6 +1114,7 @@ public class StreamGraph implements Pipeline, ExecutionPlan {
         return getStreamNode(sourceId).getOutEdges();
     }
 
+    @VisibleForTesting
     public List<StreamEdge> getStreamEdges(int sourceId, int targetId) {
         List<StreamEdge> result = new ArrayList<>();
         for (StreamEdge edge : getStreamNode(sourceId).getOutEdges()) {

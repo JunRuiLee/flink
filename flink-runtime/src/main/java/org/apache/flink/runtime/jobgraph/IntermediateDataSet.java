@@ -91,7 +91,7 @@ public class IntermediateDataSet implements java.io.Serializable {
         // sanity check
         checkState(id.equals(edge.getSourceId()), "Incompatible dataset id.");
 
-        if (consumers.isEmpty() && distributionPattern == null) {
+        if (consumers.isEmpty()) {
             distributionPattern = edge.getDistributionPattern();
             isBroadcast = edge.isBroadcast();
         } else {
@@ -101,19 +101,6 @@ public class IntermediateDataSet implements java.io.Serializable {
             checkState(isBroadcast == edge.isBroadcast(), "Incompatible broadcast type.");
         }
         consumers.add(edge);
-    }
-
-    public void configure(DistributionPattern distributionPattern, boolean isBroadcast) {
-        checkState(consumers.isEmpty(), "The output job edges have already been added.");
-        if (this.distributionPattern == null) {
-            this.distributionPattern = distributionPattern;
-            this.isBroadcast = isBroadcast;
-        } else {
-            checkState(
-                    this.distributionPattern == distributionPattern,
-                    "Incompatible distribution pattern.");
-            checkState(this.isBroadcast == isBroadcast, "Incompatible broadcast type.");
-        }
     }
 
     // --------------------------------------------------------------------------------------------
