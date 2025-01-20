@@ -21,8 +21,6 @@ package org.apache.flink.streaming.api.graph.util;
 import org.apache.flink.annotation.Internal;
 import org.apache.flink.streaming.runtime.partitioner.StreamPartitioner;
 
-import javax.annotation.Nullable;
-
 /** Helper class carries the data required to updates a stream edge. */
 @Internal
 public class StreamEdgeUpdateRequestInfo {
@@ -36,9 +34,6 @@ public class StreamEdgeUpdateRequestInfo {
     // For two or more inputs, typeNumber must be >= 1, and 0 means the request will not change the
     // typeNumber.
     private int typeNumber;
-
-    // Null means no modifications will be applied to it
-    @Nullable private Boolean intraInputKeyCorrelated;
 
     public StreamEdgeUpdateRequestInfo(String edgeId, Integer sourceId, Integer targetId) {
         this.edgeId = edgeId;
@@ -54,12 +49,6 @@ public class StreamEdgeUpdateRequestInfo {
 
     public StreamEdgeUpdateRequestInfo withTypeNumber(int typeNumber) {
         this.typeNumber = typeNumber;
-        return this;
-    }
-
-    public StreamEdgeUpdateRequestInfo withIntraInputKeyCorrelated(
-            boolean intraInputKeyCorrelated) {
-        this.intraInputKeyCorrelated = intraInputKeyCorrelated;
         return this;
     }
 
@@ -81,10 +70,5 @@ public class StreamEdgeUpdateRequestInfo {
 
     public int getTypeNumber() {
         return typeNumber;
-    }
-
-    @Nullable
-    public Boolean getIntraInputKeyCorrelated() {
-        return intraInputKeyCorrelated;
     }
 }
