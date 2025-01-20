@@ -1010,13 +1010,9 @@ class StreamingJobGraphGeneratorTest {
                 streamGraph.getStreamNodes().stream()
                         .sorted(Comparator.comparingInt(StreamNode::getId))
                         .collect(Collectors.toList());
-        assertThat(
-                        areOperatorsChainable(
-                                streamNodes.get(0), streamNodes.get(1), streamGraph, false))
+        assertThat(areOperatorsChainable(streamNodes.get(0), streamNodes.get(1), streamGraph))
                 .isTrue();
-        assertThat(
-                        areOperatorsChainable(
-                                streamNodes.get(1), streamNodes.get(2), streamGraph, false))
+        assertThat(areOperatorsChainable(streamNodes.get(1), streamNodes.get(2), streamGraph))
                 .isFalse();
     }
 
@@ -1062,13 +1058,9 @@ class StreamingJobGraphGeneratorTest {
                 streamGraph.getStreamNodes().stream()
                         .sorted(Comparator.comparingInt(StreamNode::getId))
                         .collect(Collectors.toList());
-        assertThat(
-                        areOperatorsChainable(
-                                streamNodes.get(0), streamNodes.get(1), streamGraph, false))
+        assertThat(areOperatorsChainable(streamNodes.get(0), streamNodes.get(1), streamGraph))
                 .isFalse();
-        assertThat(
-                        areOperatorsChainable(
-                                streamNodes.get(1), streamNodes.get(2), streamGraph, false))
+        assertThat(areOperatorsChainable(streamNodes.get(1), streamNodes.get(2), streamGraph))
                 .isTrue();
     }
 

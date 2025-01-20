@@ -310,8 +310,7 @@ public class JobGraph implements ExecutionPlan {
         setSerializedExecutionConfig(new SerializedValue<>(executionConfig));
     }
 
-    public void setSerializedExecutionConfig(
-            SerializedValue<ExecutionConfig> serializedExecutionConfig) {
+    void setSerializedExecutionConfig(SerializedValue<ExecutionConfig> serializedExecutionConfig) {
         this.serializedExecutionConfig =
                 checkNotNull(
                         serializedExecutionConfig,
