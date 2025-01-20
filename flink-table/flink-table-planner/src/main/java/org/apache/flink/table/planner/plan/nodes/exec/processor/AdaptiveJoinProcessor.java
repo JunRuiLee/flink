@@ -18,7 +18,6 @@
 
 package org.apache.flink.table.planner.plan.nodes.exec.processor;
 
-import org.apache.flink.configuration.BatchExecutionOptions;
 import org.apache.flink.configuration.JobManagerOptions;
 import org.apache.flink.table.api.TableConfig;
 import org.apache.flink.table.api.TableException;
@@ -150,12 +149,8 @@ public class AdaptiveJoinProcessor implements ExecNodeGraphProcessor {
                         .orElse(JobManagerOptions.SchedulerType.AdaptiveBatch);
         boolean isAdaptiveBatchSchedulerEnabled =
                 schedulerType == JobManagerOptions.SchedulerType.AdaptiveBatch;
-        // Currently, adaptive join optimization and batch job progress recovery cannot be enabled
-        // simultaneously so we should disable it here.
-        // TODO: If job recovery for adaptive execution is supported in the future, this logic will
-        //  need to be removed.
-        boolean isJobRecoveryEnabled = tableConfig.get(BatchExecutionOptions.JOB_RECOVERY_ENABLED);
-        return isAdaptiveJoinEnabled && isAdaptiveBatchSchedulerEnabled && !isJobRecoveryEnabled;
+
+        return isAdaptiveJoinEnabled && isAdaptiveBatchSchedulerEnabled;
     }
 
     private boolean areAllInputsHashShuffle(ExecNode<?> node) {
