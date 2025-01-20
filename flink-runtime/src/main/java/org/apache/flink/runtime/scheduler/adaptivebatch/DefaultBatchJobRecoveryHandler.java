@@ -18,7 +18,6 @@
 
 package org.apache.flink.runtime.scheduler.adaptivebatch;
 
-import org.apache.flink.api.common.JobID;
 import org.apache.flink.api.common.JobStatus;
 import org.apache.flink.api.java.tuple.Tuple2;
 import org.apache.flink.configuration.BatchExecutionOptions;
@@ -86,7 +85,6 @@ public class DefaultBatchJobRecoveryHandler
     private final Logger log = LoggerFactory.getLogger(getClass());
 
     private final JobEventManager jobEventManager;
-    private final JobID jobId;
 
     private BatchJobRecoveryContext context;
 
@@ -118,9 +116,8 @@ public class DefaultBatchJobRecoveryHandler
     private final Duration previousWorkerRecoveryTimeout;
 
     public DefaultBatchJobRecoveryHandler(
-            JobEventManager jobEventManager, Configuration jobMasterConfiguration, JobID jobId) {
+            JobEventManager jobEventManager, Configuration jobMasterConfiguration) {
         this.jobEventManager = jobEventManager;
-        this.jobId = checkNotNull(jobId);
 
         this.previousWorkerRecoveryTimeout =
                 jobMasterConfiguration.get(
@@ -204,7 +201,7 @@ public class DefaultBatchJobRecoveryHandler
 
     private void restoreShuffleMaster(List<ShuffleMasterSnapshot> snapshots) {
         checkState(context.getShuffleMaster().supportsBatchSnapshot());
-        context.getShuffleMaster().restoreState(snapshots, jobId);
+        context.getShuffleMaster().restoreState(snapshots);
     }
 
     private void startRecoveringInternal() {
@@ -438,9 +435,7 @@ public class DefaultBatchJobRecoveryHandler
                 new CompletableFuture<>();
         context.getShuffleMaster()
                 .snapshotState(
-                        shuffleMasterSnapshotFuture,
-                        new DefaultShuffleMasterSnapshotContext(),
-                        jobId);
+                        shuffleMasterSnapshotFuture, new DefaultShuffleMasterSnapshotContext());
         return shuffleMasterSnapshotFuture;
     }
 

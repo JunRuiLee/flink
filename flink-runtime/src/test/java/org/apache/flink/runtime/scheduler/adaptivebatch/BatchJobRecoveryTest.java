@@ -1131,9 +1131,7 @@ public class BatchJobRecoveryTest {
                         .setDelayExecutor(delayedExecutor)
                         .setJobRecoveryHandler(
                                 new DefaultBatchJobRecoveryHandler(
-                                        new JobEventManager(jobEventStore),
-                                        jobMasterConfig,
-                                        jobGraph.getJobID()))
+                                        new JobEventManager(jobEventStore), jobMasterConfig))
                         .setVertexParallelismAndInputInfosDecider(
                                 createCustomParallelismDecider(DECIDED_SINK_PARALLELISM))
                         .setDefaultMaxParallelism(defaultMaxParallelism);
