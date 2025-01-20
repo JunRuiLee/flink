@@ -31,7 +31,6 @@ import org.apache.calcite.rel.{RelCollationTraitDef, RelNode, RelWriter}
 import org.apache.calcite.rel.core._
 import org.apache.calcite.rel.metadata.RelMetadataQuery
 import org.apache.calcite.rex.RexNode
-import org.apache.calcite.util.Util
 
 import scala.collection.JavaConversions._
 
@@ -46,8 +45,7 @@ class BatchPhysicalSortMergeJoin(
     // true if LHS is sorted by left join keys, else false
     val leftSorted: Boolean,
     // true if RHS is sorted by right join key, else false
-    val rightSorted: Boolean,
-    withJobStrategyHint: Boolean)
+    val rightSorted: Boolean)
   extends BatchPhysicalJoinBase(cluster, traitSet, leftRel, rightRel, condition, joinType) {
 
   protected def isMergeJoinSupportedType(joinRelType: FlinkJoinType): Boolean = {
@@ -72,8 +70,7 @@ class BatchPhysicalSortMergeJoin(
       conditionExpr,
       joinType,
       leftSorted,
-      rightSorted,
-      withJobStrategyHint)
+      rightSorted)
   }
 
   override def explainTerms(pw: RelWriter): RelWriter =
@@ -178,8 +175,6 @@ class BatchPhysicalSortMergeJoin(
       FlinkTypeFactory.toLogicalRowType(left.getRowType),
       FlinkTypeFactory.toLogicalRowType(right.getRowType))
 
-    val (leftRowSize, leftRowCount, rightRowSize, rightRowCount) =
-      JoinUtil.getEstimatedRowStats(this)
     new BatchExecSortMergeJoin(
       unwrapTableConfig(this),
       JoinTypeUtil.getFlinkJoinType(joinType),
@@ -187,10 +182,6 @@ class BatchPhysicalSortMergeJoin(
       joinSpec.getRightKeys,
       joinSpec.getFilterNulls,
       condition,
-      leftRowSize,
-      rightRowSize,
-      leftRowCount,
-      rightRowCount,
       estimateOutputSize(getLeft) < estimateOutputSize(getRight),
       InputProperty
         .builder()
@@ -203,7 +194,6 @@ class BatchPhysicalSortMergeJoin(
         .damBehavior(InputProperty.DamBehavior.END_INPUT)
         .build(),
       FlinkTypeFactory.toLogicalRowType(getRowType),
-      withJobStrategyHint,
       getRelDetailedDescription)
   }
 
