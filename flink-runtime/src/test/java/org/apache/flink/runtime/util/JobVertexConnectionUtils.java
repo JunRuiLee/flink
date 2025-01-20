@@ -35,8 +35,7 @@ public class JobVertexConnectionUtils {
             JobVertex input,
             DistributionPattern distPattern,
             ResultPartitionType partitionType) {
-        return connectNewDataSetAsInput(
-                currentJobVertex, input, distPattern, partitionType, false, false);
+        return connectNewDataSetAsInput(currentJobVertex, input, distPattern, partitionType, false);
     }
 
     public static JobEdge connectNewDataSetAsInput(
@@ -44,15 +43,9 @@ public class JobVertexConnectionUtils {
             JobVertex input,
             DistributionPattern distPattern,
             ResultPartitionType partitionType,
-            boolean isBroadcast,
-            boolean isForward) {
+            boolean isBroadcast) {
         return currentJobVertex.connectNewDataSetAsInput(
-                input,
-                distPattern,
-                partitionType,
-                new IntermediateDataSetID(),
-                isBroadcast,
-                isForward);
+                input, distPattern, partitionType, new IntermediateDataSetID(), isBroadcast);
     }
 
     public static JobEdge connectNewDataSetAsInput(
@@ -63,6 +56,6 @@ public class JobVertexConnectionUtils {
             IntermediateDataSetID intermediateDataSetId,
             boolean isBroadcast) {
         return currentJobVertex.connectNewDataSetAsInput(
-                input, distPattern, partitionType, intermediateDataSetId, isBroadcast, false);
+                input, distPattern, partitionType, intermediateDataSetId, isBroadcast);
     }
 }

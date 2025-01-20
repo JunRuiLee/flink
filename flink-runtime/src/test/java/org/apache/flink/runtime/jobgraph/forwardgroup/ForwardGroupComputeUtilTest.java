@@ -109,19 +109,20 @@ class ForwardGroupComputeUtilTest {
 
         connectNewDataSetAsInput(
                 v2,
-                v1,
-                DistributionPattern.ALL_TO_ALL,
-                ResultPartitionType.BLOCKING,
-                false,
-                isForward1);
+                v1, DistributionPattern.ALL_TO_ALL, ResultPartitionType.BLOCKING);
+        if (isForward1) {
+            v1.getProducedDataSets().get(0).getConsumers().get(0).setForward(true);
+        }
 
         connectNewDataSetAsInput(
                 v3,
                 v2,
                 DistributionPattern.POINTWISE,
-                ResultPartitionType.BLOCKING,
-                false,
-                isForward2);
+                ResultPartitionType.BLOCKING);
+
+        if (isForward2) {
+            v2.getProducedDataSets().get(0).getConsumers().get(0).setForward(true);
+        }
 
         Set<ForwardGroup<?>> groups = computeForwardGroups(v1, v2, v3);
 
@@ -182,10 +183,11 @@ class ForwardGroupComputeUtilTest {
         JobVertex v4 = new JobVertex("v4");
 
         connectNewDataSetAsInput(
-                v3, v1, DistributionPattern.ALL_TO_ALL, ResultPartitionType.BLOCKING, false, true);
-
+                v3, v1, DistributionPattern.ALL_TO_ALL, ResultPartitionType.BLOCKING);
+        v1.getProducedDataSets().get(0).getConsumers().get(0).setForward(true);
         connectNewDataSetAsInput(
-                v3, v2, DistributionPattern.POINTWISE, ResultPartitionType.BLOCKING, false, true);
+                v3, v2, DistributionPattern.POINTWISE, ResultPartitionType.BLOCKING);
+        v2.getProducedDataSets().get(0).getConsumers().get(0).setForward(true);
         connectNewDataSetAsInput(
                 v4, v3, DistributionPattern.ALL_TO_ALL, ResultPartitionType.BLOCKING);
 
@@ -238,9 +240,11 @@ class ForwardGroupComputeUtilTest {
         connectNewDataSetAsInput(
                 v2, v1, DistributionPattern.ALL_TO_ALL, ResultPartitionType.BLOCKING);
         connectNewDataSetAsInput(
-                v3, v2, DistributionPattern.POINTWISE, ResultPartitionType.BLOCKING, false, true);
+                v3, v2, DistributionPattern.POINTWISE, ResultPartitionType.BLOCKING);
         connectNewDataSetAsInput(
-                v4, v2, DistributionPattern.POINTWISE, ResultPartitionType.BLOCKING, false, true);
+                v4, v2, DistributionPattern.POINTWISE, ResultPartitionType.BLOCKING);
+        v2.getProducedDataSets().get(0).getConsumers().get(0).setForward(true);
+        v2.getProducedDataSets().get(1).getConsumers().get(0).setForward(true);
 
         Set<ForwardGroup<?>> groups = computeForwardGroups(v1, v2, v3, v4);
 

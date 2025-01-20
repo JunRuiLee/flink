@@ -54,7 +54,7 @@ public class JobEdge implements java.io.Serializable {
 
     private final boolean isBroadcast;
 
-    private final boolean isForward;
+    private boolean isForward;
 
     /**
      * Optional name for the pre-processing operation (sort, combining sort, ...), to be displayed
@@ -77,8 +77,7 @@ public class JobEdge implements java.io.Serializable {
             IntermediateDataSet source,
             JobVertex target,
             DistributionPattern distributionPattern,
-            boolean isBroadcast,
-            boolean isForward) {
+            boolean isBroadcast) {
         if (source == null || target == null || distributionPattern == null) {
             throw new NullPointerException();
         }
@@ -86,7 +85,6 @@ public class JobEdge implements java.io.Serializable {
         this.distributionPattern = distributionPattern;
         this.source = source;
         this.isBroadcast = isBroadcast;
-        this.isForward = isForward;
     }
 
     /**
@@ -155,6 +153,11 @@ public class JobEdge implements java.io.Serializable {
     /** Gets whether the edge is forward edge. */
     public boolean isForward() {
         return isForward;
+    }
+
+    /** Sets whether the edge is forward edge. */
+    public void setForward(boolean forward) {
+        isForward = forward;
     }
 
     /**

@@ -373,10 +373,7 @@ public class AdaptiveGraphManager implements AdaptiveGraphGenerator {
                         edge.getPartitioner().isPointwise()
                                 ? DistributionPattern.POINTWISE
                                 : DistributionPattern.ALL_TO_ALL;
-                dataSet.configure(
-                        distributionPattern,
-                        edge.getPartitioner().isBroadcast(),
-                        edge.getPartitioner().getClass().equals(ForwardPartitioner.class));
+                dataSet.configure(distributionPattern, edge.getPartitioner().isBroadcast());
 
                 intermediateDataSetIdToOutputEdgesMap
                         .computeIfAbsent(dataSet.getId(), ignored -> new ArrayList<>())
