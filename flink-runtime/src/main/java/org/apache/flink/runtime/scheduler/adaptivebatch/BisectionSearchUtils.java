@@ -22,7 +22,7 @@ package org.apache.flink.runtime.scheduler.adaptivebatch;
 import java.util.function.Function;
 
 /** Utility class for bisection search. */
-public class BisectionSearchUtils {
+class BisectionSearchUtils {
 
     public static long findMinLegalValue(
             Function<Long, Boolean> legalChecker, long low, long high) {

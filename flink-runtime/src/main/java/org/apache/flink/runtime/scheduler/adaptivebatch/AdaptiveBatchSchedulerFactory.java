@@ -199,17 +199,6 @@ public class AdaptiveBatchSchedulerFactory implements SchedulerNGFactory {
                 new ScheduledExecutorServiceAdapter(futureExecutor),
                 DefaultVertexParallelismAndInputInfosDecider.from(
                         getDefaultMaxParallelism(jobMasterConfiguration, executionConfig),
-                        executionPlan
-                                .getJobConfiguration()
-                                .get(
-                                        BatchExecutionOptionsInternal
-                                                .ADAPTIVE_SKEWED_OPTIMIZATION_SKEWED_FACTOR),
-                        executionPlan
-                                .getJobConfiguration()
-                                .get(
-                                        BatchExecutionOptionsInternal
-                                                .ADAPTIVE_SKEWED_OPTIMIZATION_SKEWED_THRESHOLD)
-                                .getBytes(),
                         jobMasterConfiguration),
                 jobRecoveryHandler);
     }
