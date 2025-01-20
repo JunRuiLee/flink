@@ -239,8 +239,4 @@ public class StreamEdge implements Serializable {
     public IntermediateDataSetID getIntermediateDatasetIdToProduce() {
         return intermediateDatasetIdToProduce;
     }
-
-    public String getEdgeId() {
-        return edgeId;
-    }
 }
