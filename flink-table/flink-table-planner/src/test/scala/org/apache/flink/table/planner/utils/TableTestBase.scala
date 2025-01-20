@@ -1309,9 +1309,6 @@ abstract class TableTestUtil(
   tableEnv.getConfig.set(
     OptimizerConfigOptions.TABLE_OPTIMIZER_ADAPTIVE_BROADCAST_JOIN_STRATEGY,
     NONE)
-  tableEnv.getConfig.set(
-    OptimizerConfigOptions.TABLE_OPTIMIZER_ADAPTIVE_SKEWED_JOIN_OPTIMIZATION_STRATEGY,
-    OptimizerConfigOptions.AdaptiveSkewedJoinOptimizationStrategy.NONE)
 
   private val env: StreamExecutionEnvironment = getPlanner.getExecEnv
 

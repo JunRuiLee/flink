@@ -40,10 +40,8 @@ import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.stream.Collectors;
 
-import static org.apache.flink.table.runtime.strategy.AdaptiveJoinOptimizationUtils.filterEdges;
-import static org.apache.flink.table.runtime.strategy.AdaptiveJoinOptimizationUtils.isBroadcastJoin;
-import static org.apache.flink.table.runtime.strategy.AdaptiveJoinOptimizationUtils.isBroadcastJoinDisabled;
 import static org.apache.flink.util.Preconditions.checkState;
 
 /** The stream graph optimization strategy of adaptive broadcast join. */
@@ -79,10 +77,6 @@ public class AdaptiveBroadcastJoinOptimizationStrategy
             ImmutableStreamNode adaptiveJoinNode,
             List<ImmutableStreamEdge> upstreamStreamEdges,
             AdaptiveJoin adaptiveJoin) {
-        if (!canPerformOptimization(
-                adaptiveJoinNode, context.getStreamGraph().getConfiguration())) {
-            return;
-        }
         for (ImmutableStreamEdge upstreamEdge : upstreamStreamEdges) {
             IntermediateDataSetID relatedDataSetId =
                     context.getConsumedIntermediateDataSetId(upstreamEdge.getEdgeId());
@@ -171,11 +165,6 @@ public class AdaptiveBroadcastJoinOptimizationStrategy
         }
     }
 
-    private boolean canPerformOptimization(
-            ImmutableStreamNode adaptiveJoinNode, ReadableConfig config) {
-        return !isBroadcastJoinDisabled(config) && !isBroadcastJoin(adaptiveJoinNode);
-    }
-
     private void aggregatedInputBytesByTypeNumber(
             ImmutableStreamNode adaptiveJoinNode, int typeNumber, long producedBytes) {
         Integer streamNodeId = adaptiveJoinNode.getId();
@@ -183,6 +172,13 @@ public class AdaptiveBroadcastJoinOptimizationStrategy
         aggregatedInputBytesByTypeNumberAndNodeId
                 .computeIfAbsent(streamNodeId, k -> new HashMap<>())
                 .merge(typeNumber, producedBytes, Long::sum);
+    }
+
+    private List<ImmutableStreamEdge> filterEdges(
+            List<ImmutableStreamEdge> inEdges, int typeNumber) {
+        return inEdges.stream()
+                .filter(e -> e.getTypeNumber() == typeNumber)
+                .collect(Collectors.toList());
     }
 
     private List<StreamEdgeUpdateRequestInfo> generateStreamEdgeUpdateRequestInfos(
