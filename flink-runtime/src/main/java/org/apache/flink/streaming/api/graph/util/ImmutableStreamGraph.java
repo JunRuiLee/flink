@@ -19,7 +19,6 @@
 package org.apache.flink.streaming.api.graph.util;
 
 import org.apache.flink.annotation.Internal;
-import org.apache.flink.configuration.ReadableConfig;
 import org.apache.flink.streaming.api.graph.StreamGraph;
 
 import java.util.HashMap;
@@ -29,13 +28,11 @@ import java.util.Map;
 @Internal
 public class ImmutableStreamGraph {
     private final StreamGraph streamGraph;
-    private final ClassLoader userClassloader;
 
     private final Map<Integer, ImmutableStreamNode> immutableStreamNodes;
 
-    public ImmutableStreamGraph(StreamGraph streamGraph, ClassLoader userClassloader) {
+    public ImmutableStreamGraph(StreamGraph streamGraph) {
         this.streamGraph = streamGraph;
-        this.userClassloader = userClassloader;
         this.immutableStreamNodes = new HashMap<>();
     }
 
@@ -45,13 +42,5 @@ public class ImmutableStreamGraph {
         }
         return immutableStreamNodes.computeIfAbsent(
                 vertexId, id -> new ImmutableStreamNode(streamGraph.getStreamNode(id)));
-    }
-
-    public ReadableConfig getConfiguration() {
-        return streamGraph.getJobConfiguration();
-    }
-
-    public ClassLoader getUserClassLoader() {
-        return userClassloader;
     }
 }

@@ -30,25 +30,14 @@ public class StreamEdgeUpdateRequestInfo {
 
     private StreamPartitioner<?> outputPartitioner;
 
-    // The type number for the input of co-tasks.
-    // For two or more inputs, typeNumber must be >= 1, and 0 means the request will not change the
-    // typeNumber.
-    private int typeNumber;
-
     public StreamEdgeUpdateRequestInfo(String edgeId, Integer sourceId, Integer targetId) {
         this.edgeId = edgeId;
         this.sourceId = sourceId;
         this.targetId = targetId;
     }
 
-    public StreamEdgeUpdateRequestInfo withOutputPartitioner(
-            StreamPartitioner<?> outputPartitioner) {
+    public StreamEdgeUpdateRequestInfo outputPartitioner(StreamPartitioner<?> outputPartitioner) {
         this.outputPartitioner = outputPartitioner;
-        return this;
-    }
-
-    public StreamEdgeUpdateRequestInfo withTypeNumber(int typeNumber) {
-        this.typeNumber = typeNumber;
         return this;
     }
 
@@ -66,9 +55,5 @@ public class StreamEdgeUpdateRequestInfo {
 
     public StreamPartitioner<?> getOutputPartitioner() {
         return outputPartitioner;
-    }
-
-    public int getTypeNumber() {
-        return typeNumber;
     }
 }

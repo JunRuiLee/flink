@@ -67,8 +67,6 @@ public class DefaultAdaptiveExecutionHandler implements AdaptiveExecutionHandler
 
         this.streamGraphOptimizer =
                 new StreamGraphOptimizer(streamGraph.getJobConfiguration(), userClassloader);
-        this.streamGraphOptimizer.initializeStrategies(
-                adaptiveGraphManager.getStreamGraphContext());
     }
 
     @Override
@@ -109,11 +107,10 @@ public class DefaultAdaptiveExecutionHandler implements AdaptiveExecutionHandler
                                                 return existing;
                                             }));
 
-            List<Integer> finishedStreamNodeIds =
-                    adaptiveGraphManager.getStreamNodeIdsByJobVertexId(vertexId);
             OperatorsFinished operatorsFinished =
-                    new OperatorsFinished(finishedStreamNodeIds, resultInfoMap);
-            adaptiveGraphManager.addFinishedStreamNodeIds(finishedStreamNodeIds);
+                    new OperatorsFinished(
+                            adaptiveGraphManager.getStreamNodeIdsByJobVertexId(vertexId),
+                            resultInfoMap);
 
             streamGraphOptimizer.onOperatorsFinished(
                     operatorsFinished, adaptiveGraphManager.getStreamGraphContext());
