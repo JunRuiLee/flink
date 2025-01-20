@@ -32,7 +32,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.stream.Collectors;
 
-import static org.apache.flink.runtime.executiongraph.IndexRangeUtil.mergeIndexRanges;
+import static org.apache.flink.util.Preconditions.checkArgument;
 import static org.apache.flink.util.Preconditions.checkState;
 
 /** Utilities for building {@link EdgeManager}. */
@@ -58,7 +58,7 @@ public class EdgeManagerBuildUtil {
                 connectPointwise(vertex, intermediateResult, jobVertexInputInfo);
                 break;
             case ALL_TO_ALL:
-                connectAllToAll(vertex, intermediateResult);
+                connectAllToAll(vertex, intermediateResult, jobVertexInputInfo);
                 break;
             default:
                 throw new IllegalArgumentException("Unrecognized distribution pattern.");
@@ -87,7 +87,23 @@ public class EdgeManagerBuildUtil {
         }
     }
 
-    private static void connectAllToAll(ExecutionJobVertex jobVertex, IntermediateResult result) {
+    private static void connectAllToAll(
+            ExecutionJobVertex jobVertex,
+            IntermediateResult result,
+            JobVertexInputInfo jobVertexInputInfo) {
+        // check the vertex input info is legal
+        jobVertexInputInfo
+                .getExecutionVertexInputInfos()
+                .forEach(
+                        executionVertexInputInfo -> {
+                            IndexRange partitionRange =
+                                    executionVertexInputInfo.getPartitionIndexRange();
+                            checkArgument(partitionRange.getStartIndex() == 0);
+                            checkArgument(
+                                    partitionRange.getEndIndex()
+                                            == (result.getNumberOfAssignedPartitions() - 1));
+                        });
+
         connectInternal(
                 Arrays.asList(jobVertex.getTaskVertices()),
                 Arrays.asList(result.getPartitions()),
@@ -105,12 +121,9 @@ public class EdgeManagerBuildUtil {
         for (ExecutionVertexInputInfo executionVertexInputInfo :
                 jobVertexInputInfo.getExecutionVertexInputInfos()) {
             int consumerIndex = executionVertexInputInfo.getSubtaskIndex();
-            List<IndexRange> ranges =
-                    mergeIndexRanges(
-                            executionVertexInputInfo.getConsumedSubpartitionGroups().keySet());
-            checkState(ranges.size() == 1);
+            IndexRange range = executionVertexInputInfo.getPartitionIndexRange();
             consumersByPartition.compute(
-                    ranges.get(0),
+                    range,
                     (ignore, consumers) -> {
                         if (consumers == null) {
                             consumers = new ArrayList<>();

@@ -30,6 +30,7 @@ import org.apache.flink.runtime.deployment.TaskDeploymentDescriptor.MaybeOffload
 import org.apache.flink.runtime.execution.ExecutionState;
 import org.apache.flink.runtime.executiongraph.Execution;
 import org.apache.flink.runtime.executiongraph.ExecutionVertex;
+import org.apache.flink.runtime.executiongraph.IndexRange;
 import org.apache.flink.runtime.executiongraph.IntermediateResult;
 import org.apache.flink.runtime.executiongraph.IntermediateResultPartition;
 import org.apache.flink.runtime.executiongraph.InternalExecutionGraphAccessor;
@@ -53,7 +54,6 @@ import javax.annotation.Nullable;
 import java.io.IOException;
 import java.io.Serializable;
 import java.util.ArrayList;
-import java.util.Arrays;
 import java.util.Collection;
 import java.util.HashMap;
 import java.util.List;
@@ -151,19 +151,16 @@ public class TaskDeploymentDescriptorFactory {
 
             IntermediateDataSetID resultId = consumedIntermediateResult.getId();
             ResultPartitionType partitionType = consumedIntermediateResult.getResultType();
+            IndexRange subpartitionRange =
+                    executionVertex
+                            .getExecutionVertexInputInfo(resultId)
+                            .getSubpartitionIndexRange();
 
             inputGates.add(
                     new InputGateDeploymentDescriptor(
                             resultId,
                             partitionType,
-                            ConsumedSubpartitionContext.buildConsumedSubpartitionContext(
-                                    executionVertex
-                                            .getExecutionVertexInputInfo(resultId)
-                                            .getConsumedSubpartitionGroups(),
-                                    consumedPartitionGroup.iterator(),
-                                    Arrays.stream(consumedIntermediateResult.getPartitions())
-                                            .map(IntermediateResultPartition::getPartitionId)
-                                            .toArray(IntermediateResultPartitionID[]::new)),
+                            subpartitionRange,
                             consumedPartitionGroup.size(),
                             getConsumedPartitionShuffleDescriptors(
                                     consumedIntermediateResult,
