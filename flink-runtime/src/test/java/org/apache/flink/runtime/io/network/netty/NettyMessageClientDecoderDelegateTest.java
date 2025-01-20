@@ -23,7 +23,6 @@ import org.apache.flink.core.memory.MemorySegmentFactory;
 import org.apache.flink.runtime.io.network.TestingPartitionRequestClient;
 import org.apache.flink.runtime.io.network.buffer.Buffer;
 import org.apache.flink.runtime.io.network.buffer.FreeingBufferRecycler;
-import org.apache.flink.runtime.io.network.buffer.FullyFilledBuffer;
 import org.apache.flink.runtime.io.network.buffer.NetworkBuffer;
 import org.apache.flink.runtime.io.network.buffer.NetworkBufferPool;
 import org.apache.flink.runtime.io.network.partition.consumer.InputChannelBuilder;
@@ -36,16 +35,14 @@ import org.apache.flink.shaded.netty4.io.netty.buffer.ByteBuf;
 import org.apache.flink.shaded.netty4.io.netty.channel.embedded.EmbeddedChannel;
 
 import org.junit.jupiter.api.AfterEach;
-import org.junit.jupiter.params.ParameterizedTest;
-import org.junit.jupiter.params.provider.Arguments;
-import org.junit.jupiter.params.provider.MethodSource;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
 
 import javax.annotation.Nullable;
 
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.List;
-import java.util.stream.Stream;
 
 import static org.apache.flink.runtime.io.network.netty.NettyMessage.BufferResponse;
 import static org.apache.flink.runtime.io.network.netty.NettyTestUtil.verifyBufferResponseHeader;
@@ -72,12 +69,11 @@ class NettyMessageClientDecoderDelegateTest {
 
     private InputChannelID releasedInputChannelId;
 
-    private void setup(int numOfPartialBuffers) throws IOException, InterruptedException {
+    @BeforeEach
+    void setup() throws IOException, InterruptedException {
         CreditBasedPartitionRequestClientHandler handler =
                 new CreditBasedPartitionRequestClientHandler();
-        networkBufferPool =
-                new NetworkBufferPool(
-                        NUMBER_OF_BUFFER_RESPONSES, numOfPartialBuffers * BUFFER_SIZE);
+        networkBufferPool = new NetworkBufferPool(NUMBER_OF_BUFFER_RESPONSES, BUFFER_SIZE);
         channel = new EmbeddedChannel(new NettyMessageClientDecoderDelegate(handler));
 
         inputGate = createSingleInputGate(1, networkBufferPool);
@@ -114,63 +110,42 @@ class NettyMessageClientDecoderDelegateTest {
         }
     }
 
-    private static Stream<Arguments> bufferDescriptors() {
-        return Stream.of(
-                Arguments.of(false, 1), // Scenario with a regular Buffer
-                Arguments.of(true, 1), // FullyFilledBuffer with 1 partial buffer
-                Arguments.of(true, 3) // FullyFilledBuffer with 3 partial buffers
-                );
-    }
-
     /** Verifies that the client side decoder works well for unreleased input channels. */
-    @ParameterizedTest(name = "{index} => isFullyFilled={0}, numOfPartialBuffers={1}")
-    @MethodSource("bufferDescriptors")
-    void testClientMessageDecode(boolean isFullyFilled, int numOfPartialBuffers) throws Exception {
-        setup(numOfPartialBuffers);
-        testNettyMessageClientDecoding(isFullyFilled, numOfPartialBuffers, false, false, false);
+    @Test
+    void testClientMessageDecode() throws Exception {
+        testNettyMessageClientDecoding(false, false, false);
     }
 
     /**
      * Verifies that the client side decoder works well for empty buffers. Empty buffers should not
      * consume data buffers of the input channels.
      */
-    @ParameterizedTest(name = "{index} => isFullyFilled={0}, numOfPartialBuffers={1}")
-    @MethodSource("bufferDescriptors")
-    void testClientMessageDecodeWithEmptyBuffers(boolean isFullyFilled, int numOfPartialBuffers)
-            throws Exception {
-        setup(numOfPartialBuffers);
-        testNettyMessageClientDecoding(isFullyFilled, numOfPartialBuffers, true, false, false);
+    @Test
+    void testClientMessageDecodeWithEmptyBuffers() throws Exception {
+        testNettyMessageClientDecoding(true, false, false);
     }
 
     /**
      * Verifies that the client side decoder works well with buffers sent to a released input
      * channel. The data buffer part should be discarded before reading the next message.
      */
-    @ParameterizedTest(name = "{index} => isFullyFilled={0}, numOfPartialBuffers={1}")
-    @MethodSource("bufferDescriptors")
-    void testClientMessageDecodeWithReleasedInputChannel(
-            boolean isFullyFilled, int numOfPartialBuffers) throws Exception {
-        setup(numOfPartialBuffers);
-        testNettyMessageClientDecoding(isFullyFilled, numOfPartialBuffers, false, true, false);
+    @Test
+    void testClientMessageDecodeWithReleasedInputChannel() throws Exception {
+        testNettyMessageClientDecoding(false, true, false);
     }
 
     /**
      * Verifies that the client side decoder works well with buffers sent to a removed input
      * channel. The data buffer part should be discarded before reading the next message.
      */
-    @ParameterizedTest(name = "{index} => isFullyFilled={0}, numOfPartialBuffers={1}")
-    @MethodSource("bufferDescriptors")
-    void testClientMessageDecodeWithRemovedInputChannel(
-            boolean isFullyFilled, int numOfPartialBuffers) throws Exception {
-        setup(numOfPartialBuffers);
-        testNettyMessageClientDecoding(isFullyFilled, numOfPartialBuffers, false, false, true);
+    @Test
+    void testClientMessageDecodeWithRemovedInputChannel() throws Exception {
+        testNettyMessageClientDecoding(false, false, true);
     }
 
     // ------------------------------------------------------------------------------------------------------------------
 
     private void testNettyMessageClientDecoding(
-            boolean isFullyFilled,
-            int numOfPartialBuffers,
             boolean hasEmptyBuffer,
             boolean hasBufferForReleasedChannel,
             boolean hasBufferForRemovedChannel)
@@ -181,8 +156,6 @@ class NettyMessageClientDecoderDelegateTest {
         try {
             List<BufferResponse> messages =
                     createMessageList(
-                            isFullyFilled,
-                            numOfPartialBuffers,
                             hasEmptyBuffer,
                             hasBufferForReleasedChannel,
                             hasBufferForRemovedChannel);
@@ -206,8 +179,6 @@ class NettyMessageClientDecoderDelegateTest {
     }
 
     private List<BufferResponse> createMessageList(
-            boolean isFullyFilled,
-            int numOfPartialBuffers,
             boolean hasEmptyBuffer,
             boolean hasBufferForRemovedChannel,
             boolean hasBufferForReleasedChannel) {
@@ -217,8 +188,6 @@ class NettyMessageClientDecoderDelegateTest {
 
         for (int i = 0; i < NUMBER_OF_BUFFER_RESPONSES - 1; i++) {
             addBufferResponse(
-                    isFullyFilled,
-                    numOfPartialBuffers,
                     messages,
                     inputChannelId,
                     Buffer.DataType.DATA_BUFFER,
@@ -228,18 +197,10 @@ class NettyMessageClientDecoderDelegateTest {
 
         if (hasEmptyBuffer) {
             addBufferResponse(
-                    isFullyFilled,
-                    numOfPartialBuffers,
-                    messages,
-                    inputChannelId,
-                    Buffer.DataType.DATA_BUFFER,
-                    0,
-                    seqNumber++);
+                    messages, inputChannelId, Buffer.DataType.DATA_BUFFER, 0, seqNumber++);
         }
         if (hasBufferForReleasedChannel) {
             addBufferResponse(
-                    isFullyFilled,
-                    numOfPartialBuffers,
                     messages,
                     releasedInputChannelId,
                     Buffer.DataType.DATA_BUFFER,
@@ -248,8 +209,6 @@ class NettyMessageClientDecoderDelegateTest {
         }
         if (hasBufferForRemovedChannel) {
             addBufferResponse(
-                    isFullyFilled,
-                    numOfPartialBuffers,
                     messages,
                     new InputChannelID(),
                     Buffer.DataType.DATA_BUFFER,
@@ -257,80 +216,32 @@ class NettyMessageClientDecoderDelegateTest {
                     seqNumber++);
         }
 
+        addBufferResponse(messages, inputChannelId, Buffer.DataType.EVENT_BUFFER, 32, seqNumber++);
         addBufferResponse(
-                isFullyFilled,
-                numOfPartialBuffers,
-                messages,
-                inputChannelId,
-                Buffer.DataType.EVENT_BUFFER,
-                32,
-                seqNumber++);
-        addBufferResponse(
-                isFullyFilled,
-                numOfPartialBuffers,
-                messages,
-                inputChannelId,
-                Buffer.DataType.DATA_BUFFER,
-                BUFFER_SIZE,
-                seqNumber);
+                messages, inputChannelId, Buffer.DataType.DATA_BUFFER, BUFFER_SIZE, seqNumber);
 
         return messages;
     }
 
     private void addBufferResponse(
-            boolean isFullyFilled,
-            int numOfPartialBuffers,
             List<BufferResponse> messages,
             InputChannelID inputChannelId,
             Buffer.DataType dataType,
             int bufferSize,
             int seqNumber) {
 
-        Buffer buffer = createDataBuffer(isFullyFilled, numOfPartialBuffers, bufferSize, dataType);
-        BufferResponse bufferResponse =
-                new BufferResponse(
-                        buffer,
-                        seqNumber,
-                        inputChannelId,
-                        0,
-                        isFullyFilled ? numOfPartialBuffers : 0,
-                        1);
-        if (isFullyFilled) {
-            for (int i = 0; i < numOfPartialBuffers; i++) {
-                bufferResponse.getPartialBufferSizes().add(bufferSize);
-            }
-        }
-        messages.add(bufferResponse);
+        Buffer buffer = createDataBuffer(bufferSize, dataType);
+        messages.add(new BufferResponse(buffer, seqNumber, inputChannelId, 0, 1));
     }
 
-    private Buffer createDataBuffer(
-            boolean isFullyFilled, int numOfPartialBuffers, int size, Buffer.DataType dataType) {
-        if (!isFullyFilled) {
-            MemorySegment segment = MemorySegmentFactory.allocateUnpooledSegment(size);
-            NetworkBuffer buffer =
-                    new NetworkBuffer(segment, FreeingBufferRecycler.INSTANCE, dataType);
-            for (int i = 0; i < size / 4; ++i) {
-                buffer.writeInt(i);
-            }
-
-            return buffer;
-        } else {
-            FullyFilledBuffer fullyFilledBuffer =
-                    new FullyFilledBuffer(dataType, numOfPartialBuffers * size, false);
-
-            for (int i = 0; i < numOfPartialBuffers; i++) {
-                MemorySegment segment = MemorySegmentFactory.allocateUnpooledSegment(size);
-                NetworkBuffer buffer =
-                        new NetworkBuffer(segment, FreeingBufferRecycler.INSTANCE, dataType);
-                for (int num = 0; num < size / 4; ++num) {
-                    buffer.writeInt(num);
-                }
-
-                fullyFilledBuffer.addPartialBuffer(buffer);
-            }
-
-            return fullyFilledBuffer;
+    private Buffer createDataBuffer(int size, Buffer.DataType dataType) {
+        MemorySegment segment = MemorySegmentFactory.allocateUnpooledSegment(size);
+        NetworkBuffer buffer = new NetworkBuffer(segment, FreeingBufferRecycler.INSTANCE, dataType);
+        for (int i = 0; i < size / 4; ++i) {
+            buffer.writeInt(i);
         }
+
+        return buffer;
     }
 
     private ByteBuf[] encodeMessages(List<BufferResponse> messages) throws Exception {
@@ -423,12 +334,7 @@ class NettyMessageClientDecoderDelegateTest {
             if (expected.bufferSize == 0 || !expected.receiverId.equals(inputChannelId)) {
                 assertThat(actual.getBuffer()).isNull();
             } else {
-                Buffer buffer = expected.getBuffer();
-                if (buffer instanceof FullyFilledBuffer) {
-                    assertThat(actual.getBuffer()).isEqualTo(buffer.asByteBuf());
-                } else {
-                    assertThat(actual.getBuffer()).isEqualTo(buffer);
-                }
+                assertThat(actual.getBuffer()).isEqualTo(expected.getBuffer());
             }
         }
     }

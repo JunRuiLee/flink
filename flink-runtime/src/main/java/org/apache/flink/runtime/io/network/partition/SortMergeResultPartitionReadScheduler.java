@@ -341,17 +341,15 @@ class SortMergeResultPartitionReadScheduler implements Runnable, BufferRecycler 
 
     SortMergeSubpartitionReader createSubpartitionReader(
             BufferAvailabilityListener availabilityListener,
-            ResultSubpartitionIndexSet indexSet,
-            PartitionedFile resultFile,
-            int subpartitionOrderRotationIndex)
+            int targetSubpartition,
+            PartitionedFile resultFile)
             throws IOException {
         synchronized (lock) {
             checkState(!isReleased, "Partition is already released.");
-            PartitionedFileReader fileReader =
-                    createFileReader(resultFile, indexSet, subpartitionOrderRotationIndex);
+
+            PartitionedFileReader fileReader = createFileReader(resultFile, targetSubpartition);
             SortMergeSubpartitionReader subpartitionReader =
-                    new SortMergeSubpartitionReader(
-                            bufferPool.getBufferSize(), availabilityListener, fileReader);
+                    new SortMergeSubpartitionReader(availabilityListener, fileReader);
             if (allReaders.isEmpty()) {
                 bufferPool.registerRequester(this);
             }
@@ -376,10 +374,7 @@ class SortMergeResultPartitionReadScheduler implements Runnable, BufferRecycler 
 
     @GuardedBy("lock")
     private PartitionedFileReader createFileReader(
-            PartitionedFile resultFile,
-            ResultSubpartitionIndexSet indexSet,
-            int subpartitionOrderRotationIndex)
-            throws IOException {
+            PartitionedFile resultFile, int targetSubpartition) throws IOException {
         assert Thread.holdsLock(lock);
 
         try {
@@ -389,12 +384,11 @@ class SortMergeResultPartitionReadScheduler implements Runnable, BufferRecycler 
             PartitionedFileReader partitionedFileReader =
                     new PartitionedFileReader(
                             resultFile,
-                            indexSet,
+                            targetSubpartition,
                             dataFileChannel,
                             indexFileChannel,
                             headerBuf,
-                            indexEntryBufferRead,
-                            subpartitionOrderRotationIndex);
+                            indexEntryBufferRead);
             partitionedFileReader.initRegionIndex(indexEntryBufferInit);
             return partitionedFileReader;
         } catch (Throwable throwable) {

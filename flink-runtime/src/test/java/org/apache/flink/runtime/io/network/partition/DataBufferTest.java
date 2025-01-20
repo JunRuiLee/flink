@@ -460,9 +460,7 @@ class DataBufferTest {
     }
 
     public static int[] getRandomSubpartitionOrder(int numSubpartitions) {
-        // Removed explicit random seed to enhance variability in test cases
-        // This allows for more diverse execution paths and helps uncover hidden bugs
-        Random random = new Random();
+        Random random = new Random(1111);
         int[] subpartitionReadOrder = new int[numSubpartitions];
         int shift = random.nextInt(numSubpartitions);
         for (int i = 0; i < numSubpartitions; ++i) {

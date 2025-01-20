@@ -24,7 +24,6 @@ import org.apache.flink.runtime.executiongraph.ExecutionAttemptID;
 import org.apache.flink.runtime.io.network.api.serialization.EventSerializer;
 import org.apache.flink.runtime.io.network.buffer.Buffer;
 import org.apache.flink.runtime.io.network.buffer.FileRegionBuffer;
-import org.apache.flink.runtime.io.network.buffer.FullyFilledBuffer;
 import org.apache.flink.runtime.io.network.partition.ResultPartitionID;
 import org.apache.flink.runtime.io.network.partition.ResultSubpartitionIndexSet;
 import org.apache.flink.runtime.io.network.partition.consumer.InputChannel;
@@ -51,8 +50,6 @@ import java.io.ObjectInputStream;
 import java.io.ObjectOutputStream;
 import java.net.ProtocolException;
 import java.nio.ByteBuffer;
-import java.util.ArrayList;
-import java.util.List;
 import java.util.function.Consumer;
 
 import static org.apache.flink.util.Preconditions.checkArgument;
@@ -269,11 +266,10 @@ public abstract class NettyMessage {
 
         static final byte ID = 0;
 
-        // receiver ID (16), sequence number (4), backlog (4), subpartition id (4), partial buffers
-        // number (4), dataType (1), isCompressed (1), buffer size (4)
+        // receiver ID (16), sequence number (4), backlog (4), dataType (1), isCompressed (1),
+        // buffer size (4)
         static final int MESSAGE_HEADER_LENGTH =
                 InputChannelID.getByteBufLength()
-                        + Integer.BYTES
                         + Integer.BYTES
                         + Integer.BYTES
                         + Integer.BYTES
@@ -297,10 +293,6 @@ public abstract class NettyMessage {
 
         final int bufferSize;
 
-        final int numOfPartialBuffers;
-
-        private List<Integer> partialBufferSizes = new ArrayList<>();
-
         private BufferResponse(
                 @Nullable Buffer buffer,
                 Buffer.DataType dataType,
@@ -308,7 +300,6 @@ public abstract class NettyMessage {
                 int sequenceNumber,
                 InputChannelID receiverId,
                 int subpartitionId,
-                int numOfPartialBuffers,
                 int backlog,
                 int bufferSize) {
             this.buffer = buffer;
@@ -319,7 +310,6 @@ public abstract class NettyMessage {
             this.subpartitionId = subpartitionId;
             this.backlog = backlog;
             this.bufferSize = bufferSize;
-            this.numOfPartialBuffers = numOfPartialBuffers;
         }
 
         BufferResponse(
@@ -327,7 +317,6 @@ public abstract class NettyMessage {
                 int sequenceNumber,
                 InputChannelID receiverId,
                 int subpartitionId,
-                int numOfPartialBuffers,
                 int backlog) {
             this.buffer = checkNotNull(buffer);
             checkArgument(
@@ -341,7 +330,6 @@ public abstract class NettyMessage {
             this.subpartitionId = subpartitionId;
             this.backlog = backlog;
             this.bufferSize = buffer.getSize();
-            this.numOfPartialBuffers = numOfPartialBuffers;
         }
 
         boolean isBuffer() {
@@ -357,10 +345,6 @@ public abstract class NettyMessage {
             if (buffer != null) {
                 buffer.recycleBuffer();
             }
-        }
-
-        public List<Integer> getPartialBufferSizes() {
-            return partialBufferSizes;
         }
 
         // --------------------------------------------------------------------
@@ -412,36 +396,15 @@ public abstract class NettyMessage {
         private ByteBuf fillHeader(ByteBufAllocator allocator) {
             // only allocate header buffer - we will combine it with the data buffer below
             ByteBuf headerBuf =
-                    allocateBuffer(
-                            allocator,
-                            ID,
-                            MESSAGE_HEADER_LENGTH + Integer.BYTES * numOfPartialBuffers,
-                            bufferSize,
-                            false);
+                    allocateBuffer(allocator, ID, MESSAGE_HEADER_LENGTH, bufferSize, false);
 
             receiverId.writeTo(headerBuf);
             headerBuf.writeInt(subpartitionId);
-            headerBuf.writeInt(numOfPartialBuffers);
             headerBuf.writeInt(sequenceNumber);
             headerBuf.writeInt(backlog);
             headerBuf.writeByte(dataType.ordinal());
             headerBuf.writeBoolean(isCompressed);
             headerBuf.writeInt(buffer.readableBytes());
-
-            if (numOfPartialBuffers > 0) {
-                checkArgument(
-                        buffer instanceof FullyFilledBuffer,
-                        "Partial buffers are only supported for fully filled buffers.");
-                List<Buffer> partialBuffers = ((FullyFilledBuffer) buffer).getPartialBuffers();
-                checkArgument(
-                        partialBuffers.size() == numOfPartialBuffers,
-                        "Mismatched number of partial buffers");
-                for (int i = 0; i < numOfPartialBuffers; i++) {
-                    int bytes = partialBuffers.get(i).readableBytes();
-                    headerBuf.writeInt(bytes);
-                }
-            }
-
             return headerBuf;
         }
 
@@ -459,7 +422,6 @@ public abstract class NettyMessage {
                 ByteBuf messageHeader, NetworkBufferAllocator bufferAllocator) {
             InputChannelID receiverId = InputChannelID.fromByteBuf(messageHeader);
             int subpartitionId = messageHeader.readInt();
-            int numOfPartialBuffers = messageHeader.readInt();
             int sequenceNumber = messageHeader.readInt();
             int backlog = messageHeader.readInt();
             Buffer.DataType dataType = Buffer.DataType.values()[messageHeader.readByte()];
@@ -494,7 +456,6 @@ public abstract class NettyMessage {
                     sequenceNumber,
                     receiverId,
                     subpartitionId,
-                    numOfPartialBuffers,
                     backlog,
                     size);
         }

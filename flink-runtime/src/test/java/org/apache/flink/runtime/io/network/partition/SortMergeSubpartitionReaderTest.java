@@ -23,7 +23,6 @@ import org.apache.flink.core.memory.MemorySegmentFactory;
 import org.apache.flink.runtime.io.network.buffer.Buffer;
 import org.apache.flink.runtime.io.network.buffer.CompositeBuffer;
 import org.apache.flink.runtime.io.network.buffer.FreeingBufferRecycler;
-import org.apache.flink.runtime.io.network.buffer.FullyFilledBuffer;
 import org.apache.flink.util.IOUtils;
 
 import org.junit.jupiter.api.AfterEach;
@@ -138,13 +137,8 @@ class SortMergeSubpartitionReaderTest {
                     checkNotNull(subpartitionReader.getNextBuffer());
             int numBytes = bufferAndBacklog.buffer().readableBytes();
             MemorySegment segment = MemorySegmentFactory.allocateUnpooledSegment(numBytes);
-
-            FullyFilledBuffer fullyFilledBuffer = (FullyFilledBuffer) bufferAndBacklog.buffer();
-            assertThat(fullyFilledBuffer.getPartialBuffers().size()).isOne();
             Buffer fullBuffer =
-                    ((CompositeBuffer) fullyFilledBuffer.getPartialBuffers().get(0))
-                            .getFullBufferData(segment);
-
+                    ((CompositeBuffer) bufferAndBacklog.buffer()).getFullBufferData(segment);
             assertThat(ByteBuffer.wrap(dataBytes)).isEqualTo(fullBuffer.getNioBufferReadable());
             assertThat(bufferAndBacklog.buffersInBacklog()).isEqualTo(i == 0 ? 0 : i - 1);
             Buffer.DataType dataType = i <= 1 ? Buffer.DataType.NONE : Buffer.DataType.DATA_BUFFER;
@@ -243,14 +237,13 @@ class SortMergeSubpartitionReaderTest {
         PartitionedFileReader fileReader =
                 new PartitionedFileReader(
                         partitionedFile,
-                        new ResultSubpartitionIndexSet(0),
+                        0,
                         dataFileChannel,
                         indexFileChannel,
                         BufferReaderWriterUtil.allocatedHeaderBuffer(),
-                        createAndConfigIndexEntryBuffer(),
-                        0);
+                        createAndConfigIndexEntryBuffer());
         assertThat(fileReader.hasRemaining()).isTrue();
-        return new SortMergeSubpartitionReader(bufferSize, listener, fileReader);
+        return new SortMergeSubpartitionReader(listener, fileReader);
     }
 
     private static FileChannel openFileChannel(Path path) throws IOException {
