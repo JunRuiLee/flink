@@ -22,6 +22,7 @@ import org.apache.flink.annotation.Internal;
 import org.apache.flink.streaming.api.graph.StreamEdge;
 import org.apache.flink.streaming.runtime.partitioner.BroadcastPartitioner;
 import org.apache.flink.streaming.runtime.partitioner.ForwardForConsecutiveHashPartitioner;
+import org.apache.flink.streaming.runtime.partitioner.ForwardPartitioner;
 
 /** Helper class that provides read-only StreamEdge. */
 @Internal
@@ -52,8 +53,8 @@ public class ImmutableStreamEdge {
         return streamEdge.getPartitioner() instanceof ForwardForConsecutiveHashPartitioner;
     }
 
-    public boolean isIntraInputKeyCorrelated() {
-        return streamEdge.isIntraInputKeyCorrelated();
+    public boolean isExactForwardEdge() {
+        return streamEdge.getPartitioner().getClass().equals(ForwardPartitioner.class);
     }
 
     public boolean isBroadcastEdge() {

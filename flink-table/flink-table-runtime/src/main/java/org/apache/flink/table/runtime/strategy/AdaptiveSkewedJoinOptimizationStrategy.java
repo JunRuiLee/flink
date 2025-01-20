@@ -125,10 +125,11 @@ public class AdaptiveSkewedJoinOptimizationStrategy
         }
         if (adaptiveSkewedJoinOptimizationStrategy
                 == OptimizerConfigOptions.AdaptiveSkewedJoinOptimizationStrategy.AUTO) {
-            return canPerformOptimizationAutomatic(adaptiveJoinNode);
+            return !existExactForwardOutEdge(adaptiveJoinNode.getOutEdges())
+                    && !existForwardForConsecutiveHashOutEdge(adaptiveJoinNode.getOutEdges());
         } else if (adaptiveSkewedJoinOptimizationStrategy
                 == OptimizerConfigOptions.AdaptiveSkewedJoinOptimizationStrategy.FORCED) {
-            return canPerformOptimizationForced(adaptiveJoinNode);
+            return !existExactForwardOutEdge(adaptiveJoinNode.getOutEdges());
         } else {
             return false;
         }
@@ -300,23 +301,11 @@ public class AdaptiveSkewedJoinOptimizationStrategy
         return false;
     }
 
-    private static boolean canPerformOptimizationAutomatic(ImmutableStreamNode adaptiveJoinNode) {
-        // In AUTO mode, we need to ensure that there are no intra-correlated out edge to ensure the
-        // application of this optimization wouldn't break data correctness or introduce additional
-        // performance overhead.
-        return adaptiveJoinNode.getOutEdges().stream()
-                .noneMatch(ImmutableStreamEdge::isIntraInputKeyCorrelated);
+    private static boolean existExactForwardOutEdge(List<ImmutableStreamEdge> edges) {
+        return edges.stream().anyMatch(ImmutableStreamEdge::isExactForwardEdge);
     }
 
-    private static boolean canPerformOptimizationForced(ImmutableStreamNode adaptiveJoinNode) {
-        // In FORCED mode, if there is an intra-correlated out edge, and the type of it is
-        // ForwardForConsecutiveHash, we can modify its partitioner to HashPartitioner to ensure
-        // the data correctness after the optimization applied. Otherwise, this optimization is not
-        // allowed.
-        return adaptiveJoinNode.getOutEdges().stream()
-                .noneMatch(
-                        edge ->
-                                edge.isIntraInputKeyCorrelated()
-                                        && !edge.isForwardForConsecutiveHashEdge());
+    private static boolean existForwardForConsecutiveHashOutEdge(List<ImmutableStreamEdge> edges) {
+        return edges.stream().anyMatch(ImmutableStreamEdge::isForwardForConsecutiveHashEdge);
     }
 }
