@@ -225,7 +225,7 @@ public class StreamNode implements Serializable {
      *
      * @return Maximum parallelism
      */
-    public int getMaxParallelism() {
+    int getMaxParallelism() {
         return maxParallelism;
     }
 
@@ -234,7 +234,7 @@ public class StreamNode implements Serializable {
      *
      * @param maxParallelism Maximum parallelism to be set
      */
-    public void setMaxParallelism(int maxParallelism) {
+    void setMaxParallelism(int maxParallelism) {
         this.maxParallelism = maxParallelism;
     }
 

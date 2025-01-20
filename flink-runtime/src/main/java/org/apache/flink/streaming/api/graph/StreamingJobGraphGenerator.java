@@ -46,7 +46,6 @@ import org.apache.flink.runtime.jobgraph.JobVertexID;
 import org.apache.flink.runtime.jobgraph.OperatorID;
 import org.apache.flink.runtime.jobgraph.forwardgroup.ForwardGroup;
 import org.apache.flink.runtime.jobgraph.forwardgroup.ForwardGroupComputeUtil;
-import org.apache.flink.runtime.jobgraph.forwardgroup.JobVertexForwardGroup;
 import org.apache.flink.runtime.jobgraph.tasks.TaskInvokable;
 import org.apache.flink.runtime.jobgraph.topology.DefaultLogicalPipelinedRegion;
 import org.apache.flink.runtime.jobgraph.topology.DefaultLogicalTopology;
@@ -854,7 +853,7 @@ public class StreamingJobGraphGenerator {
                 });
 
         // compute forward groups
-        final Map<JobVertexID, JobVertexForwardGroup> forwardGroupsByJobVertexId =
+        final Map<JobVertexID, ForwardGroup> forwardGroupsByJobVertexId =
                 ForwardGroupComputeUtil.computeForwardGroups(
                         topologicalOrderVertices,
                         jobVertex ->
