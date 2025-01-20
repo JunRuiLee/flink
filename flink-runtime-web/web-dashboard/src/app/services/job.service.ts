@@ -42,8 +42,7 @@ import {
   TaskStatus,
   UserAccumulators,
   VerticesLink,
-  JobVertexSubTaskDetail,
-  NodesItemLink
+  JobVertexSubTaskDetail
 } from '@flink-runtime-web/interfaces';
 import { JobResourceRequirements } from '@flink-runtime-web/interfaces/job-resource-requirements';
 
@@ -218,8 +217,7 @@ export class JobService {
         }
         return {
           ...node,
-          detail,
-          job_vertex_id: node.id
+          detail
         };
       });
       nodes.forEach(node => {
@@ -232,34 +230,12 @@ export class JobService {
       const listOfVerticesId = job.vertices.map(item => item.id);
       nodes.sort((pre, next) => listOfVerticesId.indexOf(pre.id) - listOfVerticesId.indexOf(next.id));
     }
-    // initializing stream graph
-    const streamLinks: NodesItemLink[] = [];
-    let streamNodes: NodesItemCorrect[] = [];
-    if (job['stream-graph']) {
-      // update pending status counts
-      job['status-counts']['PENDING'] = job['pending-operators'];
-      streamNodes = job['stream-graph'].nodes;
-      streamNodes.forEach(node => {
-        if (node.inputs && node.inputs.length) {
-          node.inputs.forEach(input => {
-            streamLinks.push({
-              ...input,
-              source: input.id,
-              target: node.id,
-              id: `${input.id}-${node.id}`
-            });
-          });
-        }
-      });
-    }
     return {
       ...job,
       plan: {
         ...job.plan,
         nodes,
-        links,
-        streamNodes,
-        streamLinks
+        links
       }
     };
   }

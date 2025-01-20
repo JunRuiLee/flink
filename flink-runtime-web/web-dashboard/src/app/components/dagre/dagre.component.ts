@@ -35,7 +35,6 @@ import { FormsModule } from '@angular/forms';
 import { NodesItemCorrect, NodesItemLink } from '@flink-runtime-web/interfaces';
 import { select } from 'd3-selection';
 import { zoomIdentity } from 'd3-zoom';
-import { NzCheckboxModule } from 'ng-zorro-antd/checkbox';
 import { NzSliderModule } from 'ng-zorro-antd/slider';
 
 import { NodeComponent } from './components/node/node.component';
@@ -52,7 +51,7 @@ enum Visibility {
   templateUrl: './dagre.component.html',
   styleUrls: ['./dagre.component.less'],
   changeDetection: ChangeDetectionStrategy.OnPush,
-  imports: [SvgContainerComponent, NodeComponent, NzSliderModule, FormsModule, CommonModule, NzCheckboxModule],
+  imports: [SvgContainerComponent, NodeComponent, NzSliderModule, FormsModule, CommonModule],
   standalone: true
 })
 export class DagreComponent extends NzGraph {
@@ -61,7 +60,6 @@ export class DagreComponent extends NzGraph {
   focusedLinkIds: string[] = [];
   selectedNodeId: string | null;
   zoom = 1;
-  showPendingOperators = false;
   cacheTransform = { x: 0, y: 0, k: 1 };
   oldTransform = { x: 0, y: 0, k: 1 };
   cacheNodes: NodesItemCorrect[] = [];
@@ -74,10 +72,7 @@ export class DagreComponent extends NzGraph {
   @ViewChild('overlayElement', { static: true }) overlayElement: ElementRef;
   @Input() xCenter = 2;
   @Input() yCenter = 2;
-  @Input() showPendingCheckbox: boolean = false;
-  @Input() pendingOperators: number = 0;
   @Output() nodeClick = new EventEmitter<LayoutNode | null>();
-  @Output() showPendingChange = new EventEmitter<boolean>();
 
   /**
    * Update Node detail
@@ -142,10 +137,6 @@ export class DagreComponent extends NzGraph {
       const t = zoomIdentity.translate(translateX, translateY).scale(this.zoom);
       this.svgContainer.setPositionByTransform(t);
     }
-  }
-
-  onCheckboxClicked(): void {
-    this.showPendingChange.emit(this.showPendingOperators);
   }
 
   /**
@@ -272,8 +263,7 @@ export class DagreComponent extends NzGraph {
     if ($event) {
       $event.stopPropagation();
     }
-    // only job vertex can be clicked for detail
-    if (node && node?.job_vertex_id) {
+    if (node) {
       if (emit) {
         this.nodeClick.emit(node);
       }

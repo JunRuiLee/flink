@@ -190,8 +190,7 @@ export class NzGraph {
           focused: false,
           dominantBaseline: this.getDominantBaseline(edge)
         },
-        detail: { ...edge },
-        pending: edge.pending
+        detail: { ...edge }
       };
       this.layoutLinks.push({ ...link, options: { ...link.options } });
       this.copyLayoutLinks.push({ ...link, options: { ...link.options } });
