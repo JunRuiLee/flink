@@ -18,7 +18,6 @@
 
 package org.apache.flink.table.planner.loader;
 
-import org.apache.flink.annotation.Internal;
 import org.apache.flink.configuration.Configuration;
 import org.apache.flink.configuration.ConfigurationUtils;
 import org.apache.flink.configuration.CoreOptions;
@@ -50,8 +49,7 @@ import java.util.stream.Stream;
  * ClassLoader#getResource(String)}. It will extract the jar into a temporary directory and create a
  * new {@link SubmoduleClassLoader} to load the various planner factories from that jar.
  */
-@Internal
-public class PlannerModule {
+class PlannerModule {
 
     /**
      * The name of the table planner dependency jar, bundled with flink-table-planner-loader module
@@ -132,10 +130,6 @@ public class PlannerModule {
             throw new TableException(
                     "Could not initialize the table planner components loader.", e);
         }
-    }
-
-    public ClassLoader getSubmoduleClassLoader() {
-        return this.submoduleClassLoader;
     }
 
     public void addUrlToClassLoader(URL url) {
