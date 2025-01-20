@@ -55,8 +55,7 @@ class JobDetailsTest {
                     + "    \"canceled\" : 2,"
                     + "    \"failed\" : 7,"
                     + "    \"reconciling\" : 3"
-                    + "  },"
-                    + "  \"pending-operators\" : 0"
+                    + "  }"
                     + "}";
     private static final String UNKNOWN_FIELD_JOB_DETAILS =
             "{"
@@ -79,8 +78,7 @@ class JobDetailsTest {
                     + "    \"canceled\" : 2,"
                     + "    \"failed\" : 7,"
                     + "    \"reconciling\" : 3"
-                    + "  },"
-                    + "  \"pending-operators\" : 0"
+                    + "  }"
                     + "}";
 
     private ObjectMapper objectMapper;
