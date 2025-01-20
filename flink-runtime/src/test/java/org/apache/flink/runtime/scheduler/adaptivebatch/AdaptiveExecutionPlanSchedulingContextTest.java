@@ -32,6 +32,7 @@ import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.RegisterExtension;
 
 import java.util.Collections;
+import java.util.Iterator;
 import java.util.concurrent.ScheduledExecutorService;
 
 import static org.apache.flink.runtime.scheduler.SchedulerBase.getDefaultMaxParallelism;
@@ -141,14 +142,15 @@ class AdaptiveExecutionPlanSchedulingContextTest {
         env.fromSequence(0L, 1L).disableChaining().print();
         StreamGraph streamGraph = env.getStreamGraph();
 
-        for (StreamNode streamNode : streamGraph.getStreamNodes()) {
-            if (streamNode.getOperatorName().contains("Sink")) {
-                streamNode.setParallelism(sinkParallelism);
+        Iterator<StreamNode> iterator = streamGraph.getStreamNodes().iterator();
 
-                if (sinkMaxParallelism > 0) {
-                    streamNode.setMaxParallelism(sinkMaxParallelism);
-                }
-            }
+        iterator.next();
+        StreamNode sink = iterator.next();
+
+        sink.setParallelism(sinkParallelism);
+
+        if (sinkMaxParallelism > 0) {
+            sink.setMaxParallelism(sinkMaxParallelism);
         }
 
         return new DefaultAdaptiveExecutionHandler(
