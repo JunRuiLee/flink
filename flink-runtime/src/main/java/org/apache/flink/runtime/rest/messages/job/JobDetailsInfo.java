@@ -37,14 +37,11 @@ import org.apache.flink.util.Preconditions;
 
 import org.apache.flink.shaded.jackson2.com.fasterxml.jackson.annotation.JsonCreator;
 import org.apache.flink.shaded.jackson2.com.fasterxml.jackson.annotation.JsonIgnore;
-import org.apache.flink.shaded.jackson2.com.fasterxml.jackson.annotation.JsonInclude;
 import org.apache.flink.shaded.jackson2.com.fasterxml.jackson.annotation.JsonProperty;
 import org.apache.flink.shaded.jackson2.com.fasterxml.jackson.databind.annotation.JsonDeserialize;
 import org.apache.flink.shaded.jackson2.com.fasterxml.jackson.databind.annotation.JsonSerialize;
 
 import io.swagger.v3.oas.annotations.media.Schema;
-
-import javax.annotation.Nullable;
 
 import java.util.Collection;
 import java.util.Map;
@@ -81,14 +78,6 @@ public class JobDetailsInfo implements ResponseBody {
     public static final String FIELD_NAME_JOB_VERTICES_PER_STATE = "status-counts";
 
     public static final String FIELD_NAME_JSON_PLAN = "plan";
-
-    /**
-     * The {@link JobPlanInfo.RawJson} of the submitted stream graph, or null if the job is
-     * submitted with a JobGraph or if it's a streaming job.
-     */
-    public static final String FIELD_NAME_STREAM_GRAPH_JSON = "stream-graph";
-
-    public static final String FIELD_NAME_PENDING_OPERATORS = "pending-operators";
 
     @JsonProperty(FIELD_NAME_JOB_ID)
     @JsonSerialize(using = JobIDSerializer.class)
@@ -133,14 +122,6 @@ public class JobDetailsInfo implements ResponseBody {
     @JsonProperty(FIELD_NAME_JSON_PLAN)
     private final JobPlanInfo.RawJson jsonPlan;
 
-    @JsonProperty(FIELD_NAME_STREAM_GRAPH_JSON)
-    @JsonInclude(JsonInclude.Include.NON_NULL)
-    @Nullable
-    private final JobPlanInfo.RawJson streamGraphJson;
-
-    @JsonProperty(FIELD_NAME_PENDING_OPERATORS)
-    private final int pendingOperators;
-
     @JsonCreator
     public JobDetailsInfo(
             @JsonDeserialize(using = JobIDDeserializer.class) @JsonProperty(FIELD_NAME_JOB_ID)
@@ -159,10 +140,7 @@ public class JobDetailsInfo implements ResponseBody {
                     Collection<JobVertexDetailsInfo> jobVertexInfos,
             @JsonProperty(FIELD_NAME_JOB_VERTICES_PER_STATE)
                     Map<ExecutionState, Integer> jobVerticesPerState,
-            @JsonProperty(FIELD_NAME_JSON_PLAN) JobPlanInfo.RawJson jsonPlan,
-            @JsonProperty(FIELD_NAME_STREAM_GRAPH_JSON) @Nullable
-                    JobPlanInfo.RawJson streamGraphJson,
-            @JsonProperty(FIELD_NAME_PENDING_OPERATORS) int pendingOperators) {
+            @JsonProperty(FIELD_NAME_JSON_PLAN) JobPlanInfo.RawJson jsonPlan) {
         this.jobId = Preconditions.checkNotNull(jobId);
         this.name = Preconditions.checkNotNull(name);
         this.isStoppable = isStoppable;
@@ -177,8 +155,6 @@ public class JobDetailsInfo implements ResponseBody {
         this.jobVertexInfos = Preconditions.checkNotNull(jobVertexInfos);
         this.jobVerticesPerState = Preconditions.checkNotNull(jobVerticesPerState);
         this.jsonPlan = Preconditions.checkNotNull(jsonPlan);
-        this.streamGraphJson = streamGraphJson;
-        this.pendingOperators = pendingOperators;
     }
 
     @Override
@@ -203,9 +179,7 @@ public class JobDetailsInfo implements ResponseBody {
                 && Objects.equals(timestamps, that.timestamps)
                 && Objects.equals(jobVertexInfos, that.jobVertexInfos)
                 && Objects.equals(jobVerticesPerState, that.jobVerticesPerState)
-                && Objects.equals(jsonPlan, that.jsonPlan)
-                && Objects.equals(streamGraphJson, that.streamGraphJson)
-                && Objects.equals(pendingOperators, that.pendingOperators);
+                && Objects.equals(jsonPlan, that.jsonPlan);
     }
 
     @Override
@@ -224,9 +198,7 @@ public class JobDetailsInfo implements ResponseBody {
                 timestamps,
                 jobVertexInfos,
                 jobVerticesPerState,
-                jsonPlan,
-                streamGraphJson,
-                pendingOperators);
+                jsonPlan);
     }
 
     @JsonIgnore
@@ -297,20 +269,6 @@ public class JobDetailsInfo implements ResponseBody {
     @JsonIgnore
     public String getJsonPlan() {
         return jsonPlan.toString();
-    }
-
-    @JsonIgnore
-    @Nullable
-    public String getStreamGraphJson() {
-        if (streamGraphJson != null) {
-            return streamGraphJson.toString();
-        }
-        return null;
-    }
-
-    @JsonIgnore
-    public int getPendingOperators() {
-        return pendingOperators;
     }
 
     // ---------------------------------------------------

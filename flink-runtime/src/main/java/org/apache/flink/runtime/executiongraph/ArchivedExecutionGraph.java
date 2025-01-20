@@ -113,10 +113,6 @@ public class ArchivedExecutionGraph implements AccessExecutionGraph, Serializabl
 
     @Nullable private final String changelogStorageName;
 
-    @Nullable private final String streamGraphJson;
-
-    private final int pendingOperatorCount;
-
     public ArchivedExecutionGraph(
             JobID jobID,
             String jobName,
@@ -136,9 +132,7 @@ public class ArchivedExecutionGraph implements AccessExecutionGraph, Serializabl
             @Nullable String stateBackendName,
             @Nullable String checkpointStorageName,
             @Nullable TernaryBoolean stateChangelogEnabled,
-            @Nullable String changelogStorageName,
-            @Nullable String streamGraphJson,
-            int pendingOperatorCount) {
+            @Nullable String changelogStorageName) {
 
         this.jobID = Preconditions.checkNotNull(jobID);
         this.jobName = Preconditions.checkNotNull(jobName);
@@ -159,8 +153,6 @@ public class ArchivedExecutionGraph implements AccessExecutionGraph, Serializabl
         this.checkpointStorageName = checkpointStorageName;
         this.stateChangelogEnabled = stateChangelogEnabled;
         this.changelogStorageName = changelogStorageName;
-        this.streamGraphJson = streamGraphJson;
-        this.pendingOperatorCount = pendingOperatorCount;
     }
 
     // --------------------------------------------------------------------------------------------
@@ -168,11 +160,6 @@ public class ArchivedExecutionGraph implements AccessExecutionGraph, Serializabl
     @Override
     public String getJsonPlan() {
         return jsonPlan;
-    }
-
-    @Override
-    public String getStreamGraphJson() {
-        return streamGraphJson;
     }
 
     @Override
@@ -311,11 +298,6 @@ public class ArchivedExecutionGraph implements AccessExecutionGraph, Serializabl
         return Optional.ofNullable(changelogStorageName);
     }
 
-    @Override
-    public int getPendingOperatorCount() {
-        return pendingOperatorCount;
-    }
-
     /**
      * Create a {@link ArchivedExecutionGraph} from the given {@link ExecutionGraph}.
      *
@@ -384,9 +366,7 @@ public class ArchivedExecutionGraph implements AccessExecutionGraph, Serializabl
                 executionGraph.getStateBackendName().orElse(null),
                 executionGraph.getCheckpointStorageName().orElse(null),
                 executionGraph.isChangelogStateBackendEnabled(),
-                executionGraph.getChangelogStorageName().orElse(null),
-                executionGraph.getStreamGraphJson(),
-                executionGraph.getPendingOperatorCount());
+                executionGraph.getChangelogStorageName().orElse(null));
     }
 
     /**
@@ -507,8 +487,6 @@ public class ArchivedExecutionGraph implements AccessExecutionGraph, Serializabl
                 checkpointingSettings == null
                         ? TernaryBoolean.UNDEFINED
                         : checkpointingSettings.isChangelogStateBackendEnabled(),
-                checkpointingSettings == null ? null : "Unknown",
-                null,
-                0);
+                checkpointingSettings == null ? null : "Unknown");
     }
 }

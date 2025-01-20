@@ -141,11 +141,6 @@ public class JobDetailsHandler
                     executionState, jobVerticesPerState[executionState.ordinal()]);
         }
 
-        JobPlanInfo.RawJson streamGraphJson = null;
-        if (executionGraph.getStreamGraphJson() != null) {
-            streamGraphJson = new JobPlanInfo.RawJson(executionGraph.getStreamGraphJson());
-        }
-
         return new JobDetailsInfo(
                 executionGraph.getJobID(),
                 executionGraph.getJobName(),
@@ -160,9 +155,7 @@ public class JobDetailsHandler
                 timestamps,
                 jobVertexInfos,
                 jobVerticesPerStateMap,
-                new JobPlanInfo.RawJson(executionGraph.getJsonPlan()),
-                streamGraphJson,
-                executionGraph.getPendingOperatorCount());
+                new JobPlanInfo.RawJson(executionGraph.getJsonPlan()));
     }
 
     private static JobDetailsInfo.JobVertexDetailsInfo createJobVertexDetailsInfo(

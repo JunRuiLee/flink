@@ -28,7 +28,6 @@ import org.apache.flink.runtime.jobgraph.JobVertex;
 import org.apache.flink.runtime.jobgraph.JobVertexID;
 import org.apache.flink.runtime.jobgraph.forwardgroup.ForwardGroupComputeUtil;
 import org.apache.flink.runtime.jobgraph.forwardgroup.StreamNodeForwardGroup;
-import org.apache.flink.runtime.jobgraph.jsonplan.JsonPlanGenerator;
 import org.apache.flink.runtime.jobmanager.scheduler.SlotSharingGroup;
 import org.apache.flink.streaming.api.graph.util.JobVertexBuildContext;
 import org.apache.flink.streaming.api.graph.util.OperatorChainInfo;
@@ -75,8 +74,7 @@ import static org.apache.flink.streaming.api.graph.StreamingJobGraphGenerator.va
 
 /** Default implementation for {@link AdaptiveGraphGenerator}. */
 @Internal
-public class AdaptiveGraphManager
-        implements AdaptiveGraphGenerator, StreamGraphContext.StreamGraphUpdateListener {
+public class AdaptiveGraphManager implements AdaptiveGraphGenerator {
 
     private final StreamGraph streamGraph;
 
@@ -130,16 +128,12 @@ public class AdaptiveGraphManager
     // We need cache all job vertices to create JobEdge for downstream vertex.
     private final Map<Integer, JobVertex> startNodeToJobVertexMap;
 
-    private final Map<Integer, JobVertexID> streamNodeIdsToJobVertexMap;
-
     // Records the ID of the job vertex that has completed execution.
     private final Set<JobVertexID> finishedJobVertices;
 
     private final AtomicBoolean hasHybridResultPartition;
 
     private final SlotSharingGroup defaultSlotSharingGroup;
-
-    private String streamGraphJson;
 
     public AdaptiveGraphManager(
             ClassLoader userClassloader, StreamGraph streamGraph, Executor serializationExecutor) {
@@ -168,7 +162,6 @@ public class AdaptiveGraphManager
 
         this.jobVertexToStartNodeMap = new HashMap<>();
         this.jobVertexToChainedStreamNodeIdsMap = new HashMap<>();
-        this.streamNodeIdsToJobVertexMap = new HashMap<>();
 
         this.finishedJobVertices = new HashSet<>();
 
@@ -178,8 +171,7 @@ public class AdaptiveGraphManager
                         steamNodeIdToForwardGroupMap,
                         frozenNodeToStartNodeMap,
                         intermediateOutputsCaches,
-                        consumerEdgeIdToIntermediateDataSetMap,
-                        this);
+                        consumerEdgeIdToIntermediateDataSetMap);
 
         this.jobGraph = createAndInitializeJobGraph(streamGraph, streamGraph.getJobID());
 
@@ -302,8 +294,6 @@ public class AdaptiveGraphManager
         recordCreatedJobVerticesInfo(jobVertexBuildContext);
 
         generateConfigForJobVertices(jobVertexBuildContext);
-
-        generateStreamGraphJson();
 
         return new ArrayList<>(jobVertexBuildContext.getJobVerticesInOrder().values());
     }
@@ -448,7 +438,6 @@ public class AdaptiveGraphManager
                                         .computeIfAbsent(
                                                 jobVertex.getID(), key -> new ArrayList<>())
                                         .add(node.getId());
-                                streamNodeIdsToJobVertexMap.put(node.getId(), jobVertex.getID());
                             });
         }
     }
@@ -671,19 +660,5 @@ public class AdaptiveGraphManager
 
     private Integer getStartNodeId(Integer streamNodeId) {
         return frozenNodeToStartNodeMap.get(streamNodeId);
-    }
-
-    private void generateStreamGraphJson() {
-        streamGraphJson =
-                JsonPlanGenerator.generateStreamGraphJson(streamGraph, streamNodeIdsToJobVertexMap);
-    }
-
-    public String getStreamGraphJson() {
-        return streamGraphJson;
-    }
-
-    @Override
-    public void onStreamGraphUpdated() {
-        generateStreamGraphJson();
     }
 }

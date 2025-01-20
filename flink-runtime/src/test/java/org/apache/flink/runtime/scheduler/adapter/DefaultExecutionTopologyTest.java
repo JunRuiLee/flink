@@ -449,10 +449,5 @@ class DefaultExecutionTopologyTest {
         public int getPendingOperatorCount() {
             return 0;
         }
-
-        @Override
-        public String getStreamGraphJson() {
-            return null;
-        }
     }
 }

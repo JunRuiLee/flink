@@ -458,11 +458,6 @@ public class DefaultExecutionGraph implements ExecutionGraph, InternalExecutionG
     }
 
     @Override
-    public int getPendingOperatorCount() {
-        return executionPlanSchedulingContext.getPendingOperatorCount();
-    }
-
-    @Override
     public void enableCheckpointing(
             CheckpointCoordinatorConfiguration chkConfig,
             List<MasterTriggerRestoreHook<?>> masterHooks,
@@ -615,11 +610,6 @@ public class DefaultExecutionGraph implements ExecutionGraph, InternalExecutionG
     @Override
     public void setJsonPlan(String jsonPlan) {
         this.jsonPlan = jsonPlan;
-    }
-
-    @Override
-    public String getStreamGraphJson() {
-        return executionPlanSchedulingContext.getStreamGraphJson();
     }
 
     @Override

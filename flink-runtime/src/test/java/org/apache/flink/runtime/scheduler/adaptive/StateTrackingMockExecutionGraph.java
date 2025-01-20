@@ -188,11 +188,6 @@ class StateTrackingMockExecutionGraph implements ExecutionGraph {
     }
 
     @Override
-    public String getStreamGraphJson() {
-        return null;
-    }
-
-    @Override
     public void setJsonPlan(String jsonPlan) {}
 
     @Override
@@ -252,11 +247,6 @@ class StateTrackingMockExecutionGraph implements ExecutionGraph {
     @Override
     public Optional<String> getChangelogStorageName() {
         return Optional.empty();
-    }
-
-    @Override
-    public int getPendingOperatorCount() {
-        return 0;
     }
 
     @Override

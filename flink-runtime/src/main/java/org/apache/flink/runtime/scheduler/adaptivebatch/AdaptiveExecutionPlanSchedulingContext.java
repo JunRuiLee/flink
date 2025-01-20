@@ -118,11 +118,6 @@ public class AdaptiveExecutionPlanSchedulingContext implements ExecutionPlanSche
         return adaptiveGraphManager.getPendingOperatorsCount();
     }
 
-    @Override
-    public String getStreamGraphJson() {
-        return adaptiveGraphManager.getStreamGraphJson();
-    }
-
     private int getParallelism(int streamNodeId) {
         return adaptiveGraphManager
                 .getStreamGraphContext()

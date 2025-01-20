@@ -21,8 +21,6 @@ package org.apache.flink.runtime.scheduler.adaptivebatch;
 import org.apache.flink.runtime.jobgraph.IntermediateDataSet;
 import org.apache.flink.runtime.jobgraph.JobVertexID;
 
-import javax.annotation.Nullable;
-
 import java.util.function.Function;
 
 /** Interface for retrieving stream graph context details for adaptive batch jobs. */
@@ -60,13 +58,4 @@ public interface ExecutionPlanSchedulingContext {
      * @return the number of pending operators.
      */
     int getPendingOperatorCount();
-
-    /**
-     * Retrieves the JSON representation of the stream graph for the original job.
-     *
-     * @return the JSON representation of the stream graph, or null if the stream graph is not
-     *     available.
-     */
-    @Nullable
-    String getStreamGraphJson();
 }
