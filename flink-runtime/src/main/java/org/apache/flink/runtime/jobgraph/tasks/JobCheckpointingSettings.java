@@ -18,18 +18,16 @@
 
 package org.apache.flink.runtime.jobgraph.tasks;
 
-import org.apache.flink.annotation.VisibleForTesting;
 import org.apache.flink.runtime.checkpoint.MasterTriggerRestoreHook;
 import org.apache.flink.runtime.state.CheckpointStorage;
 import org.apache.flink.runtime.state.StateBackend;
+import org.apache.flink.util.Preconditions;
 import org.apache.flink.util.SerializedValue;
 import org.apache.flink.util.TernaryBoolean;
 
 import javax.annotation.Nullable;
 
 import java.io.Serializable;
-
-import static org.apache.flink.util.Preconditions.checkNotNull;
 
 /**
  * The JobCheckpointingSettings are attached to a JobGraph and describe the settings for the
@@ -54,47 +52,22 @@ public class JobCheckpointingSettings implements Serializable {
     /** (Factories for) hooks that are executed on the checkpoint coordinator */
     @Nullable private final SerializedValue<MasterTriggerRestoreHook.Factory[]> masterHooks;
 
-    private final TernaryBoolean stateBackendUseManagedMemory;
-
-    @VisibleForTesting
     public JobCheckpointingSettings(
             CheckpointCoordinatorConfiguration checkpointCoordinatorConfiguration,
             @Nullable SerializedValue<StateBackend> defaultStateBackend) {
 
-        this(
-                checkpointCoordinatorConfiguration,
-                defaultStateBackend,
-                null,
-                null,
-                null,
-                TernaryBoolean.UNDEFINED);
+        this(checkpointCoordinatorConfiguration, defaultStateBackend, null, null, null);
     }
 
-    @VisibleForTesting
     public JobCheckpointingSettings(
             CheckpointCoordinatorConfiguration checkpointCoordinatorConfiguration,
             @Nullable SerializedValue<StateBackend> defaultStateBackend,
             @Nullable TernaryBoolean changelogStateBackendEnabled,
             @Nullable SerializedValue<CheckpointStorage> defaultCheckpointStorage,
             @Nullable SerializedValue<MasterTriggerRestoreHook.Factory[]> masterHooks) {
-        this(
-                checkpointCoordinatorConfiguration,
-                defaultStateBackend,
-                changelogStateBackendEnabled,
-                defaultCheckpointStorage,
-                masterHooks,
-                TernaryBoolean.UNDEFINED);
-    }
 
-    public JobCheckpointingSettings(
-            CheckpointCoordinatorConfiguration checkpointCoordinatorConfiguration,
-            @Nullable SerializedValue<StateBackend> defaultStateBackend,
-            @Nullable TernaryBoolean changelogStateBackendEnabled,
-            @Nullable SerializedValue<CheckpointStorage> defaultCheckpointStorage,
-            @Nullable SerializedValue<MasterTriggerRestoreHook.Factory[]> masterHooks,
-            TernaryBoolean stateBackendUseManagedMemory) {
-
-        this.checkpointCoordinatorConfiguration = checkNotNull(checkpointCoordinatorConfiguration);
+        this.checkpointCoordinatorConfiguration =
+                Preconditions.checkNotNull(checkpointCoordinatorConfiguration);
         this.defaultStateBackend = defaultStateBackend;
         this.changelogStateBackendEnabled =
                 changelogStateBackendEnabled == null
@@ -102,7 +75,6 @@ public class JobCheckpointingSettings implements Serializable {
                         : changelogStateBackendEnabled;
         this.defaultCheckpointStorage = defaultCheckpointStorage;
         this.masterHooks = masterHooks;
-        this.stateBackendUseManagedMemory = checkNotNull(stateBackendUseManagedMemory);
     }
 
     // --------------------------------------------------------------------------------------------
@@ -118,10 +90,6 @@ public class JobCheckpointingSettings implements Serializable {
 
     public TernaryBoolean isChangelogStateBackendEnabled() {
         return changelogStateBackendEnabled;
-    }
-
-    public TernaryBoolean isStateBackendUseManagedMemory() {
-        return stateBackendUseManagedMemory;
     }
 
     @Nullable

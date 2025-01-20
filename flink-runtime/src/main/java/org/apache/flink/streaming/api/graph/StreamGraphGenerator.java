@@ -22,7 +22,6 @@ import org.apache.flink.annotation.Internal;
 import org.apache.flink.api.common.BatchShuffleMode;
 import org.apache.flink.api.common.ExecutionConfig;
 import org.apache.flink.api.common.RuntimeExecutionMode;
-import org.apache.flink.api.common.cache.DistributedCache;
 import org.apache.flink.api.common.operators.ResourceSpec;
 import org.apache.flink.api.common.operators.util.SlotSharingGroupUtils;
 import org.apache.flink.api.connector.source.Boundedness;
@@ -37,7 +36,6 @@ import org.apache.flink.configuration.PipelineOptions;
 import org.apache.flink.configuration.ReadableConfig;
 import org.apache.flink.configuration.StateChangelogOptions;
 import org.apache.flink.runtime.clusterframework.types.ResourceProfile;
-import org.apache.flink.runtime.jobgraph.ExecutionPlanUtils;
 import org.apache.flink.runtime.jobgraph.JobType;
 import org.apache.flink.runtime.jobgraph.SavepointRestoreSettings;
 import org.apache.flink.runtime.state.KeyGroupRangeAssignment;
@@ -403,7 +401,6 @@ public class StreamGraphGenerator {
             graph.getJobConfiguration().set(StateChangelogOptions.ENABLE_STATE_CHANGE_LOG, false);
             graph.setCheckpointStorage(new BatchExecutionCheckpointStorage());
             graph.setTimerServiceProvider(BatchExecutionInternalTimeServiceManager::create);
-            graph.createJobCheckpointingSettings();
         }
     }
 

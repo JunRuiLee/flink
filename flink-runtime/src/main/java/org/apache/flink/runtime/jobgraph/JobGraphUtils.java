@@ -33,11 +33,11 @@ import java.nio.file.Files;
 import java.util.HashMap;
 import java.util.Map;
 
-/** Utilities for generating {@link org.apache.flink.streaming.api.graph.ExecutionPlan}. */
-public enum ExecutionPlanUtils {
+/** Utilities for generating {@link JobGraph}. */
+public enum JobGraphUtils {
     ;
 
-    private static final Logger LOG = LoggerFactory.getLogger(ExecutionPlanUtils.class);
+    private static final Logger LOG = LoggerFactory.getLogger(JobGraphUtils.class);
 
     public static Map<String, DistributedCache.DistributedCacheEntry> prepareUserArtifactEntries(
             Map<String, DistributedCache.DistributedCacheEntry> userArtifacts, JobID jobId) {
