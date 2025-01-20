@@ -201,13 +201,15 @@ class PartitionedFileReader {
         long endPartitionOffset = indexEntryBuf.getLong();
         long endPartitionSize = indexEntryBuf.getLong();
 
-        if (startPartitionOffset != endPartitionOffset || startPartitionSize != endPartitionSize) {
+        if (startPartitionOffset != endPartitionOffset) {
             offsetAndSizesToRead.add(
                     Tuple2.of(
                             startPartitionOffset,
                             endPartitionOffset + endPartitionSize - startPartitionOffset));
         } else if (startPartitionSize != 0) {
-            // this branch is for broadcast subpartitions
+            checkArgument(
+                    startPartitionSize == endPartitionSize,
+                    "Offsets need to be either contiguous or all the same.");
             for (int i = startSubpartition; i <= endSubpartition; i++) {
                 offsetAndSizesToRead.add(Tuple2.of(startPartitionOffset, startPartitionSize));
             }

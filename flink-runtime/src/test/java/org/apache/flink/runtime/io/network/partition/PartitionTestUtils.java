@@ -164,13 +164,8 @@ public enum PartitionTestUtils {
             }
         }
 
-        int[] writeOrder = new int[numSubpartitions];
-        for (int i = 0; i < numSubpartitions; i++) {
-            writeOrder[i] = i;
-        }
-
         PartitionedFileWriter fileWriter =
-                new PartitionedFileWriter(numSubpartitions, 1024, basePath, writeOrder);
+                new PartitionedFileWriter(numSubpartitions, 1024, basePath);
         fileWriter.startNewRegion(false);
         fileWriter.writeBuffers(buffers);
         return fileWriter.finish();

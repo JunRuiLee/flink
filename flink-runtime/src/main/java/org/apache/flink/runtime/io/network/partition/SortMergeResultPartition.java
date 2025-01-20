@@ -180,8 +180,7 @@ public class SortMergeResultPartition extends ResultPartition {
             try {
                 // allocate at most 4M heap memory for caching of index entries
                 fileWriter =
-                        new PartitionedFileWriter(
-                                numSubpartitions, 4194304, resultFileBasePath, subpartitionOrder);
+                        new PartitionedFileWriter(numSubpartitions, 4194304, resultFileBasePath);
             } catch (Throwable throwable) {
                 throw new IOException("Failed to create file writer.", throwable);
             }
