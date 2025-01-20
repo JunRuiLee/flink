@@ -269,10 +269,7 @@ public class AdaptiveBatchSchedulerFactory implements SchedulerNGFactory {
 
         AdaptiveExecutionHandler adaptiveExecutionHandler =
                 AdaptiveExecutionHandlerFactory.create(
-                        executionPlan,
-                        jobRecoveryHandler instanceof DefaultBatchJobRecoveryHandler,
-                        userCodeLoader,
-                        futureExecutor);
+                        executionPlan, userCodeLoader, futureExecutor);
 
         return new AdaptiveBatchScheduler(
                 log,
