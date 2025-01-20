@@ -44,7 +44,6 @@ import java.util.Arrays;
 import java.util.BitSet;
 
 import static org.apache.flink.configuration.ConfigurationUtils.getIntConfigOption;
-import static org.apache.flink.runtime.util.JobVertexConnectionUtils.connectNewDataSetAsInput;
 
 /**
  * Tests that Flink can execute jobs with a higher parallelism than available number of slots. This
@@ -122,8 +121,8 @@ public class SlotCountExceedingParallelismTest extends TestLogger {
                 .get(getIntConfigOption(SubtaskIndexReceiver.CONFIG_KEY), senderParallelism);
         receiver.setParallelism(receiverParallelism);
 
-        connectNewDataSetAsInput(
-                receiver, sender, DistributionPattern.ALL_TO_ALL, ResultPartitionType.BLOCKING);
+        receiver.connectNewDataSetAsInput(
+                sender, DistributionPattern.ALL_TO_ALL, ResultPartitionType.BLOCKING);
 
         return JobGraphBuilder.newBatchJobGraphBuilder()
                 .setJobName(jobName)

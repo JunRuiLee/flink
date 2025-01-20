@@ -47,7 +47,6 @@ import java.util.concurrent.ScheduledExecutorService;
 import java.util.function.Predicate;
 
 import static org.apache.flink.api.common.JobStatus.FINISHED;
-import static org.apache.flink.runtime.util.JobVertexConnectionUtils.connectNewDataSetAsInput;
 import static org.assertj.core.api.Assertions.assertThat;
 
 /** Tests that co-location constraints work as expected in the case of task restarts. */
@@ -66,11 +65,8 @@ class ExecutionGraphCoLocationRestartTest {
 
         JobVertex groupVertex = ExecutionGraphTestUtils.createNoOpVertex(NUM_TASKS);
         JobVertex groupVertex2 = ExecutionGraphTestUtils.createNoOpVertex(NUM_TASKS);
-        connectNewDataSetAsInput(
-                groupVertex2,
-                groupVertex,
-                DistributionPattern.POINTWISE,
-                ResultPartitionType.PIPELINED);
+        groupVertex2.connectNewDataSetAsInput(
+                groupVertex, DistributionPattern.POINTWISE, ResultPartitionType.PIPELINED);
 
         SlotSharingGroup sharingGroup = new SlotSharingGroup();
         groupVertex.setSlotSharingGroup(sharingGroup);

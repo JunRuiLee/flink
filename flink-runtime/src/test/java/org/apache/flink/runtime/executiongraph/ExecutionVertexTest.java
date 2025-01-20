@@ -46,7 +46,6 @@ import java.util.Collection;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ScheduledExecutorService;
 
-import static org.apache.flink.runtime.util.JobVertexConnectionUtils.connectNewDataSetAsInput;
 import static org.assertj.core.api.Assertions.assertThat;
 
 /** Tests for the {@link ExecutionVertex}. */
@@ -61,11 +60,8 @@ class ExecutionVertexTest {
         final JobVertex producerJobVertex = ExecutionGraphTestUtils.createNoOpVertex(1);
         final JobVertex consumerJobVertex = ExecutionGraphTestUtils.createNoOpVertex(1);
 
-        connectNewDataSetAsInput(
-                consumerJobVertex,
-                producerJobVertex,
-                DistributionPattern.POINTWISE,
-                ResultPartitionType.BLOCKING);
+        consumerJobVertex.connectNewDataSetAsInput(
+                producerJobVertex, DistributionPattern.POINTWISE, ResultPartitionType.BLOCKING);
 
         final CompletableFuture<Collection<ResultPartitionID>> releasePartitionsFuture =
                 new CompletableFuture<>();

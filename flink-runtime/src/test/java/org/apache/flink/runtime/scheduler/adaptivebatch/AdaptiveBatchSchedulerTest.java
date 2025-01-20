@@ -76,7 +76,6 @@ import static org.apache.flink.runtime.scheduler.DefaultSchedulerBuilder.createC
 import static org.apache.flink.runtime.scheduler.SchedulerTestingUtils.createFailedTaskExecutionState;
 import static org.apache.flink.runtime.scheduler.SchedulerTestingUtils.createFinishedTaskExecutionState;
 import static org.apache.flink.runtime.scheduler.adaptivebatch.DefaultVertexParallelismAndInputInfosDeciderTest.createDecider;
-import static org.apache.flink.runtime.util.JobVertexConnectionUtils.connectNewDataSetAsInput;
 import static org.apache.flink.shaded.guava32.com.google.common.collect.Iterables.getOnlyElement;
 import static org.assertj.core.api.Assertions.assertThat;
 
@@ -157,13 +156,10 @@ class AdaptiveBatchSchedulerTest {
         final JobVertex map = createJobVertex("map", -1);
         final JobVertex sink = createJobVertex("sink", -1);
 
-        connectNewDataSetAsInput(
-                map, source, DistributionPattern.POINTWISE, ResultPartitionType.BLOCKING);
-        connectNewDataSetAsInput(
-                sink,
-                map,
-                DistributionPattern.POINTWISE,
-                ResultPartitionType.BLOCKING);
+        map.connectNewDataSetAsInput(
+                source, DistributionPattern.POINTWISE, ResultPartitionType.BLOCKING);
+        sink.connectNewDataSetAsInput(
+                map, DistributionPattern.POINTWISE, ResultPartitionType.BLOCKING);
         map.getProducedDataSets().get(0).getConsumers().get(0).setForward(true);
 
         SchedulerBase scheduler =
@@ -275,15 +271,13 @@ class AdaptiveBatchSchedulerTest {
         final IntermediateDataSetID intermediateDataSetId = new IntermediateDataSetID();
 
         // sink consume the same result twice
-        connectNewDataSetAsInput(
-                sink,
+        sink.connectNewDataSetAsInput(
                 source,
                 DistributionPattern.ALL_TO_ALL,
                 ResultPartitionType.BLOCKING,
                 intermediateDataSetId,
                 false);
-        connectNewDataSetAsInput(
-                sink,
+        sink.connectNewDataSetAsInput(
                 source,
                 DistributionPattern.ALL_TO_ALL,
                 ResultPartitionType.BLOCKING,
@@ -311,8 +305,8 @@ class AdaptiveBatchSchedulerTest {
     void testParallelismDecidedVerticesCanBeInitializedEarlier() throws Exception {
         final JobVertex source = createJobVertex("source", 8);
         final JobVertex sink = createJobVertex("sink", 8);
-        connectNewDataSetAsInput(
-                sink, source, DistributionPattern.ALL_TO_ALL, ResultPartitionType.BLOCKING);
+        sink.connectNewDataSetAsInput(
+                source, DistributionPattern.ALL_TO_ALL, ResultPartitionType.BLOCKING);
 
         SchedulerBase scheduler =
                 createScheduler(new JobGraph(new JobID(), "test job", source, sink));
@@ -396,8 +390,8 @@ class AdaptiveBatchSchedulerTest {
         final JobVertex sink = createJobVertex("sink", -1);
         sink.setMaxParallelism(userConfiguredMaxParallelism);
 
-        connectNewDataSetAsInput(
-                sink, source, DistributionPattern.POINTWISE, ResultPartitionType.BLOCKING);
+        sink.connectNewDataSetAsInput(
+                source, DistributionPattern.POINTWISE, ResultPartitionType.BLOCKING);
 
         SchedulerBase scheduler =
                 createScheduler(
@@ -528,15 +522,13 @@ class AdaptiveBatchSchedulerTest {
         final JobVertex source2 = createJobVertex("source2", SOURCE_PARALLELISM_2);
         final JobVertex sink = createJobVertex("sink", -1);
         final IntermediateDataSetID sharedDataSetId = new IntermediateDataSetID();
-        connectNewDataSetAsInput(
-                sink,
+        sink.connectNewDataSetAsInput(
                 source1,
                 DistributionPattern.POINTWISE,
                 ResultPartitionType.BLOCKING,
                 broken ? sharedDataSetId : new IntermediateDataSetID(),
                 false);
-        connectNewDataSetAsInput(
-                sink,
+        sink.connectNewDataSetAsInput(
                 source2,
                 DistributionPattern.POINTWISE,
                 ResultPartitionType.BLOCKING,

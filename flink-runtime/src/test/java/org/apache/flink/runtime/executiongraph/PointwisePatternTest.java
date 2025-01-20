@@ -38,7 +38,6 @@ import java.util.Arrays;
 import java.util.List;
 import java.util.concurrent.ScheduledExecutorService;
 
-import static org.apache.flink.runtime.util.JobVertexConnectionUtils.connectNewDataSetAsInput;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.fail;
 
@@ -251,8 +250,8 @@ class PointwisePatternTest {
         v1.setInvokableClass(AbstractInvokable.class);
         v2.setInvokableClass(AbstractInvokable.class);
 
-        connectNewDataSetAsInput(
-                v2, v1, DistributionPattern.POINTWISE, ResultPartitionType.PIPELINED);
+        v2.connectNewDataSetAsInput(
+                v1, DistributionPattern.POINTWISE, ResultPartitionType.PIPELINED);
 
         List<JobVertex> ordered = new ArrayList<>(Arrays.asList(v1, v2));
 

@@ -41,7 +41,6 @@ import static org.apache.flink.runtime.io.network.partition.ResultPartitionType.
 import static org.apache.flink.runtime.jobgraph.DistributionPattern.ALL_TO_ALL;
 import static org.apache.flink.runtime.jobgraph.topology.DefaultLogicalResultTest.assertResultsEquals;
 import static org.apache.flink.runtime.jobgraph.topology.DefaultLogicalVertexTest.assertVertexInfoEquals;
-import static org.apache.flink.runtime.util.JobVertexConnectionUtils.connectNewDataSetAsInput;
 import static org.junit.Assert.assertEquals;
 
 /** Unit tests for {@link DefaultLogicalTopology}. */
@@ -85,8 +84,8 @@ public class DefaultLogicalTopologyTest extends TestLogger {
         jobVertices[0] = createNoOpVertex("v1", parallelism);
         jobVertices[1] = createNoOpVertex("v2", parallelism);
         jobVertices[2] = createNoOpVertex("v3", parallelism);
-        connectNewDataSetAsInput(jobVertices[1], jobVertices[0], ALL_TO_ALL, PIPELINED);
-        connectNewDataSetAsInput(jobVertices[2], jobVertices[1], ALL_TO_ALL, BLOCKING);
+        jobVertices[1].connectNewDataSetAsInput(jobVertices[0], ALL_TO_ALL, PIPELINED);
+        jobVertices[2].connectNewDataSetAsInput(jobVertices[1], ALL_TO_ALL, BLOCKING);
 
         return JobGraphTestUtils.streamingJobGraph(jobVertices);
     }

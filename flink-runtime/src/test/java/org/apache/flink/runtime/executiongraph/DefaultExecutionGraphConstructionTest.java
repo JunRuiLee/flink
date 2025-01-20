@@ -51,7 +51,6 @@ import java.util.Objects;
 import java.util.Set;
 import java.util.concurrent.ScheduledExecutorService;
 
-import static org.apache.flink.runtime.util.JobVertexConnectionUtils.connectNewDataSetAsInput;
 import static org.apache.flink.util.Preconditions.checkNotNull;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
@@ -143,16 +142,16 @@ class DefaultExecutionGraphConstructionTest {
         v4.setInvokableClass(AbstractInvokable.class);
         v5.setInvokableClass(AbstractInvokable.class);
 
-        connectNewDataSetAsInput(
-                v2, v1, DistributionPattern.ALL_TO_ALL, ResultPartitionType.PIPELINED);
-        connectNewDataSetAsInput(
-                v4, v2, DistributionPattern.ALL_TO_ALL, ResultPartitionType.PIPELINED);
-        connectNewDataSetAsInput(
-                v4, v3, DistributionPattern.ALL_TO_ALL, ResultPartitionType.PIPELINED);
-        connectNewDataSetAsInput(
-                v5, v4, DistributionPattern.ALL_TO_ALL, ResultPartitionType.PIPELINED);
-        connectNewDataSetAsInput(
-                v5, v3, DistributionPattern.ALL_TO_ALL, ResultPartitionType.PIPELINED);
+        v2.connectNewDataSetAsInput(
+                v1, DistributionPattern.ALL_TO_ALL, ResultPartitionType.PIPELINED);
+        v4.connectNewDataSetAsInput(
+                v2, DistributionPattern.ALL_TO_ALL, ResultPartitionType.PIPELINED);
+        v4.connectNewDataSetAsInput(
+                v3, DistributionPattern.ALL_TO_ALL, ResultPartitionType.PIPELINED);
+        v5.connectNewDataSetAsInput(
+                v4, DistributionPattern.ALL_TO_ALL, ResultPartitionType.PIPELINED);
+        v5.connectNewDataSetAsInput(
+                v3, DistributionPattern.ALL_TO_ALL, ResultPartitionType.PIPELINED);
 
         List<JobVertex> ordered = new ArrayList<JobVertex>(Arrays.asList(v1, v2, v3, v4, v5));
 
@@ -200,16 +199,16 @@ class DefaultExecutionGraphConstructionTest {
         v4.setInvokableClass(AbstractInvokable.class);
         v5.setInvokableClass(AbstractInvokable.class);
 
-        connectNewDataSetAsInput(
-                v2, v1, DistributionPattern.ALL_TO_ALL, ResultPartitionType.PIPELINED);
-        connectNewDataSetAsInput(
-                v4, v2, DistributionPattern.ALL_TO_ALL, ResultPartitionType.PIPELINED);
-        connectNewDataSetAsInput(
-                v4, v3, DistributionPattern.ALL_TO_ALL, ResultPartitionType.PIPELINED);
-        connectNewDataSetAsInput(
-                v5, v4, DistributionPattern.ALL_TO_ALL, ResultPartitionType.PIPELINED);
-        connectNewDataSetAsInput(
-                v5, v3, DistributionPattern.ALL_TO_ALL, ResultPartitionType.PIPELINED);
+        v2.connectNewDataSetAsInput(
+                v1, DistributionPattern.ALL_TO_ALL, ResultPartitionType.PIPELINED);
+        v4.connectNewDataSetAsInput(
+                v2, DistributionPattern.ALL_TO_ALL, ResultPartitionType.PIPELINED);
+        v4.connectNewDataSetAsInput(
+                v3, DistributionPattern.ALL_TO_ALL, ResultPartitionType.PIPELINED);
+        v5.connectNewDataSetAsInput(
+                v4, DistributionPattern.ALL_TO_ALL, ResultPartitionType.PIPELINED);
+        v5.connectNewDataSetAsInput(
+                v3, DistributionPattern.ALL_TO_ALL, ResultPartitionType.PIPELINED);
 
         List<JobVertex> ordered = new ArrayList<JobVertex>(Arrays.asList(v1, v2, v3, v5, v4));
 
@@ -248,16 +247,16 @@ class DefaultExecutionGraphConstructionTest {
         v4.setInvokableClass(AbstractInvokable.class);
         v5.setInvokableClass(AbstractInvokable.class);
 
-        connectNewDataSetAsInput(
-                v2, v1, DistributionPattern.ALL_TO_ALL, ResultPartitionType.PIPELINED);
-        connectNewDataSetAsInput(
-                v4, v2, DistributionPattern.ALL_TO_ALL, ResultPartitionType.PIPELINED);
-        connectNewDataSetAsInput(
-                v4, v3, DistributionPattern.ALL_TO_ALL, ResultPartitionType.PIPELINED);
-        connectNewDataSetAsInput(
-                v5, v4, DistributionPattern.ALL_TO_ALL, ResultPartitionType.PIPELINED);
-        connectNewDataSetAsInput(
-                v5, v3, DistributionPattern.ALL_TO_ALL, ResultPartitionType.PIPELINED);
+        v2.connectNewDataSetAsInput(
+                v1, DistributionPattern.ALL_TO_ALL, ResultPartitionType.PIPELINED);
+        v4.connectNewDataSetAsInput(
+                v2, DistributionPattern.ALL_TO_ALL, ResultPartitionType.PIPELINED);
+        v4.connectNewDataSetAsInput(
+                v3, DistributionPattern.ALL_TO_ALL, ResultPartitionType.PIPELINED);
+        v5.connectNewDataSetAsInput(
+                v4, DistributionPattern.ALL_TO_ALL, ResultPartitionType.PIPELINED);
+        v5.connectNewDataSetAsInput(
+                v3, DistributionPattern.ALL_TO_ALL, ResultPartitionType.PIPELINED);
 
         v3.setInputSplitSource(source1);
         v5.setInputSplitSource(source2);
@@ -278,20 +277,10 @@ class DefaultExecutionGraphConstructionTest {
         JobVertex v3 = new JobVertex("vertex3");
 
         IntermediateDataSetID dataSetId = new IntermediateDataSetID();
-        connectNewDataSetAsInput(
-                v2,
-                v1,
-                DistributionPattern.ALL_TO_ALL,
-                ResultPartitionType.BLOCKING,
-                dataSetId,
-                false);
-        connectNewDataSetAsInput(
-                v3,
-                v1,
-                DistributionPattern.ALL_TO_ALL,
-                ResultPartitionType.BLOCKING,
-                dataSetId,
-                false);
+        v2.connectNewDataSetAsInput(
+                v1, DistributionPattern.ALL_TO_ALL, ResultPartitionType.BLOCKING, dataSetId, false);
+        v3.connectNewDataSetAsInput(
+                v1, DistributionPattern.ALL_TO_ALL, ResultPartitionType.BLOCKING, dataSetId, false);
 
         List<JobVertex> vertices = new ArrayList<>(Arrays.asList(v1, v2, v3));
         ExecutionGraph eg = createDefaultExecutionGraph(vertices);
@@ -328,8 +317,8 @@ class DefaultExecutionGraphConstructionTest {
         v1.setParallelism(2);
         v2.setParallelism(2);
 
-        connectNewDataSetAsInput(
-                v2, v1, DistributionPattern.ALL_TO_ALL, ResultPartitionType.BLOCKING);
+        v2.connectNewDataSetAsInput(
+                v1, DistributionPattern.ALL_TO_ALL, ResultPartitionType.BLOCKING);
 
         List<JobVertex> ordered = new ArrayList<>(Arrays.asList(v1, v2));
         ExecutionGraph eg = createDefaultExecutionGraph(ordered);
@@ -363,8 +352,8 @@ class DefaultExecutionGraphConstructionTest {
         v1.setParallelism(4);
         v2.setParallelism(2);
 
-        connectNewDataSetAsInput(
-                v2, v1, DistributionPattern.POINTWISE, ResultPartitionType.BLOCKING);
+        v2.connectNewDataSetAsInput(
+                v1, DistributionPattern.POINTWISE, ResultPartitionType.BLOCKING);
 
         List<JobVertex> ordered = new ArrayList<>(Arrays.asList(v1, v2));
         ExecutionGraph eg = createDefaultExecutionGraph(ordered);
@@ -402,8 +391,8 @@ class DefaultExecutionGraphConstructionTest {
         v1.setParallelism(2);
         v2.setParallelism(2);
 
-        connectNewDataSetAsInput(
-                v2, v1, DistributionPattern.ALL_TO_ALL, ResultPartitionType.BLOCKING);
+        v2.connectNewDataSetAsInput(
+                v1, DistributionPattern.ALL_TO_ALL, ResultPartitionType.BLOCKING);
 
         List<JobVertex> ordered = new ArrayList<>(Arrays.asList(v1, v2));
         ExecutionGraph eg = createDefaultExecutionGraph(ordered);
@@ -433,8 +422,8 @@ class DefaultExecutionGraphConstructionTest {
         v1.setParallelism(2);
         v2.setParallelism(2);
 
-        connectNewDataSetAsInput(
-                v2, v1, DistributionPattern.ALL_TO_ALL, ResultPartitionType.BLOCKING);
+        v2.connectNewDataSetAsInput(
+                v1, DistributionPattern.ALL_TO_ALL, ResultPartitionType.BLOCKING);
 
         List<JobVertex> ordered = new ArrayList<>(Arrays.asList(v1, v2));
         ExecutionGraph eg = createDynamicExecutionGraph(ordered);
@@ -471,8 +460,8 @@ class DefaultExecutionGraphConstructionTest {
         v1.setParallelism(4);
         v2.setParallelism(2);
 
-        connectNewDataSetAsInput(
-                v2, v1, DistributionPattern.POINTWISE, ResultPartitionType.BLOCKING);
+        v2.connectNewDataSetAsInput(
+                v1, DistributionPattern.POINTWISE, ResultPartitionType.BLOCKING);
 
         List<JobVertex> ordered = new ArrayList<>(Arrays.asList(v1, v2));
         ExecutionGraph eg = createDynamicExecutionGraph(ordered);
@@ -516,8 +505,8 @@ class DefaultExecutionGraphConstructionTest {
         v1.setParallelism(2);
         v2.setParallelism(2);
 
-        connectNewDataSetAsInput(
-                v2, v1, DistributionPattern.ALL_TO_ALL, ResultPartitionType.BLOCKING);
+        v2.connectNewDataSetAsInput(
+                v1, DistributionPattern.ALL_TO_ALL, ResultPartitionType.BLOCKING);
 
         List<JobVertex> ordered = new ArrayList<>(Arrays.asList(v1, v2));
         ExecutionGraph eg = createDynamicExecutionGraph(ordered);

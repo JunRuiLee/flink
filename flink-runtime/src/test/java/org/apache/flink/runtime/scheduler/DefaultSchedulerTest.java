@@ -145,7 +145,6 @@ import static org.apache.flink.runtime.scheduler.SchedulerTestingUtils.acknowled
 import static org.apache.flink.runtime.scheduler.SchedulerTestingUtils.createFailedTaskExecutionState;
 import static org.apache.flink.runtime.scheduler.SchedulerTestingUtils.enableCheckpointing;
 import static org.apache.flink.runtime.scheduler.SchedulerTestingUtils.getCheckpointCoordinator;
-import static org.apache.flink.runtime.util.JobVertexConnectionUtils.connectNewDataSetAsInput;
 import static org.apache.flink.util.ExceptionUtils.findThrowable;
 import static org.apache.flink.util.ExceptionUtils.findThrowableWithMessage;
 import static org.assertj.core.api.Assertions.assertThat;
@@ -450,8 +449,8 @@ public class DefaultSchedulerTest {
         final int parallelism = 2;
         final JobVertex v1 = createVertex("vertex1", parallelism);
         final JobVertex v2 = createVertex("vertex2", parallelism);
-        connectNewDataSetAsInput(
-                v2, v1, DistributionPattern.POINTWISE, ResultPartitionType.PIPELINED);
+        v2.connectNewDataSetAsInput(
+                v1, DistributionPattern.POINTWISE, ResultPartitionType.PIPELINED);
 
         final JobGraph jobGraph = JobGraphTestUtils.streamingJobGraph(v1, v2);
 
@@ -1817,10 +1816,10 @@ public class DefaultSchedulerTest {
         final JobVertex sink = new JobVertex("sink");
         sink.setInvokableClass(NoOpInvokable.class);
 
-        connectNewDataSetAsInput(
-                sink, map, DistributionPattern.POINTWISE, ResultPartitionType.BLOCKING);
-        connectNewDataSetAsInput(
-                map, source, DistributionPattern.POINTWISE, ResultPartitionType.PIPELINED);
+        sink.connectNewDataSetAsInput(
+                map, DistributionPattern.POINTWISE, ResultPartitionType.BLOCKING);
+        map.connectNewDataSetAsInput(
+                source, DistributionPattern.POINTWISE, ResultPartitionType.PIPELINED);
 
         final JobGraph jobGraph = JobGraphTestUtils.streamingJobGraph(source, map, sink);
         enableCheckpointing(jobGraph, null, null, Long.MAX_VALUE - 1, true);
@@ -2071,8 +2070,8 @@ public class DefaultSchedulerTest {
         final JobVertex sink = new JobVertex("sink");
         sink.setInvokableClass(NoOpInvokable.class);
 
-        connectNewDataSetAsInput(
-                sink, source, DistributionPattern.POINTWISE, ResultPartitionType.PIPELINED);
+        sink.connectNewDataSetAsInput(
+                source, DistributionPattern.POINTWISE, ResultPartitionType.PIPELINED);
 
         return JobGraphTestUtils.streamingJobGraph(source, sink);
     }
@@ -2086,8 +2085,8 @@ public class DefaultSchedulerTest {
         sink.setParallelism(parallelism);
         sink.setInvokableClass(NoOpInvokable.class);
 
-        connectNewDataSetAsInput(
-                sink, source, DistributionPattern.ALL_TO_ALL, ResultPartitionType.PIPELINED);
+        sink.connectNewDataSetAsInput(
+                source, DistributionPattern.ALL_TO_ALL, ResultPartitionType.PIPELINED);
 
         return JobGraphTestUtils.streamingJobGraph(source, sink);
     }

@@ -56,7 +56,6 @@ import java.util.concurrent.ScheduledExecutorService;
 import java.util.stream.Collectors;
 
 import static org.apache.flink.runtime.executiongraph.ExecutionGraphTestUtils.createNoOpVertex;
-import static org.apache.flink.runtime.util.JobVertexConnectionUtils.connectNewDataSetAsInput;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
@@ -187,11 +186,8 @@ class ExecutionTimeBasedSlowTaskDetectorTest {
         final int parallelism = 3;
         final JobVertex jobVertex1 = createNoOpVertex(parallelism);
         final JobVertex jobVertex2 = createNoOpVertex(parallelism);
-        connectNewDataSetAsInput(
-                jobVertex2,
-                jobVertex1,
-                DistributionPattern.ALL_TO_ALL,
-                ResultPartitionType.PIPELINED);
+        jobVertex2.connectNewDataSetAsInput(
+                jobVertex1, DistributionPattern.ALL_TO_ALL, ResultPartitionType.PIPELINED);
         final ExecutionGraph executionGraph = createExecutionGraph(jobVertex1, jobVertex2);
 
         final ExecutionTimeBasedSlowTaskDetector slowTaskDetector =
@@ -217,11 +213,8 @@ class ExecutionTimeBasedSlowTaskDetectorTest {
         // create jobVertex2 and leave its parallelism unset
         final JobVertex jobVertex2 = new JobVertex("vertex2");
         jobVertex2.setInvokableClass(NoOpInvokable.class);
-        connectNewDataSetAsInput(
-                jobVertex2,
-                jobVertex1,
-                DistributionPattern.ALL_TO_ALL,
-                ResultPartitionType.BLOCKING);
+        jobVertex2.connectNewDataSetAsInput(
+                jobVertex1, DistributionPattern.ALL_TO_ALL, ResultPartitionType.BLOCKING);
         final ExecutionGraph executionGraph = createDynamicExecutionGraph(jobVertex1, jobVertex2);
 
         final ExecutionTimeBasedSlowTaskDetector slowTaskDetector =
@@ -242,11 +235,8 @@ class ExecutionTimeBasedSlowTaskDetectorTest {
         final int parallelism = 3;
         final JobVertex jobVertex1 = createNoOpVertex(parallelism);
         final JobVertex jobVertex2 = createNoOpVertex(parallelism);
-        connectNewDataSetAsInput(
-                jobVertex2,
-                jobVertex1,
-                DistributionPattern.ALL_TO_ALL,
-                ResultPartitionType.PIPELINED);
+        jobVertex2.connectNewDataSetAsInput(
+                jobVertex1, DistributionPattern.ALL_TO_ALL, ResultPartitionType.PIPELINED);
         final ExecutionGraph executionGraph = createExecutionGraph(jobVertex1, jobVertex2);
         final ExecutionTimeBasedSlowTaskDetector slowTaskDetector =
                 createSlowTaskDetector(0.3, 1, 0);
@@ -274,11 +264,8 @@ class ExecutionTimeBasedSlowTaskDetectorTest {
         final int parallelism = 3;
         final JobVertex jobVertex1 = createNoOpVertex(parallelism);
         final JobVertex jobVertex2 = createNoOpVertex(parallelism);
-        connectNewDataSetAsInput(
-                jobVertex2,
-                jobVertex1,
-                DistributionPattern.ALL_TO_ALL,
-                ResultPartitionType.PIPELINED);
+        jobVertex2.connectNewDataSetAsInput(
+                jobVertex1, DistributionPattern.ALL_TO_ALL, ResultPartitionType.PIPELINED);
         final ExecutionGraph executionGraph = createExecutionGraph(jobVertex1, jobVertex2);
         final ExecutionTimeBasedSlowTaskDetector slowTaskDetector =
                 createSlowTaskDetector(0.3, 1, Integer.MAX_VALUE);
@@ -306,11 +293,8 @@ class ExecutionTimeBasedSlowTaskDetectorTest {
         final int parallelism = 3;
         final JobVertex jobVertex1 = createNoOpVertex(parallelism);
         final JobVertex jobVertex2 = createNoOpVertex(parallelism);
-        connectNewDataSetAsInput(
-                jobVertex2,
-                jobVertex1,
-                DistributionPattern.ALL_TO_ALL,
-                ResultPartitionType.PIPELINED);
+        jobVertex2.connectNewDataSetAsInput(
+                jobVertex1, DistributionPattern.ALL_TO_ALL, ResultPartitionType.PIPELINED);
         final ExecutionGraph executionGraph = createExecutionGraph(jobVertex1, jobVertex2);
         final ExecutionTimeBasedSlowTaskDetector slowTaskDetector =
                 createSlowTaskDetector(0.3, 1, 0);

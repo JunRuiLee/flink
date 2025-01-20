@@ -57,7 +57,6 @@ import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.TimeUnit;
 
 import static org.apache.flink.runtime.io.network.buffer.BufferBuilderTestUtils.isInBlockingBufferRequest;
-import static org.apache.flink.runtime.util.JobVertexConnectionUtils.connectNewDataSetAsInput;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertTrue;
@@ -111,8 +110,8 @@ public class TaskCancelAsyncProducerConsumerITCase {
         JobVertex consumer = new JobVertex("AsyncConsumer");
         consumer.setParallelism(1);
         consumer.setInvokableClass(AsyncConsumer.class);
-        connectNewDataSetAsInput(
-                consumer, producer, DistributionPattern.POINTWISE, ResultPartitionType.PIPELINED);
+        consumer.connectNewDataSetAsInput(
+                producer, DistributionPattern.POINTWISE, ResultPartitionType.PIPELINED);
 
         SlotSharingGroup slot = new SlotSharingGroup();
         producer.setSlotSharingGroup(slot);

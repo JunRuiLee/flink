@@ -42,7 +42,6 @@ import java.util.concurrent.ScheduledExecutorService;
 import static org.apache.flink.runtime.executiongraph.ExecutionGraphTestUtils.createNoOpVertex;
 import static org.apache.flink.runtime.io.network.partition.ResultPartitionType.BLOCKING;
 import static org.apache.flink.runtime.jobgraph.DistributionPattern.ALL_TO_ALL;
-import static org.apache.flink.runtime.util.JobVertexConnectionUtils.connectNewDataSetAsInput;
 import static org.assertj.core.api.Assertions.assertThat;
 
 /** Test for {@link DefaultOperatorCoordinatorHandler}. */
@@ -84,7 +83,7 @@ class DefaultOperatorCoordinatorHandlerTest {
         final int parallelism = 3;
         jobVertices[0] = createNoOpVertex(parallelism);
         jobVertices[1] = createNoOpVertex(parallelism);
-        connectNewDataSetAsInput(jobVertices[1], jobVertices[0], ALL_TO_ALL, resultPartitionType);
+        jobVertices[1].connectNewDataSetAsInput(jobVertices[0], ALL_TO_ALL, resultPartitionType);
 
         jobVertices[0].addOperatorCoordinator(
                 new SerializedValue<>(

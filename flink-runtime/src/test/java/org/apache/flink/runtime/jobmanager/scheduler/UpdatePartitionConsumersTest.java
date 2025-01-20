@@ -53,7 +53,6 @@ import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.TimeUnit;
 import java.util.stream.Collectors;
 
-import static org.apache.flink.runtime.util.JobVertexConnectionUtils.connectNewDataSetAsInput;
 import static org.hamcrest.CoreMatchers.equalTo;
 import static org.hamcrest.CoreMatchers.instanceOf;
 import static org.hamcrest.CoreMatchers.is;
@@ -111,14 +110,14 @@ public class UpdatePartitionConsumersTest extends TestLogger {
         v4.setInvokableClass(AbstractInvokable.class);
         v4.setParallelism(1);
 
-        connectNewDataSetAsInput(
-                v2, v1, DistributionPattern.ALL_TO_ALL, ResultPartitionType.PIPELINED);
-        connectNewDataSetAsInput(
-                v3, v1, DistributionPattern.ALL_TO_ALL, ResultPartitionType.PIPELINED);
-        connectNewDataSetAsInput(
-                v4, v2, DistributionPattern.ALL_TO_ALL, ResultPartitionType.PIPELINED);
-        connectNewDataSetAsInput(
-                v4, v3, DistributionPattern.ALL_TO_ALL, ResultPartitionType.BLOCKING);
+        v2.connectNewDataSetAsInput(
+                v1, DistributionPattern.ALL_TO_ALL, ResultPartitionType.PIPELINED);
+        v3.connectNewDataSetAsInput(
+                v1, DistributionPattern.ALL_TO_ALL, ResultPartitionType.PIPELINED);
+        v4.connectNewDataSetAsInput(
+                v2, DistributionPattern.ALL_TO_ALL, ResultPartitionType.PIPELINED);
+        v4.connectNewDataSetAsInput(
+                v3, DistributionPattern.ALL_TO_ALL, ResultPartitionType.BLOCKING);
 
         jobGraph = JobGraphTestUtils.batchJobGraph(v1, v2, v3, v4);
     }

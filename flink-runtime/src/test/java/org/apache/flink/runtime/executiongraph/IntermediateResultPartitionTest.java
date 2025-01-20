@@ -46,7 +46,6 @@ import java.util.List;
 import java.util.concurrent.ScheduledExecutorService;
 import java.util.stream.Collectors;
 
-import static org.apache.flink.runtime.util.JobVertexConnectionUtils.connectNewDataSetAsInput;
 import static org.assertj.core.api.Assertions.assertThat;
 
 /** Tests for {@link IntermediateResultPartition}. */
@@ -263,10 +262,10 @@ public class IntermediateResultPartitionTest {
         }
 
         IntermediateDataSetID dataSetId = new IntermediateDataSetID();
-        connectNewDataSetAsInput(
-                v2, v1, distributionPattern, ResultPartitionType.BLOCKING, dataSetId, false);
-        connectNewDataSetAsInput(
-                v3, v1, distributionPattern, ResultPartitionType.BLOCKING, dataSetId, false);
+        v2.connectNewDataSetAsInput(
+                v1, distributionPattern, ResultPartitionType.BLOCKING, dataSetId, false);
+        v3.connectNewDataSetAsInput(
+                v1, distributionPattern, ResultPartitionType.BLOCKING, dataSetId, false);
 
         final JobGraph jobGraph =
                 JobGraphBuilder.newBatchJobGraphBuilder()
@@ -317,20 +316,10 @@ public class IntermediateResultPartitionTest {
         sink2.setParallelism(parallelism);
 
         IntermediateDataSetID dataSetId = new IntermediateDataSetID();
-        connectNewDataSetAsInput(
-                sink1,
-                source,
-                DistributionPattern.ALL_TO_ALL,
-                resultPartitionType,
-                dataSetId,
-                false);
-        connectNewDataSetAsInput(
-                sink2,
-                source,
-                DistributionPattern.ALL_TO_ALL,
-                resultPartitionType,
-                dataSetId,
-                false);
+        sink1.connectNewDataSetAsInput(
+                source, DistributionPattern.ALL_TO_ALL, resultPartitionType, dataSetId, false);
+        sink2.connectNewDataSetAsInput(
+                source, DistributionPattern.ALL_TO_ALL, resultPartitionType, dataSetId, false);
 
         ScheduledExecutorService executorService = new DirectScheduledExecutorService();
 

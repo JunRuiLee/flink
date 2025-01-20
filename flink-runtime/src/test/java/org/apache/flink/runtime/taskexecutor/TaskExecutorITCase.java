@@ -51,7 +51,6 @@ import java.util.concurrent.CountDownLatch;
 import java.util.function.Predicate;
 import java.util.function.Supplier;
 
-import static org.apache.flink.runtime.util.JobVertexConnectionUtils.connectNewDataSetAsInput;
 import static org.assertj.core.api.Assertions.assertThat;
 
 /** Integration tests for the {@link TaskExecutor}. */
@@ -180,8 +179,8 @@ class TaskExecutorITCase {
         receiver.setInvokableClass(BlockingOperator.class);
         BlockingOperator.reset();
 
-        connectNewDataSetAsInput(
-                receiver, sender, DistributionPattern.POINTWISE, ResultPartitionType.PIPELINED);
+        receiver.connectNewDataSetAsInput(
+                sender, DistributionPattern.POINTWISE, ResultPartitionType.PIPELINED);
 
         final SlotSharingGroup slotSharingGroup = new SlotSharingGroup();
         sender.setSlotSharingGroup(slotSharingGroup);

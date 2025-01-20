@@ -54,7 +54,6 @@ import java.time.Duration;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.atomic.AtomicBoolean;
 
-import static org.apache.flink.runtime.util.JobVertexConnectionUtils.connectNewDataSetAsInput;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
@@ -162,8 +161,8 @@ class MiniClusterITCase {
         vertex2.setMaxParallelism(1);
         vertex2.setInvokableClass(BlockingNoOpInvokable.class);
 
-        connectNewDataSetAsInput(
-                vertex2, vertex1, DistributionPattern.POINTWISE, ResultPartitionType.PIPELINED);
+        vertex2.connectNewDataSetAsInput(
+                vertex1, DistributionPattern.POINTWISE, ResultPartitionType.PIPELINED);
 
         final JobGraph jobGraph = JobGraphTestUtils.streamingJobGraph(vertex1, vertex2);
 
@@ -212,8 +211,8 @@ class MiniClusterITCase {
             receiver.setInvokableClass(Receiver.class);
             receiver.setParallelism(parallelism);
 
-            connectNewDataSetAsInput(
-                    receiver, sender, DistributionPattern.POINTWISE, ResultPartitionType.PIPELINED);
+            receiver.connectNewDataSetAsInput(
+                    sender, DistributionPattern.POINTWISE, ResultPartitionType.PIPELINED);
 
             final JobGraph jobGraph = JobGraphTestUtils.streamingJobGraph(sender, receiver);
 
@@ -243,8 +242,8 @@ class MiniClusterITCase {
             receiver.setInvokableClass(AgnosticReceiver.class);
             receiver.setParallelism(parallelism);
 
-            connectNewDataSetAsInput(
-                    receiver, sender, DistributionPattern.POINTWISE, ResultPartitionType.PIPELINED);
+            receiver.connectNewDataSetAsInput(
+                    sender, DistributionPattern.POINTWISE, ResultPartitionType.PIPELINED);
 
             final JobGraph jobGraph = JobGraphTestUtils.streamingJobGraph(sender, receiver);
 
@@ -278,16 +277,10 @@ class MiniClusterITCase {
             receiver.setInvokableClass(AgnosticTertiaryReceiver.class);
             receiver.setParallelism(3 * parallelism);
 
-            connectNewDataSetAsInput(
-                    receiver,
-                    sender1,
-                    DistributionPattern.POINTWISE,
-                    ResultPartitionType.PIPELINED);
-            connectNewDataSetAsInput(
-                    receiver,
-                    sender2,
-                    DistributionPattern.ALL_TO_ALL,
-                    ResultPartitionType.PIPELINED);
+            receiver.connectNewDataSetAsInput(
+                    sender1, DistributionPattern.POINTWISE, ResultPartitionType.PIPELINED);
+            receiver.connectNewDataSetAsInput(
+                    sender2, DistributionPattern.ALL_TO_ALL, ResultPartitionType.PIPELINED);
 
             final JobGraph jobGraph =
                     JobGraphTestUtils.streamingJobGraph(sender1, receiver, sender2);
@@ -326,16 +319,10 @@ class MiniClusterITCase {
             receiver.setInvokableClass(AgnosticBinaryReceiver.class);
             receiver.setParallelism(3 * parallelism);
 
-            connectNewDataSetAsInput(
-                    receiver,
-                    sender1,
-                    DistributionPattern.POINTWISE,
-                    ResultPartitionType.PIPELINED);
-            connectNewDataSetAsInput(
-                    receiver,
-                    sender2,
-                    DistributionPattern.ALL_TO_ALL,
-                    ResultPartitionType.PIPELINED);
+            receiver.connectNewDataSetAsInput(
+                    sender1, DistributionPattern.POINTWISE, ResultPartitionType.PIPELINED);
+            receiver.connectNewDataSetAsInput(
+                    sender2, DistributionPattern.ALL_TO_ALL, ResultPartitionType.PIPELINED);
 
             final JobGraph jobGraph =
                     JobGraphTestUtils.streamingJobGraph(sender1, receiver, sender2);
@@ -375,16 +362,10 @@ class MiniClusterITCase {
             forwarder.setSlotSharingGroup(sharingGroup);
             receiver.setSlotSharingGroup(sharingGroup);
 
-            connectNewDataSetAsInput(
-                    forwarder,
-                    sender,
-                    DistributionPattern.ALL_TO_ALL,
-                    ResultPartitionType.PIPELINED);
-            connectNewDataSetAsInput(
-                    receiver,
-                    forwarder,
-                    DistributionPattern.ALL_TO_ALL,
-                    ResultPartitionType.PIPELINED);
+            forwarder.connectNewDataSetAsInput(
+                    sender, DistributionPattern.ALL_TO_ALL, ResultPartitionType.PIPELINED);
+            receiver.connectNewDataSetAsInput(
+                    forwarder, DistributionPattern.ALL_TO_ALL, ResultPartitionType.PIPELINED);
 
             final JobGraph jobGraph =
                     JobGraphTestUtils.streamingJobGraph(sender, forwarder, receiver);
@@ -415,8 +396,8 @@ class MiniClusterITCase {
             receiver.setInvokableClass(Receiver.class);
             receiver.setParallelism(parallelism);
 
-            connectNewDataSetAsInput(
-                    receiver, sender, DistributionPattern.POINTWISE, ResultPartitionType.PIPELINED);
+            receiver.connectNewDataSetAsInput(
+                    sender, DistributionPattern.POINTWISE, ResultPartitionType.PIPELINED);
 
             final JobGraph jobGraph = JobGraphTestUtils.streamingJobGraph(sender, receiver);
 
@@ -460,8 +441,8 @@ class MiniClusterITCase {
             receiver.setParallelism(parallelism);
             receiver.setSlotSharingGroup(group);
 
-            connectNewDataSetAsInput(
-                    receiver, sender, DistributionPattern.POINTWISE, ResultPartitionType.PIPELINED);
+            receiver.connectNewDataSetAsInput(
+                    sender, DistributionPattern.POINTWISE, ResultPartitionType.PIPELINED);
 
             final JobGraph jobGraph = JobGraphTestUtils.streamingJobGraph(sender, receiver);
 
@@ -495,8 +476,8 @@ class MiniClusterITCase {
             receiver.setInvokableClass(ExceptionReceiver.class);
             receiver.setParallelism(parallelism);
 
-            connectNewDataSetAsInput(
-                    receiver, sender, DistributionPattern.POINTWISE, ResultPartitionType.PIPELINED);
+            receiver.connectNewDataSetAsInput(
+                    sender, DistributionPattern.POINTWISE, ResultPartitionType.PIPELINED);
 
             final JobGraph jobGraph = JobGraphTestUtils.streamingJobGraph(sender, receiver);
 
@@ -530,8 +511,8 @@ class MiniClusterITCase {
             receiver.setInvokableClass(Receiver.class);
             receiver.setParallelism(parallelism);
 
-            connectNewDataSetAsInput(
-                    receiver, sender, DistributionPattern.POINTWISE, ResultPartitionType.PIPELINED);
+            receiver.connectNewDataSetAsInput(
+                    sender, DistributionPattern.POINTWISE, ResultPartitionType.PIPELINED);
 
             final JobGraph jobGraph = JobGraphTestUtils.streamingJobGraph(sender, receiver);
 
@@ -575,8 +556,8 @@ class MiniClusterITCase {
             receiver.setParallelism(parallelism);
             receiver.setSlotSharingGroup(group);
 
-            connectNewDataSetAsInput(
-                    receiver, sender, DistributionPattern.POINTWISE, ResultPartitionType.PIPELINED);
+            receiver.connectNewDataSetAsInput(
+                    sender, DistributionPattern.POINTWISE, ResultPartitionType.PIPELINED);
 
             final JobGraph jobGraph = JobGraphTestUtils.streamingJobGraph(sender, receiver);
 
@@ -612,8 +593,8 @@ class MiniClusterITCase {
             sink.setInvokableClass(NoOpInvokable.class);
             sink.setParallelism(parallelism);
 
-            connectNewDataSetAsInput(
-                    sink, source, DistributionPattern.POINTWISE, ResultPartitionType.PIPELINED);
+            sink.connectNewDataSetAsInput(
+                    source, DistributionPattern.POINTWISE, ResultPartitionType.PIPELINED);
 
             final JobGraph jobGraph = JobGraphTestUtils.streamingJobGraph(source, sink);
 

@@ -18,7 +18,6 @@
 
 package org.apache.flink.runtime.scheduler.adaptivebatch;
 
-import org.apache.flink.api.common.BatchShuffleMode;
 import org.apache.flink.api.common.JobID;
 import org.apache.flink.api.common.eventtime.WatermarkAlignmentParams;
 import org.apache.flink.api.connector.source.Boundedness;
@@ -27,8 +26,6 @@ import org.apache.flink.api.connector.source.mocks.MockSourceSplit;
 import org.apache.flink.api.connector.source.mocks.MockSplitEnumerator;
 import org.apache.flink.configuration.BatchExecutionOptions;
 import org.apache.flink.configuration.Configuration;
-import org.apache.flink.configuration.ExecutionOptions;
-import org.apache.flink.configuration.NettyShuffleEnvironmentOptions;
 import org.apache.flink.core.fs.Path;
 import org.apache.flink.runtime.clusterframework.types.ResourceID;
 import org.apache.flink.runtime.execution.ExecutionState;
@@ -129,7 +126,6 @@ import java.util.stream.StreamSupport;
 
 import static org.apache.flink.runtime.executiongraph.ExecutionGraphTestUtils.waitUntilExecutionVertexState;
 import static org.apache.flink.runtime.scheduler.DefaultSchedulerBuilder.createCustomParallelismDecider;
-import static org.apache.flink.runtime.util.JobVertexConnectionUtils.connectNewDataSetAsInput;
 import static org.apache.flink.util.Preconditions.checkState;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.junit.jupiter.api.Assertions.fail;
@@ -180,18 +176,9 @@ public class BatchJobRecoveryTest {
 
     @Parameter public boolean enableSpeculativeExecution;
 
-    @Parameter(value = 1)
-    public boolean isBlockingShuffle;
-
-    @Parameters(name = "enableSpeculativeExecution={0}, isBlockingShuffle={1}")
-    public static Collection<Object[]> parameters() {
-        Object[][] params = {
-            {false, false},
-            {false, true},
-            {true, true},
-            {true, false}
-        };
-        return Arrays.asList(params);
+    @Parameters(name = "enableSpeculativeExecution={0}")
+    public static Collection<Boolean> parameters() {
+        return Arrays.asList(false, true);
     }
 
     @BeforeEach
@@ -413,9 +400,7 @@ public class BatchJobRecoveryTest {
 
             // check middle task0 is CREATED because it's waiting source task0 finished.
             if (vertex.getParallelSubtaskIndex() == subtaskIndex) {
-                ExecutionState expectedState =
-                        isBlockingShuffle ? ExecutionState.CREATED : ExecutionState.DEPLOYING;
-                assertThat(vertex.getExecutionState()).isEqualTo(expectedState);
+                assertThat(vertex.getExecutionState()).isEqualTo(ExecutionState.CREATED);
                 continue;
             }
 
@@ -703,9 +688,7 @@ public class BatchJobRecoveryTest {
                 getExecutionVertex(MIDDLE_ID, 0, newScheduler.getExecutionGraph());
         triggerFailedByDataConsumptionException(newScheduler, firstMiddle0);
         // wait until reset done.
-        ExecutionState expectedState =
-                isBlockingShuffle ? ExecutionState.CREATED : ExecutionState.DEPLOYING;
-        waitUntilExecutionVertexState(firstMiddle0, expectedState, 15000L);
+        waitUntilExecutionVertexState(firstMiddle0, ExecutionState.CREATED, 15000L);
         // Check whether the splits have been returned.
         runInMainThread(() -> checkUnassignedSplits(sourceCoordinator, 2));
 
@@ -733,7 +716,7 @@ public class BatchJobRecoveryTest {
                 getExecutionVertex(MIDDLE_ID, 1, newScheduler.getExecutionGraph());
         triggerFailedByDataConsumptionException(newScheduler, firstMiddle1);
         // wait until reset done.
-        waitUntilExecutionVertexState(firstMiddle1, expectedState, 15000L);
+        waitUntilExecutionVertexState(firstMiddle1, ExecutionState.CREATED, 15000L);
 
         // Check whether the splits have been returned.
         runInMainThread(() -> checkUnassignedSplits(sourceCoordinator, 2));
@@ -985,8 +968,8 @@ public class BatchJobRecoveryTest {
      *
      * <p>Parallelism of source and middle is 5.
      *
-     * <p>Edge (source --> middle) is BLOCKING/HYBRID and POINTWISE. Edge (middle --> sink) is
-     * BLOCKING/HYBRID and ALL_TO_ALL.
+     * <p>Edge (source --> middle) is BLOCKING and POINTWISE. Edge (middle --> sink) is BLOCKING and
+     * ALL_TO_ALL.
      *
      * <p>Source has an operator coordinator.
      */
@@ -1008,37 +991,10 @@ public class BatchJobRecoveryTest {
         sink.setInvokableClass(NoOpInvokable.class);
         jobVertices.add(sink);
 
-        ResultPartitionType resultPartitionType =
-                isBlockingShuffle ? ResultPartitionType.BLOCKING : ResultPartitionType.HYBRID_FULL;
-        connectNewDataSetAsInput(
-                middle, source, DistributionPattern.POINTWISE, resultPartitionType);
-        connectNewDataSetAsInput(sink, middle, DistributionPattern.ALL_TO_ALL, resultPartitionType);
-
-        return new JobGraph(JOB_ID, "TestJob", jobVertices.toArray(new JobVertex[0]));
-    }
-
-    private JobGraph createDefaultHybridJobGraph() throws IOException {
-        List<JobVertex> jobVertices = new ArrayList<>();
-
-        final JobVertex source = new JobVertex("source", SOURCE_ID);
-        source.setInvokableClass(NoOpInvokable.class);
-        source.addOperatorCoordinator(new SerializedValue<>(provider));
-        source.setParallelism(SOURCE_PARALLELISM);
-        jobVertices.add(source);
-
-        final JobVertex middle = new JobVertex("middle", MIDDLE_ID);
-        middle.setInvokableClass(NoOpInvokable.class);
-        middle.setParallelism(MIDDLE_PARALLELISM);
-        jobVertices.add(middle);
-
-        final JobVertex sink = new JobVertex("sink", SINK_ID);
-        sink.setInvokableClass(NoOpInvokable.class);
-        jobVertices.add(sink);
-
-        connectNewDataSetAsInput(
-                middle, source, DistributionPattern.POINTWISE, ResultPartitionType.HYBRID_FULL);
-        connectNewDataSetAsInput(
-                sink, middle, DistributionPattern.ALL_TO_ALL, ResultPartitionType.HYBRID_FULL);
+        middle.connectNewDataSetAsInput(
+                source, DistributionPattern.POINTWISE, ResultPartitionType.BLOCKING);
+        sink.connectNewDataSetAsInput(
+                middle, DistributionPattern.ALL_TO_ALL, ResultPartitionType.BLOCKING);
 
         return new JobGraph(JOB_ID, "TestJob", jobVertices.toArray(new JobVertex[0]));
     }
@@ -1085,26 +1041,10 @@ public class BatchJobRecoveryTest {
             int defaultMaxParallelism,
             Duration jobRecoverySnapshotMinPause)
             throws Exception {
-        Configuration jobMasterConfig = new Configuration();
-        jobMasterConfig.set(
-                BatchExecutionOptions.JOB_RECOVERY_SNAPSHOT_MIN_PAUSE, jobRecoverySnapshotMinPause);
-        jobMasterConfig.set(BatchExecutionOptions.JOB_RECOVERY_ENABLED, true);
-        jobMasterConfig.set(
-                BatchExecutionOptions.JOB_RECOVERY_PREVIOUS_WORKER_RECOVERY_TIMEOUT,
-                previousWorkerRecoveryTimeout);
-        if (!isBlockingShuffle) {
-            jobMasterConfig.set(
-                    ExecutionOptions.BATCH_SHUFFLE_MODE,
-                    BatchShuffleMode.ALL_EXCHANGES_HYBRID_FULL);
-            jobMasterConfig.set(
-                    NettyShuffleEnvironmentOptions
-                            .NETWORK_HYBRID_SHUFFLE_EXTERNAL_REMOTE_TIER_FACTORY_CLASS_NAME,
-                    DummyTierFactory.class.getName());
-        }
 
         final ShuffleMaster<NettyShuffleDescriptor> shuffleMaster =
                 new NettyShuffleMaster(
-                        new ShuffleMasterContextImpl(jobMasterConfig, throwable -> {}));
+                        new ShuffleMasterContextImpl(new Configuration(), throwable -> {}));
         TestingJobMasterGateway jobMasterGateway =
                 new TestingJobMasterGatewayBuilder()
                         .setGetPartitionWithMetricsFunction(
@@ -1115,6 +1055,14 @@ public class BatchJobRecoveryTest {
         final JobMasterPartitionTracker partitionTracker =
                 new JobMasterPartitionTrackerImpl(
                         jobGraph.getJobID(), shuffleMaster, ignored -> Optional.empty());
+
+        Configuration jobMasterConfig = new Configuration();
+        jobMasterConfig.set(
+                BatchExecutionOptions.JOB_RECOVERY_SNAPSHOT_MIN_PAUSE, jobRecoverySnapshotMinPause);
+        jobMasterConfig.set(BatchExecutionOptions.JOB_RECOVERY_ENABLED, true);
+        jobMasterConfig.set(
+                BatchExecutionOptions.JOB_RECOVERY_PREVIOUS_WORKER_RECOVERY_TIMEOUT,
+                previousWorkerRecoveryTimeout);
 
         DefaultSchedulerBuilder schedulerBuilder =
                 new DefaultSchedulerBuilder(
@@ -1199,7 +1147,12 @@ public class BatchJobRecoveryTest {
 
         @Override
         public ShuffleDescriptor getPartition() {
-            return new NettyShuffleDescriptor(ResourceID.generate(), null, resultPartitionID) {
+            return new ShuffleDescriptor() {
+                @Override
+                public ResultPartitionID getResultPartitionID() {
+                    return resultPartitionID;
+                }
+
                 @Override
                 public Optional<ResourceID> storesLocalResourcesOn() {
                     return Optional.empty();

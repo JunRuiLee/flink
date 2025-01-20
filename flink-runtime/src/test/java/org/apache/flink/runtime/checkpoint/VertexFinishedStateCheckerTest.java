@@ -42,7 +42,6 @@ import java.util.Set;
 import java.util.concurrent.ScheduledExecutorService;
 
 import static java.util.Collections.singletonList;
-import static org.apache.flink.runtime.util.JobVertexConnectionUtils.connectNewDataSetAsInput;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 /** This tests verifies the checking logic of {@link VertexFinishedStateChecker}. */
@@ -268,8 +267,8 @@ class VertexFinishedStateCheckerTest {
 
         // Adds the additional edges
         for (int i = 1; i < distributionPatterns.length; ++i) {
-            connectNewDataSetAsInput(
-                    vertex2, vertex1, distributionPatterns[i], ResultPartitionType.PIPELINED);
+            vertex2.connectNewDataSetAsInput(
+                    vertex1, distributionPatterns[i], ResultPartitionType.PIPELINED);
         }
 
         Map<OperatorID, OperatorState> operatorStates = new HashMap<>();

@@ -51,7 +51,6 @@ import java.util.List;
 import java.util.concurrent.ScheduledExecutorService;
 
 import static org.apache.flink.runtime.jobgraph.DistributionPattern.ALL_TO_ALL;
-import static org.apache.flink.runtime.util.JobVertexConnectionUtils.connectNewDataSetAsInput;
 import static org.assertj.core.api.Assertions.assertThat;
 
 /** Tests for {@link CachedShuffleDescriptors}. */
@@ -201,8 +200,8 @@ class CachedShuffleDescriptorsTest {
         producer.setInvokableClass(NoOpInvokable.class);
         consumer.setInvokableClass(NoOpInvokable.class);
 
-        connectNewDataSetAsInput(
-                consumer, producer, distributionPattern, ResultPartitionType.HYBRID_FULL);
+        consumer.connectNewDataSetAsInput(
+                producer, distributionPattern, ResultPartitionType.HYBRID_FULL);
 
         JobGraph jobGraph = JobGraphTestUtils.batchJobGraph(producer, consumer);
         SchedulerBase scheduler =
