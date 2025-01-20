@@ -47,8 +47,6 @@ import org.apache.flink.runtime.operators.coordination.OperatorCoordinator;
 import org.apache.flink.runtime.operators.coordination.OperatorCoordinatorHolder;
 import org.apache.flink.runtime.operators.coordination.RecreateOnResetOperatorCoordinator;
 import org.apache.flink.runtime.scheduler.VertexParallelismInformation;
-import org.apache.flink.runtime.scheduler.adaptivebatch.ExecutionPlanSchedulingContext;
-import org.apache.flink.runtime.scheduler.adaptivebatch.NonAdaptiveExecutionPlanSchedulingContext;
 import org.apache.flink.runtime.source.coordinator.SourceCoordinator;
 import org.apache.flink.types.Either;
 import org.apache.flink.util.IOUtils;
@@ -187,27 +185,11 @@ public class ExecutionJobVertex
         }
     }
 
-    @VisibleForTesting
     protected void initialize(
             int executionHistorySizeLimit,
             Duration timeout,
             long createTimestamp,
             SubtaskAttemptNumberStore initialAttemptCounts)
-            throws JobException {
-        initialize(
-                executionHistorySizeLimit,
-                timeout,
-                createTimestamp,
-                initialAttemptCounts,
-                NonAdaptiveExecutionPlanSchedulingContext.INSTANCE);
-    }
-
-    protected void initialize(
-            int executionHistorySizeLimit,
-            Duration timeout,
-            long createTimestamp,
-            SubtaskAttemptNumberStore initialAttemptCounts,
-            ExecutionPlanSchedulingContext executionPlanSchedulingContext)
             throws JobException {
 
         checkState(parallelismInfo.getParallelism() > 0);
@@ -229,8 +211,7 @@ public class ExecutionJobVertex
                             result,
                             this,
                             this.parallelismInfo.getParallelism(),
-                            result.getResultType(),
-                            executionPlanSchedulingContext);
+                            result.getResultType());
         }
 
         // create all task vertices
