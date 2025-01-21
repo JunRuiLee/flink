@@ -32,7 +32,6 @@ import org.apache.flink.table.planner.runtime.batch.sql.join.JoinType.{Broadcast
 import org.apache.flink.table.planner.runtime.utils.BatchTestBase
 import org.apache.flink.table.planner.runtime.utils.BatchTestBase.row
 import org.apache.flink.table.planner.runtime.utils.TestData._
-import org.apache.flink.table.planner.sinks.CollectRowTableSink
 import org.apache.flink.table.planner.utils.TestingTableEnvironment
 import org.apache.flink.table.runtime.operators.CodeGenOperatorFactory
 import org.apache.flink.testutils.junit.extensions.parameterized.{Parameter, ParameterizedTestExtension, Parameters}
@@ -203,8 +202,6 @@ class JoinITCase extends BatchTestBase {
   @TestTemplate
   def testLongHashJoinGenerator(): Unit = {
     if (expectedJoinType == HashJoin) {
-      val sink = (new CollectRowTableSink).configure(Array("c"), Array(Types.STRING))
-      tEnv.asInstanceOf[TableEnvironmentInternal].registerTableSinkInternal("outputTable", sink)
       val stmtSet = tEnv.createStatementSet()
       val table = tEnv.sqlQuery("SELECT c FROM SmallTable3, Table5 WHERE b = e")
       stmtSet.addInsert("outputTable", table)
