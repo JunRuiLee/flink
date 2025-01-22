@@ -22,7 +22,6 @@ import org.apache.flink.api.common.JobID;
 import org.apache.flink.api.common.JobStatus;
 import org.apache.flink.runtime.messages.webmonitor.JobDetails;
 import org.apache.flink.runtime.messages.webmonitor.JobDetails.CurrentAttempts;
-import org.apache.flink.runtime.metrics.MetricNames;
 import org.apache.flink.runtime.metrics.dump.MetricDump;
 import org.apache.flink.runtime.metrics.dump.QueryScopeInfo;
 
@@ -157,7 +156,7 @@ class MetricStoreTest {
                         Collections.singletonMap(
                                 "taskid",
                                 Collections.singletonMap(
-                                        1, new CurrentAttempts(1, new HashSet<>(), false))));
+                                        1, new CurrentAttempts(1, new HashSet<>()))));
         assertThatCode(
                         () ->
                                 metricStore.updateCurrentExecutionAttempts(
@@ -178,8 +177,7 @@ class MetricStoreTest {
         Map<String, Map<Integer, CurrentAttempts>> currentExecutionAttempts =
                 Collections.singletonMap(
                         "taskid",
-                        Collections.singletonMap(
-                                1, new CurrentAttempts(1, new HashSet<>(), false)));
+                        Collections.singletonMap(1, new CurrentAttempts(1, new HashSet<>())));
         JobDetails jobDetail =
                 new JobDetails(
                         JOB_ID,
@@ -199,38 +197,6 @@ class MetricStoreTest {
 
         assertThat(getTaskMetricStoreIndexes(taskMetricStore))
                 .containsExactlyInAnyOrderElementsOf(Collections.singletonList(1));
-    }
-
-    @Test
-    void testRemoveTransientMetricsForTerminalSubtasks() {
-        MetricStore store = setupStore(new MetricStore());
-        MetricStore.TaskMetricStore taskMetricStore =
-                store.getTaskMetricStore(JOB_ID.toString(), "taskid");
-
-        Map<String, Map<Integer, CurrentAttempts>> currentExecutionAttempts =
-                Collections.singletonMap(
-                        "taskid",
-                        Collections.singletonMap(8, new CurrentAttempts(2, new HashSet<>(), true)));
-        JobDetails jobDetail =
-                new JobDetails(
-                        JOB_ID,
-                        "jobname",
-                        0,
-                        0,
-                        0,
-                        JobStatus.RUNNING,
-                        0,
-                        new int[10],
-                        8,
-                        currentExecutionAttempts);
-
-        MetricStore.SubtaskMetricStore subtaskMetricStore =
-                taskMetricStore.getSubtaskMetricStore(8);
-        assertThat(taskMetricStore.getMetric("8.abc." + MetricNames.TASK_BUSY_TIME)).isNotNull();
-        assertThat(subtaskMetricStore.getMetric("abc." + MetricNames.TASK_BUSY_TIME)).isNotNull();
-        store.updateCurrentExecutionAttempts(Collections.singleton(jobDetail));
-        assertThat(taskMetricStore.getMetric("8.abc." + MetricNames.TASK_BUSY_TIME)).isNull();
-        assertThat(subtaskMetricStore.getMetric("abc." + MetricNames.TASK_BUSY_TIME)).isNull();
     }
 
     @Nonnull
@@ -260,8 +226,7 @@ class MetricStoreTest {
         Map<String, Map<Integer, CurrentAttempts>> currentExecutionAttempts =
                 Collections.singletonMap(
                         "taskid",
-                        Collections.singletonMap(
-                                8, new CurrentAttempts(1, currentAttempts, false)));
+                        Collections.singletonMap(8, new CurrentAttempts(1, currentAttempts)));
         JobDetails jobDetail =
                 new JobDetails(
                         JOB_ID,
@@ -321,8 +286,6 @@ class MetricStoreTest {
         QueryScopeInfo.TaskQueryScopeInfo speculativeTask =
                 new QueryScopeInfo.TaskQueryScopeInfo(JOB_ID.toString(), "taskid", 8, 2, "abc");
         MetricDump.CounterDump cd52 = new MetricDump.CounterDump(speculativeTask, "metric5", 14);
-        MetricDump.CounterDump cd52BusyTime =
-                new MetricDump.CounterDump(speculativeTask, MetricNames.TASK_BUSY_TIME, 400);
 
         QueryScopeInfo.OperatorQueryScopeInfo operator =
                 new QueryScopeInfo.OperatorQueryScopeInfo(
@@ -382,8 +345,6 @@ class MetricStoreTest {
 
         store.add(jmCd8);
         store.add(jmCd9);
-
-        store.add(cd52BusyTime);
 
         return store;
     }
