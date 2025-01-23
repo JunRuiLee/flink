@@ -33,11 +33,11 @@ import java.util.List;
  */
 public abstract class AbstractCompositeBuffer implements Buffer {
 
-    protected final DataType dataType;
+    private final DataType dataType;
 
     protected final int length;
 
-    protected final boolean isCompressed;
+    private final boolean isCompressed;
 
     protected final List<Buffer> partialBuffers = new ArrayList<>();
 

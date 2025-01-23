@@ -18,6 +18,8 @@
 
 package org.apache.flink.runtime.io.network.buffer;
 
+import org.apache.flink.annotation.VisibleForTesting;
+
 import org.apache.flink.shaded.netty4.io.netty.buffer.ByteBuf;
 import org.apache.flink.shaded.netty4.io.netty.buffer.CompositeByteBuf;
 
@@ -33,8 +35,15 @@ import static org.apache.flink.util.Preconditions.checkState;
  */
 public class FullyFilledBuffer extends AbstractCompositeBuffer {
 
-    public FullyFilledBuffer(DataType dataType, int length, boolean isCompressed) {
-        super(dataType, length, isCompressed);
+    private boolean containsDataBuffer;
+
+    @VisibleForTesting
+    public FullyFilledBuffer(DataType dataType, int length) {
+        this(length);
+    }
+
+    public FullyFilledBuffer(int length) {
+        super(DataType.DATA_BUFFER, length, false);
     }
 
     @Override
@@ -52,15 +61,13 @@ public class FullyFilledBuffer extends AbstractCompositeBuffer {
 
     @Override
     public void addPartialBuffer(Buffer buffer) {
-        checkState(
-                buffer.getDataType() == dataType,
-                "Partial buffer data type must be the same as the fully filled buffer.");
-        checkState(
-                buffer.isCompressed() == isCompressed,
-                "Partial buffer compression status must be the same as the fully filled buffer.");
-
         partialBuffers.add(buffer);
         currentLength += buffer.readableBytes();
         checkState(currentLength <= length);
+        containsDataBuffer |= buffer.isBuffer();
+    }
+
+    public boolean containsDataBuffer() {
+        return containsDataBuffer;
     }
 }

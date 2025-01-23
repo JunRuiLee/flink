@@ -23,6 +23,7 @@ import org.apache.flink.core.memory.MemorySegment;
 import org.apache.flink.core.memory.MemorySegmentFactory;
 import org.apache.flink.runtime.io.network.ConnectionID;
 import org.apache.flink.runtime.io.network.NetworkClientHandler;
+import org.apache.flink.runtime.io.network.buffer.Buffer;
 import org.apache.flink.runtime.io.network.buffer.BufferRecycler;
 import org.apache.flink.runtime.io.network.buffer.NetworkBuffer;
 import org.apache.flink.runtime.io.network.netty.exception.LocalTransportException;
@@ -373,7 +374,12 @@ class CreditBasedPartitionRequestClientHandler extends ChannelInboundHandlerAdap
                 AtomicInteger processedPartialBuffers = new AtomicInteger(0);
                 try {
                     for (int i = 0; i < bufferOrEvent.numOfPartialBuffers; i++) {
-                        int size = bufferOrEvent.getPartialBufferSizes().get(i);
+                        int size =
+                                bufferOrEvent.getPartialBufferSizesAndCompressedStatues().get(i).f0;
+                        boolean isCompressed =
+                                bufferOrEvent.getPartialBufferSizesAndCompressedStatues().get(i).f1;
+                        Buffer.DataType dataType =
+                                bufferOrEvent.getPartialBufferSizesAndCompressedStatues().get(i).f2;
 
                         processedPartialBuffers.incrementAndGet();
                         inputChannel.onBuffer(
@@ -385,7 +391,9 @@ class CreditBasedPartitionRequestClientHandler extends ChannelInboundHandlerAdap
                                             }
                                         },
                                         offset,
-                                        size),
+                                        size,
+                                        isCompressed,
+                                        dataType),
                                 seq++,
                                 i == bufferOrEvent.numOfPartialBuffers - 1
                                         ? bufferOrEvent.backlog
@@ -444,7 +452,9 @@ class CreditBasedPartitionRequestClientHandler extends ChannelInboundHandlerAdap
             NettyMessage.BufferResponse bufferOrEvent,
             BufferRecycler recycler,
             int offset,
-            int size) {
+            int size,
+            boolean isCompressed,
+            Buffer.DataType dataType) {
         ByteBuffer nioBuffer = bufferOrEvent.getBuffer().getNioBuffer(offset, size);
 
         MemorySegment segment;
@@ -455,8 +465,7 @@ class CreditBasedPartitionRequestClientHandler extends ChannelInboundHandlerAdap
             segment = MemorySegmentFactory.wrap(bytes);
         }
 
-        return new NetworkBuffer(
-                segment, recycler, bufferOrEvent.dataType, bufferOrEvent.isCompressed, size);
+        return new NetworkBuffer(segment, recycler, dataType, isCompressed, size);
     }
 
     /**

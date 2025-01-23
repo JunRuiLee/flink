@@ -18,6 +18,7 @@
 
 package org.apache.flink.runtime.io.network.netty;
 
+import org.apache.flink.api.java.tuple.Tuple3;
 import org.apache.flink.configuration.NettyShuffleEnvironmentOptions.CompressionCodec;
 import org.apache.flink.metrics.SimpleCounter;
 import org.apache.flink.runtime.checkpoint.channel.ChannelStateWriter;
@@ -876,7 +877,13 @@ class CreditBasedPartitionRequestClientHandlerTest {
 
             // Add partial buffer sizes to the response
             for (Buffer partialBuffer : fullyFilledBuffer.getPartialBuffers()) {
-                bufferResponse.getPartialBufferSizes().add(partialBuffer.getSize());
+                bufferResponse
+                        .getPartialBufferSizesAndCompressedStatues()
+                        .add(
+                                Tuple3.of(
+                                        partialBuffer.getSize(),
+                                        false,
+                                        Buffer.DataType.DATA_BUFFER));
             }
             return bufferResponse;
         } else {
@@ -907,7 +914,7 @@ class CreditBasedPartitionRequestClientHandlerTest {
             int numOfPartialBuffers, int bufferSize) {
         FullyFilledBuffer buffer =
                 new FullyFilledBuffer(
-                        Buffer.DataType.DATA_BUFFER, bufferSize * numOfPartialBuffers, false);
+                        Buffer.DataType.DATA_BUFFER, bufferSize * numOfPartialBuffers);
 
         for (int i = 0; i < numOfPartialBuffers; i++) {
             buffer.addPartialBuffer(TestBufferFactory.createBuffer(bufferSize));
@@ -919,7 +926,7 @@ class CreditBasedPartitionRequestClientHandlerTest {
         if (buffer instanceof FullyFilledBuffer) {
             FullyFilledBuffer fullyFilledBuffer = (FullyFilledBuffer) buffer;
             FullyFilledBuffer newFullyFilledBuffer =
-                    new FullyFilledBuffer(buffer.getDataType(), buffer.getSize(), true);
+                    new FullyFilledBuffer(buffer.getDataType(), buffer.getSize());
             for (Buffer partialBuffer : fullyFilledBuffer.getPartialBuffers()) {
                 newFullyFilledBuffer.addPartialBuffer(
                         compressor.compressToOriginalBuffer(partialBuffer));

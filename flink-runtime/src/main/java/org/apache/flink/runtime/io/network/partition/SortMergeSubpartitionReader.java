@@ -52,7 +52,7 @@ class SortMergeSubpartitionReader
 
     /** Buffers already read which can be consumed by netty thread. */
     @GuardedBy("lock")
-    private final Queue<Buffer> buffersRead = new ArrayDeque<>();
+    private final Queue<FullyFilledBuffer> buffersRead = new ArrayDeque<>();
 
     /** File reader used to read buffer from. */
     private final PartitionedFileReader fileReader;
@@ -90,12 +90,12 @@ class SortMergeSubpartitionReader
     @Override
     public BufferAndBacklog getNextBuffer() {
         synchronized (lock) {
-            Buffer buffer = buffersRead.poll();
+            FullyFilledBuffer buffer = buffersRead.poll();
             if (buffer == null) {
                 return null;
             }
 
-            if (buffer.isBuffer()) {
+            if (buffer.containsDataBuffer()) {
                 --dataBufferBacklog;
             }
 
@@ -106,7 +106,7 @@ class SortMergeSubpartitionReader
                             lookAhead == null ? Buffer.DataType.NONE : lookAhead.getDataType(),
                             dataBufferBacklog,
                             sequenceNumber);
-            sequenceNumber += ((FullyFilledBuffer) buffer).getPartialBuffers().size();
+            sequenceNumber += buffer.getPartialBuffers().size();
             return bufferAndBacklog;
         }
     }
@@ -138,28 +138,23 @@ class SortMergeSubpartitionReader
 
     private void addBufferToFullyFilledBuffer(Buffer buffer) {
         if (toFilledBuffer == null) {
-            toFilledBuffer =
-                    new FullyFilledBuffer(buffer.getDataType(), pageSize, buffer.isCompressed());
+            toFilledBuffer = new FullyFilledBuffer(pageSize);
             fullyFilledBuffersToRead.add(toFilledBuffer);
-            if (buffer.isBuffer()) {
-                ++dataBufferBacklog;
-            }
         }
 
-        if (toFilledBuffer.missingLength() < buffer.getSize()
-                || toFilledBuffer.getDataType() != buffer.getDataType()
-                || toFilledBuffer.isCompressed() != buffer.isCompressed()) {
+        if (toFilledBuffer.missingLength() < buffer.getSize()) {
             checkState(!toFilledBuffer.getPartialBuffers().isEmpty());
 
-            toFilledBuffer =
-                    new FullyFilledBuffer(buffer.getDataType(), pageSize, buffer.isCompressed());
+            toFilledBuffer = new FullyFilledBuffer(pageSize);
             fullyFilledBuffersToRead.add(toFilledBuffer);
-            if (buffer.isBuffer()) {
-                ++dataBufferBacklog;
-            }
         }
 
+        boolean containsDataBuffer = toFilledBuffer.containsDataBuffer();
         toFilledBuffer.addPartialBuffer(buffer);
+
+        if (buffer.isBuffer() && !containsDataBuffer) {
+            dataBufferBacklog++;
+        }
     }
 
     /** This method is called by the IO thread of {@link SortMergeResultPartitionReadScheduler}. */

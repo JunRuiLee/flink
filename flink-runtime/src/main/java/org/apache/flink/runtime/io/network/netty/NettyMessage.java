@@ -19,6 +19,7 @@
 package org.apache.flink.runtime.io.network.netty;
 
 import org.apache.flink.annotation.VisibleForTesting;
+import org.apache.flink.api.java.tuple.Tuple3;
 import org.apache.flink.runtime.event.TaskEvent;
 import org.apache.flink.runtime.executiongraph.ExecutionAttemptID;
 import org.apache.flink.runtime.io.network.api.serialization.EventSerializer;
@@ -299,7 +300,8 @@ public abstract class NettyMessage {
 
         final int numOfPartialBuffers;
 
-        private List<Integer> partialBufferSizes = new ArrayList<>();
+        private List<Tuple3<Integer, Boolean, Buffer.DataType>>
+                partialBufferSizesAndCompressedStatues = new ArrayList<>();
 
         private BufferResponse(
                 @Nullable Buffer buffer,
@@ -359,8 +361,9 @@ public abstract class NettyMessage {
             }
         }
 
-        public List<Integer> getPartialBufferSizes() {
-            return partialBufferSizes;
+        public List<Tuple3<Integer, Boolean, Buffer.DataType>>
+                getPartialBufferSizesAndCompressedStatues() {
+            return partialBufferSizesAndCompressedStatues;
         }
 
         // --------------------------------------------------------------------
@@ -437,8 +440,11 @@ public abstract class NettyMessage {
                         partialBuffers.size() == numOfPartialBuffers,
                         "Mismatched number of partial buffers");
                 for (int i = 0; i < numOfPartialBuffers; i++) {
-                    int bytes = partialBuffers.get(i).readableBytes();
+                    Buffer partialBuffer = partialBuffers.get(i);
+                    int bytes = partialBuffer.readableBytes();
                     headerBuf.writeInt(bytes);
+                    headerBuf.writeBoolean(partialBuffer.isCompressed());
+                    headerBuf.writeByte(partialBuffer.getDataType().ordinal());
                 }
             }
 

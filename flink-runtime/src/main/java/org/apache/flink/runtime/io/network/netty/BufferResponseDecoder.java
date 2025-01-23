@@ -18,6 +18,9 @@
 
 package org.apache.flink.runtime.io.network.netty;
 
+import org.apache.flink.api.java.tuple.Tuple3;
+import org.apache.flink.runtime.io.network.buffer.Buffer;
+
 import org.apache.flink.shaded.netty4.io.netty.buffer.ByteBuf;
 import org.apache.flink.shaded.netty4.io.netty.channel.ChannelHandlerContext;
 
@@ -48,7 +51,10 @@ class BufferResponseDecoder extends NettyMessageDecoder {
      * to form a full integer representation of a buffer's size when there aren't sufficient bytes
      * to read an integer directly from the incoming data buffer.
      */
-    private List<Byte> partialSizeBytes;
+    private List<Byte> partialSizeAndCompressedStatusBytes;
+
+    private static final int PARTIAL_SIZE_AND_COMPRESSED_STATUS_LENGTH =
+            Integer.BYTES + Byte.BYTES + Byte.BYTES;
 
     /**
      * The BufferResponse message that has its message header decoded, but still not received all
@@ -114,10 +120,11 @@ class BufferResponseDecoder extends NettyMessageDecoder {
     private void decodePartialBufferSizes(ByteBuf data) {
         // If partial buffers are present and not all are processed yet
         if (bufferResponse.numOfPartialBuffers > 0
-                && bufferResponse.getPartialBufferSizes().size()
+                && bufferResponse.getPartialBufferSizesAndCompressedStatues().size()
                         < bufferResponse.numOfPartialBuffers) {
 
-            // Continue completing the current partial buffer size if necessary
+            // Continue completing the current partial buffer size and compressed status if
+            // necessary
             accumulatePartialSizeBytes(data);
 
             // Process remaining partial buffer sizes when possible
@@ -132,14 +139,18 @@ class BufferResponseDecoder extends NettyMessageDecoder {
      * @param data the ByteBuf containing the incoming data.
      */
     private void accumulatePartialSizeBytes(ByteBuf data) {
-        if (partialSizeBytes != null) {
-            while (partialSizeBytes.size() < Integer.BYTES && data.isReadable()) {
-                partialSizeBytes.add(data.readByte());
+        if (partialSizeAndCompressedStatusBytes != null) {
+            while (partialSizeAndCompressedStatusBytes.size()
+                            < PARTIAL_SIZE_AND_COMPRESSED_STATUS_LENGTH
+                    && data.isReadable()) {
+                partialSizeAndCompressedStatusBytes.add(data.readByte());
             }
-            if (partialSizeBytes.size() == Integer.BYTES) {
-                int size = buildIntFromBytes(partialSizeBytes);
-                bufferResponse.getPartialBufferSizes().add(size);
-                partialSizeBytes = null;
+            if (partialSizeAndCompressedStatusBytes.size()
+                    == PARTIAL_SIZE_AND_COMPRESSED_STATUS_LENGTH) {
+                bufferResponse
+                        .getPartialBufferSizesAndCompressedStatues()
+                        .add(buildIntAndBooleanFromBytes(partialSizeAndCompressedStatusBytes));
+                partialSizeAndCompressedStatusBytes = null;
             }
         }
     }
@@ -152,14 +163,20 @@ class BufferResponseDecoder extends NettyMessageDecoder {
      */
     private void readRemainingBufferSizes(ByteBuf data) {
         while (data.isReadable()
-                && bufferResponse.getPartialBufferSizes().size()
+                && bufferResponse.getPartialBufferSizesAndCompressedStatues().size()
                         < bufferResponse.numOfPartialBuffers) {
-            if (data.readableBytes() >= Integer.BYTES) {
-                bufferResponse.getPartialBufferSizes().add(data.readInt());
+            if (data.readableBytes() >= PARTIAL_SIZE_AND_COMPRESSED_STATUS_LENGTH) {
+                bufferResponse
+                        .getPartialBufferSizesAndCompressedStatues()
+                        .add(
+                                Tuple3.of(
+                                        data.readInt(),
+                                        data.readBoolean(),
+                                        Buffer.DataType.values()[data.readByte()]));
             } else {
-                partialSizeBytes = new ArrayList<>();
+                partialSizeAndCompressedStatusBytes = new ArrayList<>();
                 while (data.isReadable()) {
-                    partialSizeBytes.add(data.readByte());
+                    partialSizeAndCompressedStatusBytes.add(data.readByte());
                 }
             }
         }
@@ -171,12 +188,17 @@ class BufferResponseDecoder extends NettyMessageDecoder {
      * @param byteList the list containing four bytes.
      * @return the constructed integer.
      */
-    private int buildIntFromBytes(List<Byte> byteList) {
-        checkState(byteList.size() == Integer.BYTES);
-        return ((byteList.get(0) & 0xFF) << 24)
-                | ((byteList.get(1) & 0xFF) << 16)
-                | ((byteList.get(2) & 0xFF) << 8)
-                | (byteList.get(3) & 0xFF);
+    private Tuple3<Integer, Boolean, Buffer.DataType> buildIntAndBooleanFromBytes(
+            List<Byte> byteList) {
+        checkState(byteList.size() == PARTIAL_SIZE_AND_COMPRESSED_STATUS_LENGTH);
+        int i =
+                ((byteList.get(0) & 0xFF) << 24)
+                        | ((byteList.get(1) & 0xFF) << 16)
+                        | ((byteList.get(2) & 0xFF) << 8)
+                        | (byteList.get(3) & 0xFF);
+        boolean isCompressed = byteList.get(4) == 1;
+        Buffer.DataType type = Buffer.DataType.values()[byteList.get(5)];
+        return Tuple3.of(i, isCompressed, type);
     }
 
     private void decodeMessageHeader(ByteBuf data) {

@@ -74,15 +74,15 @@ public class CompositeBuffer extends AbstractCompositeBuffer {
         return new NetworkBuffer(
                 segment,
                 BufferRecycler.DummyBufferRecycler.INSTANCE,
-                dataType,
-                isCompressed,
+                getDataType(),
+                isCompressed(),
                 currentLength);
     }
 
     @Override
     public void addPartialBuffer(Buffer buffer) {
-        buffer.setDataType(dataType);
-        buffer.setCompressed(isCompressed);
+        buffer.setDataType(getDataType());
+        buffer.setCompressed(isCompressed());
         partialBuffers.add(buffer);
         currentLength += buffer.readableBytes();
         checkState(currentLength <= length);

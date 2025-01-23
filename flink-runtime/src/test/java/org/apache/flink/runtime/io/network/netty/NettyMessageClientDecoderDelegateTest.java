@@ -18,6 +18,7 @@
 
 package org.apache.flink.runtime.io.network.netty;
 
+import org.apache.flink.api.java.tuple.Tuple3;
 import org.apache.flink.core.memory.MemorySegment;
 import org.apache.flink.core.memory.MemorySegmentFactory;
 import org.apache.flink.runtime.io.network.TestingPartitionRequestClient;
@@ -297,7 +298,9 @@ class NettyMessageClientDecoderDelegateTest {
                         1);
         if (isFullyFilled) {
             for (int i = 0; i < numOfPartialBuffers; i++) {
-                bufferResponse.getPartialBufferSizes().add(bufferSize);
+                bufferResponse
+                        .getPartialBufferSizesAndCompressedStatues()
+                        .add(Tuple3.of(bufferSize, false, Buffer.DataType.DATA_BUFFER));
             }
         }
         messages.add(bufferResponse);
@@ -316,7 +319,7 @@ class NettyMessageClientDecoderDelegateTest {
             return buffer;
         } else {
             FullyFilledBuffer fullyFilledBuffer =
-                    new FullyFilledBuffer(dataType, numOfPartialBuffers * size, false);
+                    new FullyFilledBuffer(dataType, numOfPartialBuffers * size);
 
             for (int i = 0; i < numOfPartialBuffers; i++) {
                 MemorySegment segment = MemorySegmentFactory.allocateUnpooledSegment(size);
