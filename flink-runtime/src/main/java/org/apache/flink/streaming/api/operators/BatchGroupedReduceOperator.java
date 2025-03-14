@@ -71,6 +71,7 @@ public class BatchGroupedReduceOperator<IN, KEY>
             // first input for this key
             timerService.registerEventTimeTimer(VoidNamespace.INSTANCE, Long.MAX_VALUE);
         } else {
+            timerService.registerEventTimeTimerIfNotPresent(VoidNamespace.INSTANCE, Long.MAX_VALUE);
             // otherwise, reduce things
             value = userFunction.reduce(currentValue, value);
         }

@@ -286,6 +286,9 @@ public class Task
     /** atomic flag that makes sure the invokable is canceled exactly once upon error. */
     private final AtomicBoolean invokableHasBeenCanceled;
 
+    private final CheckpointMetaData checkpointMetaData;
+    private final CheckpointOptions checkpointOptions;
+
     /**
      * The invokable of this task, if initialized. All accesses must copy the reference and check
      * for null, as this field is cleared as part of the disposal logic.
@@ -314,6 +317,7 @@ public class Task
      * <b>IMPORTANT:</b> This constructor may not start any work that would need to be undone in the
      * case of a failing task deployment.
      */
+    @VisibleForTesting
     public Task(
             JobInformation jobInformation,
             TaskInformation taskInformation,
@@ -342,6 +346,71 @@ public class Task
             PartitionProducerStateChecker partitionProducerStateChecker,
             Executor executor,
             ChannelStateWriteRequestExecutorFactory channelStateExecutorFactory) {
+        this(
+                jobInformation,
+                taskInformation,
+                executionAttemptID,
+                slotAllocationId,
+                resultPartitionDeploymentDescriptors,
+                inputGateDeploymentDescriptors,
+                memManager,
+                sharedResources,
+                ioManager,
+                shuffleEnvironment,
+                kvStateService,
+                bcVarManager,
+                taskEventDispatcher,
+                externalResourceInfoProvider,
+                taskStateManager,
+                taskManagerActions,
+                inputSplitProvider,
+                checkpointResponder,
+                operatorCoordinatorEventGateway,
+                aggregateManager,
+                classLoaderHandle,
+                fileCache,
+                taskManagerConfig,
+                metricGroup,
+                partitionProducerStateChecker,
+                executor,
+                channelStateExecutorFactory,
+                null,
+                null);
+    }
+
+    public Task(
+            JobInformation jobInformation,
+            TaskInformation taskInformation,
+            ExecutionAttemptID executionAttemptID,
+            AllocationID slotAllocationId,
+            List<ResultPartitionDeploymentDescriptor> resultPartitionDeploymentDescriptors,
+            List<InputGateDeploymentDescriptor> inputGateDeploymentDescriptors,
+            MemoryManager memManager,
+            SharedResources sharedResources,
+            IOManager ioManager,
+            ShuffleEnvironment<?, ?> shuffleEnvironment,
+            KvStateService kvStateService,
+            BroadcastVariableManager bcVarManager,
+            TaskEventDispatcher taskEventDispatcher,
+            ExternalResourceInfoProvider externalResourceInfoProvider,
+            TaskStateManager taskStateManager,
+            TaskManagerActions taskManagerActions,
+            InputSplitProvider inputSplitProvider,
+            CheckpointResponder checkpointResponder,
+            TaskOperatorEventGateway operatorCoordinatorEventGateway,
+            GlobalAggregateManager aggregateManager,
+            LibraryCacheManager.ClassLoaderHandle classLoaderHandle,
+            FileCache fileCache,
+            TaskManagerRuntimeInfo taskManagerConfig,
+            @Nonnull TaskMetricGroup metricGroup,
+            PartitionProducerStateChecker partitionProducerStateChecker,
+            Executor executor,
+            ChannelStateWriteRequestExecutorFactory channelStateExecutorFactory,
+            CheckpointOptions checkpointOptions,
+            CheckpointMetaData checkpointMetaData) {
+
+        this.checkpointOptions = checkpointOptions;
+        this.checkpointMetaData = checkpointMetaData;
 
         Preconditions.checkNotNull(jobInformation);
         Preconditions.checkNotNull(taskInformation);
@@ -726,7 +795,9 @@ public class Task
                             this,
                             externalResourceInfoProvider,
                             channelStateExecutorFactory,
-                            taskManagerActions);
+                            taskManagerActions,
+                            checkpointOptions,
+                            checkpointMetaData);
 
             // Make sure the user code classloader is accessible thread-locally.
             // We are setting the correct context class loader before instantiating the invokable

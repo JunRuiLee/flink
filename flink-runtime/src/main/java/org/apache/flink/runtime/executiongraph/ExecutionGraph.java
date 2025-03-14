@@ -24,6 +24,7 @@ import org.apache.flink.api.common.accumulators.Accumulator;
 import org.apache.flink.configuration.Configuration;
 import org.apache.flink.runtime.JobException;
 import org.apache.flink.runtime.accumulators.AccumulatorSnapshot;
+import org.apache.flink.runtime.checkpoint.BoundedExecutionStateSnapshotHandler;
 import org.apache.flink.runtime.checkpoint.CheckpointCoordinator;
 import org.apache.flink.runtime.checkpoint.CheckpointIDCounter;
 import org.apache.flink.runtime.checkpoint.CheckpointStatsTracker;
@@ -38,6 +39,7 @@ import org.apache.flink.runtime.jobgraph.JobVertex;
 import org.apache.flink.runtime.jobgraph.JobVertexID;
 import org.apache.flink.runtime.jobgraph.tasks.CheckpointCoordinatorConfiguration;
 import org.apache.flink.runtime.metrics.groups.JobManagerJobMetricGroup;
+import org.apache.flink.runtime.operators.coordination.OperatorCoordinatorHolder;
 import org.apache.flink.runtime.query.KvStateLocationRegistry;
 import org.apache.flink.runtime.scheduler.InternalFailuresListener;
 import org.apache.flink.runtime.scheduler.VertexParallelismStore;
@@ -96,6 +98,11 @@ public interface ExecutionGraph extends AccessExecutionGraph {
 
     @Nullable
     CheckpointCoordinator getCheckpointCoordinator();
+
+    @Nullable
+    default BoundedExecutionStateSnapshotHandler getBoundedExecutionStateSnapshotHandler() {
+        return null;
+    }
 
     KvStateLocationRegistry getKvStateLocationRegistry();
 
@@ -226,6 +233,8 @@ public interface ExecutionGraph extends AccessExecutionGraph {
                         ejv, getAllIntermediateResults()::get));
     }
 
+    default void onJobVertexFinished(ExecutionJobVertex jobVertex) {}
+
     /**
      * Initialize the given execution job vertex, mainly includes creating execution vertices
      * according to the parallelism, and connecting to the predecessors.
@@ -269,4 +278,9 @@ public interface ExecutionGraph extends AccessExecutionGraph {
     Optional<String> findVertexWithAttempt(final ExecutionAttemptID attemptId);
 
     Optional<AccessExecution> findExecution(final ExecutionAttemptID attemptId);
+
+    default void startWaitCheckpointForFinishedJob() {}
+
+    default void notifyOperatorCoordinatorInitialized(
+            OperatorCoordinatorHolder operatorCoordinator) {}
 }

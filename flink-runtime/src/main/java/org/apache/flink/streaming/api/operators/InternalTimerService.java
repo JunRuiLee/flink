@@ -53,6 +53,8 @@ public interface InternalTimerService<N> {
      */
     void registerEventTimeTimer(N namespace, long time);
 
+    default void registerEventTimeTimerIfNotPresent(N namespace, long time) {}
+
     /** Deletes the timer for the given key and namespace. */
     void deleteEventTimeTimer(N namespace, long time);
 

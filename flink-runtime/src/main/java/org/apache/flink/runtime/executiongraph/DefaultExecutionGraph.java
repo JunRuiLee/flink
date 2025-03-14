@@ -36,6 +36,7 @@ import org.apache.flink.runtime.accumulators.AccumulatorSnapshot;
 import org.apache.flink.runtime.accumulators.StringifiedAccumulatorResult;
 import org.apache.flink.runtime.blob.BlobWriter;
 import org.apache.flink.runtime.blob.PermanentBlobKey;
+import org.apache.flink.runtime.checkpoint.BoundedExecutionStateSnapshotHandler;
 import org.apache.flink.runtime.checkpoint.CheckpointCoordinator;
 import org.apache.flink.runtime.checkpoint.CheckpointFailureManager;
 import org.apache.flink.runtime.checkpoint.CheckpointIDCounter;
@@ -48,6 +49,7 @@ import org.apache.flink.runtime.checkpoint.DefaultCheckpointPlanCalculator;
 import org.apache.flink.runtime.checkpoint.MasterTriggerRestoreHook;
 import org.apache.flink.runtime.checkpoint.OperatorCoordinatorCheckpointContext;
 import org.apache.flink.runtime.concurrent.ComponentMainThreadExecutor;
+import org.apache.flink.runtime.deployment.TaskDeploymentDescriptor;
 import org.apache.flink.runtime.deployment.TaskDeploymentDescriptorFactory;
 import org.apache.flink.runtime.entrypoint.ClusterEntryPointExceptionUtils;
 import org.apache.flink.runtime.execution.ExecutionState;
@@ -66,6 +68,7 @@ import org.apache.flink.runtime.jobmanager.scheduler.SlotSharingGroup;
 import org.apache.flink.runtime.metrics.groups.JobManagerJobMetricGroup;
 import org.apache.flink.runtime.operators.coordination.CoordinatorStore;
 import org.apache.flink.runtime.operators.coordination.CoordinatorStoreImpl;
+import org.apache.flink.runtime.operators.coordination.OperatorCoordinatorHolder;
 import org.apache.flink.runtime.query.KvStateLocationRegistry;
 import org.apache.flink.runtime.scheduler.DefaultVertexParallelismStore;
 import org.apache.flink.runtime.scheduler.InternalFailuresListener;
@@ -309,6 +312,8 @@ public class DefaultExecutionGraph implements ExecutionGraph, InternalExecutionG
 
     private final ExecutionPlanSchedulingContext executionPlanSchedulingContext;
 
+    private @Nullable BoundedExecutionStateSnapshotHandler boundedExecutionStateSnapshotHandler;
+
     // --------------------------------------------------------------------------------------------
     //   Constructors
     // --------------------------------------------------------------------------------------------
@@ -550,6 +555,78 @@ public class DefaultExecutionGraph implements ExecutionGraph, InternalExecutionG
             registerJobStatusListener(
                     checkpointCoordinator.createActivatorDeactivator(allTasksOutputNonBlocking));
         }
+
+        this.stateBackendName = checkpointStateBackend.getName();
+        this.stateChangelogEnabled =
+                TernaryBoolean.fromBoolean(
+                        StateBackendLoader.isChangelogStateBackend(checkpointStateBackend));
+
+        this.checkpointStorageName = checkpointStorage.getClass().getSimpleName();
+        this.changelogStorageName = changelogStorageName;
+    }
+
+    public void enableCheckpointingForBoundedExecution(
+            CheckpointCoordinatorConfiguration chkConfig,
+            CheckpointIDCounter checkpointIDCounter,
+            CompletedCheckpointStore checkpointStore,
+            StateBackend checkpointStateBackend,
+            CheckpointStorage checkpointStorage,
+            CheckpointStatsTracker statsTracker,
+            CheckpointsCleaner checkpointsCleaner,
+            String changelogStorageName) {
+
+        checkState(state == JobStatus.CREATED, "Job must be in CREATED state");
+        checkState(boundedExecutionStateSnapshotHandler == null, "checkpointing already enabled");
+
+        checkpointCoordinatorConfiguration =
+                checkNotNull(chkConfig, "CheckpointCoordinatorConfiguration");
+
+        checkpointStatsTracker = checkNotNull(statsTracker, "CheckpointStatsTracker");
+
+        CheckpointFailureManager failureManager =
+                new CheckpointFailureManager(
+                        chkConfig.getTolerableCheckpointFailureNumber(),
+                        new CheckpointFailureManager.FailJobCallback() {
+                            @Override
+                            public void failJob(Throwable cause) {
+                                getJobMasterMainThreadExecutor().execute(() -> failGlobal(cause));
+                            }
+
+                            @Override
+                            public void failJobDueToTaskFailure(
+                                    Throwable cause, ExecutionAttemptID failingTask) {
+                                getJobMasterMainThreadExecutor()
+                                        .execute(
+                                                () ->
+                                                        failGlobalIfExecutionIsStillRunning(
+                                                                cause, failingTask));
+                            }
+                        });
+
+        checkState(checkpointCoordinatorTimer == null);
+
+        checkpointCoordinatorTimer =
+                MdcUtils.scopeToJob(
+                        getJobID(),
+                        Executors.newSingleThreadScheduledExecutor(
+                                new DispatcherThreadFactory(
+                                        Thread.currentThread().getThreadGroup(),
+                                        "Checkpoint Timer")));
+
+        // create the coordinator that triggers and commits checkpoints and holds the state
+        boundedExecutionStateSnapshotHandler =
+                new BoundedExecutionStateSnapshotHandler(
+                        jobInformation.getJobId(),
+                        chkConfig,
+                        checkpointIDCounter,
+                        checkpointStore,
+                        checkpointStorage,
+                        ioExecutor,
+                        checkpointsCleaner,
+                        new ScheduledExecutorServiceAdapter(checkpointCoordinatorTimer),
+                        failureManager,
+                        checkpointStatsTracker,
+                        executionPlanSchedulingContext::getPendingOperatorCount);
 
         this.stateBackendName = checkpointStateBackend.getName();
         this.stateChangelogEnabled =
@@ -956,6 +1033,13 @@ public class DefaultExecutionGraph implements ExecutionGraph, InternalExecutionG
     }
 
     @Override
+    public void onJobVertexFinished(ExecutionJobVertex jobVertex) {
+        if (boundedExecutionStateSnapshotHandler != null) {
+            boundedExecutionStateSnapshotHandler.onJobVertexFinished(jobVertex);
+        }
+    }
+
+    @Override
     public void initializeJobVertex(
             ExecutionJobVertex ejv,
             long createTimestamp,
@@ -975,6 +1059,17 @@ public class DefaultExecutionGraph implements ExecutionGraph, InternalExecutionG
                 createTimestamp,
                 this.initialAttemptCounts.getAttemptCounts(ejv.getJobVertexId()),
                 executionPlanSchedulingContext);
+
+        if (boundedExecutionStateSnapshotHandler != null) {
+            try {
+                boundedExecutionStateSnapshotHandler.onJobVertexInitialized(ejv);
+            } catch (Exception e) {
+                throw new JobException(
+                        "Failed to notify bounded execution snapshot handler that initialize job vertex "
+                                + ejv,
+                        e);
+            }
+        }
 
         ejv.connectToPredecessors(this.intermediateResults);
 
@@ -1179,6 +1274,21 @@ public class DefaultExecutionGraph implements ExecutionGraph, InternalExecutionG
         }
     }
 
+    @Nullable
+    @Override
+    public BoundedExecutionStateSnapshotHandler getBoundedExecutionStateSnapshotHandler() {
+        return boundedExecutionStateSnapshotHandler;
+    }
+
+    @Override
+    public void notifyOperatorCoordinatorInitialized(
+            OperatorCoordinatorHolder operatorCoordinator) {
+        if (boundedExecutionStateSnapshotHandler != null) {
+            boundedExecutionStateSnapshotHandler.onOperatorCoordinatorInitialized(
+                    operatorCoordinator);
+        }
+    }
+
     // ------------------------------------------------------------------------
     //  State Transitions
     // ------------------------------------------------------------------------
@@ -1247,8 +1357,18 @@ public class DefaultExecutionGraph implements ExecutionGraph, InternalExecutionG
         if (numFinished == numJobVerticesTotal
                 && executionPlanSchedulingContext.getPendingOperatorCount() == 0) {
             FutureUtils.assertNoException(
-                    waitForAllExecutionsTermination().thenAccept(ignored -> jobFinished()));
+                    waitForSnapshotFinished()
+                            .thenApplyAsync(
+                                    ignored -> waitForAllExecutionsTermination(),
+                                    getJobMasterMainThreadExecutor())
+                            .thenAccept(ignored -> jobFinished()));
         }
+    }
+
+    private CompletableFuture<?> waitForSnapshotFinished() {
+        return boundedExecutionStateSnapshotHandler == null
+                ? CompletableFuture.completedFuture(null)
+                : boundedExecutionStateSnapshotHandler.getResultFuture();
     }
 
     private CompletableFuture<?> waitForAllExecutionsTermination() {
@@ -1774,6 +1894,19 @@ public class DefaultExecutionGraph implements ExecutionGraph, InternalExecutionG
     @Override
     public Optional<AccessExecution> findExecution(ExecutionAttemptID attemptId) {
         return Optional.ofNullable(currentExecutions.get(attemptId));
+    }
+
+    @Override
+    public void startWaitCheckpointForFinishedJob() {
+        boundedExecutionStateSnapshotHandler.startWaitCheckpointForFinishedJob();
+    }
+
+    @Override
+    public void setGlobalCheckpointContextForBoundedExecution(TaskDeploymentDescriptor deployment) {
+        deployment.setGlobalCheckpointMetaDataForBoundedExecution(
+                checkNotNull(boundedExecutionStateSnapshotHandler.getCheckpointMeta()));
+        deployment.setGlobalCheckpointOptionsForBoundedExecution(
+                checkNotNull(boundedExecutionStateSnapshotHandler.getCheckpointOptions()));
     }
 
     @Override

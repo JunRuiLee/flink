@@ -35,7 +35,6 @@ import org.apache.flink.configuration.JobManagerOptions;
 import org.apache.flink.configuration.MemorySize;
 import org.apache.flink.configuration.PipelineOptions;
 import org.apache.flink.configuration.ReadableConfig;
-import org.apache.flink.configuration.StateChangelogOptions;
 import org.apache.flink.runtime.clusterframework.types.ResourceProfile;
 import org.apache.flink.runtime.jobgraph.ExecutionPlanUtils;
 import org.apache.flink.runtime.jobgraph.JobType;
@@ -44,9 +43,6 @@ import org.apache.flink.runtime.state.KeyGroupRangeAssignment;
 import org.apache.flink.streaming.api.environment.CheckpointConfig;
 import org.apache.flink.streaming.api.lineage.LineageGraph;
 import org.apache.flink.streaming.api.lineage.LineageGraphUtils;
-import org.apache.flink.streaming.api.operators.sorted.state.BatchExecutionCheckpointStorage;
-import org.apache.flink.streaming.api.operators.sorted.state.BatchExecutionInternalTimeServiceManager;
-import org.apache.flink.streaming.api.operators.sorted.state.BatchExecutionStateBackend;
 import org.apache.flink.streaming.api.transformations.BroadcastStateTransformation;
 import org.apache.flink.streaming.api.transformations.CacheTransformation;
 import org.apache.flink.streaming.api.transformations.GlobalCommitterTransform;
@@ -279,8 +275,7 @@ public class StreamGraphGenerator {
                 ExecutionPlanUtils.prepareUserArtifactEntries(
                         Optional.ofNullable(configuration.get(PipelineOptions.CACHED_FILES))
                                 .map(DistributedCache::parseCachedFilesFromString)
-                                .orElse(new ArrayList<>())
-                                .stream()
+                                .orElse(new ArrayList<>()).stream()
                                 .collect(Collectors.toMap(e -> e.f0, e -> e.f1)),
                         streamGraph.getJobID());
 
@@ -399,10 +394,11 @@ public class StreamGraphGenerator {
 
         if (useStateBackend) {
             LOG.debug("Using BATCH execution state backend and timer service.");
-            graph.setStateBackend(new BatchExecutionStateBackend());
-            graph.getJobConfiguration().set(StateChangelogOptions.ENABLE_STATE_CHANGE_LOG, false);
-            graph.setCheckpointStorage(new BatchExecutionCheckpointStorage());
-            graph.setTimerServiceProvider(BatchExecutionInternalTimeServiceManager::create);
+            // graph.setStateBackend(new HashMapStateBackend());
+            // graph.getJobConfiguration().set(StateChangelogOptions.ENABLE_STATE_CHANGE_LOG,
+            // false);
+            // graph.setCheckpointStorage(new F());
+            // graph.setTimerServiceProvider(BatchExecutionInternalTimeServiceManager::create);
             graph.createJobCheckpointingSettings();
         }
     }

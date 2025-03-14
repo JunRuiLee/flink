@@ -28,7 +28,9 @@ import org.apache.flink.core.fs.Path;
 import org.apache.flink.runtime.accumulators.AccumulatorRegistry;
 import org.apache.flink.runtime.broadcast.BroadcastVariableManager;
 import org.apache.flink.runtime.checkpoint.CheckpointException;
+import org.apache.flink.runtime.checkpoint.CheckpointMetaData;
 import org.apache.flink.runtime.checkpoint.CheckpointMetrics;
+import org.apache.flink.runtime.checkpoint.CheckpointOptions;
 import org.apache.flink.runtime.checkpoint.TaskStateSnapshot;
 import org.apache.flink.runtime.checkpoint.channel.ChannelStateWriteRequestExecutorFactory;
 import org.apache.flink.runtime.execution.Environment;
@@ -117,6 +119,8 @@ public class RuntimeEnvironment implements Environment {
     @Nullable private CheckpointStorageAccess checkpointStorageAccess;
 
     ChannelStateWriteRequestExecutorFactory channelStateExecutorFactory;
+    private final CheckpointOptions globalCheckpointOptions;
+    private final CheckpointMetaData globalCheckpointMetaData;
 
     // ------------------------------------------------------------------------
 
@@ -151,7 +155,9 @@ public class RuntimeEnvironment implements Environment {
             Task containingTask,
             ExternalResourceInfoProvider externalResourceInfoProvider,
             ChannelStateWriteRequestExecutorFactory channelStateExecutorFactory,
-            TaskManagerActions taskManagerActions) {
+            TaskManagerActions taskManagerActions,
+            CheckpointOptions globalCheckpointOptions,
+            CheckpointMetaData globalCheckpointMetaData) {
 
         this.jobId = checkNotNull(jobId);
         this.jobType = checkNotNull(jobType);
@@ -184,6 +190,8 @@ public class RuntimeEnvironment implements Environment {
         this.externalResourceInfoProvider = checkNotNull(externalResourceInfoProvider);
         this.channelStateExecutorFactory = checkNotNull(channelStateExecutorFactory);
         this.taskManagerActions = checkNotNull(taskManagerActions);
+        this.globalCheckpointOptions = checkNotNull(globalCheckpointOptions);
+        this.globalCheckpointMetaData = checkNotNull(globalCheckpointMetaData);
     }
 
     // ------------------------------------------------------------------------
@@ -407,5 +415,15 @@ public class RuntimeEnvironment implements Environment {
     @Override
     public ChannelStateWriteRequestExecutorFactory getChannelStateExecutorFactory() {
         return channelStateExecutorFactory;
+    }
+
+    @Override
+    public CheckpointOptions getGlobalCheckpointOptions() {
+        return this.globalCheckpointOptions;
+    }
+
+    @Override
+    public CheckpointMetaData getGlobalCheckpointMetaData() {
+        return this.globalCheckpointMetaData;
     }
 }

@@ -377,6 +377,63 @@ class SubtaskCheckpointCoordinatorImpl implements SubtaskCheckpointCoordinator {
         }
     }
 
+    @Override
+    public void checkpointStateForBoundedExecution(
+            CheckpointMetaData metadata,
+            CheckpointOptions options,
+            CheckpointMetricsBuilder metrics,
+            OperatorChain<?, ?> operatorChain,
+            boolean isTaskFinished,
+            Supplier<Boolean> isRunning)
+            throws Exception {
+
+        checkNotNull(options);
+        checkNotNull(metrics);
+
+        // All of the following steps happen as an atomic step from the perspective of barriers and
+        // records/watermarks/timers/callbacks.
+        // We generally try to emit the checkpoint barrier as soon as possible to not affect
+        // downstream
+        // checkpoint alignments
+
+        // Step (0): Record the last triggered checkpointId and abort the sync phase of checkpoint
+        // if necessary.
+        lastCheckpointId = metadata.getCheckpointId();
+        if (fileMergingSnapshotManager != null) {
+            // notify file merging snapshot manager for managed dir lifecycle management
+            fileMergingSnapshotManager.notifyCheckpointStart(
+                    FileMergingSnapshotManager.SubtaskKey.of(env), metadata.getCheckpointId());
+        }
+
+        // Step (1): Prepare the checkpoint, allow operators to do some pre-barrier work.
+        //           The pre-barrier work should be nothing or minimal in the common case.
+        operatorChain.prepareSnapshotPreBarrier(metadata.getCheckpointId());
+
+        // Step (5): Take the state snapshot. This should be largely asynchronous, to not impact
+        // progress of the
+        // streaming topology
+
+        Map<OperatorID, OperatorSnapshotFutures> snapshotFutures =
+                CollectionUtil.newHashMapWithExpectedSize(operatorChain.getNumberOfOperators());
+        try {
+            if (takeSnapshotSync(
+                    snapshotFutures, metadata, metrics, options, operatorChain, isRunning)) {
+                finishAndReportAsync(
+                        snapshotFutures,
+                        metadata,
+                        metrics,
+                        operatorChain.isTaskDeployedAsFinished(),
+                        isTaskFinished,
+                        isRunning);
+            } else {
+                cleanup(snapshotFutures, metadata, metrics, new Exception("Checkpoint declined"));
+            }
+        } catch (Exception ex) {
+            cleanup(snapshotFutures, metadata, metrics, ex);
+            throw ex;
+        }
+    }
+
     private void registerAlignmentTimer(
             long checkpointId,
             OperatorChain<?, ?> operatorChain,

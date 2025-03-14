@@ -208,8 +208,9 @@ public class StateAssignmentOperation {
                 RoundRobinOperatorStateRepartitioner.INSTANCE,
                 taskStateAssignment.subRawOperatorState);
 
-        reDistributeInputChannelStates(taskStateAssignment);
-        reDistributeResultSubpartitionStates(taskStateAssignment);
+        // TODO because we always using aligned checkpoint for bounded checkpoint
+        // reDistributeInputChannelStates(taskStateAssignment);
+        // reDistributeResultSubpartitionStates(taskStateAssignment);
 
         reDistributeKeyedStates(keyGroupPartitions, taskStateAssignment);
     }

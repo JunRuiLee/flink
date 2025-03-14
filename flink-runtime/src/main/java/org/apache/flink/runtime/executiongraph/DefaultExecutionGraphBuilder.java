@@ -204,7 +204,85 @@ public class DefaultExecutionGraphBuilder {
         // configure the state checkpointing
         if (isDynamicGraph) {
             // dynamic graph does not support checkpointing so we skip it
-            log.warn("Skip setting up checkpointing for a job with dynamic graph.");
+            JobCheckpointingSettings snapshotSettings = jobGraph.getCheckpointingSettings();
+
+            // load the state backend from the application settings
+            final StateBackend applicationConfiguredBackend;
+            final SerializedValue<StateBackend> serializedAppConfigured =
+                    snapshotSettings.getDefaultStateBackend();
+
+            if (serializedAppConfigured == null) {
+                applicationConfiguredBackend = null;
+            } else {
+                try {
+                    applicationConfiguredBackend =
+                            serializedAppConfigured.deserializeValue(classLoader);
+                } catch (IOException | ClassNotFoundException e) {
+                    throw new JobExecutionException(
+                            jobId, "Could not deserialize application-defined state backend.", e);
+                }
+            }
+
+            final StateBackend rootBackend;
+            try {
+                rootBackend =
+                        StateBackendLoader.fromApplicationOrConfigOrDefault(
+                                applicationConfiguredBackend,
+                                jobGraph.getJobConfiguration(),
+                                jobManagerConfig,
+                                classLoader,
+                                log);
+            } catch (IllegalConfigurationException | IOException | DynamicCodeLoadingException e) {
+                throw new JobExecutionException(
+                        jobId, "Could not instantiate configured state backend", e);
+            }
+
+            // load the checkpoint storage from the application settings
+            final CheckpointStorage applicationConfiguredStorage;
+            final SerializedValue<CheckpointStorage> serializedAppConfiguredStorage =
+                    snapshotSettings.getDefaultCheckpointStorage();
+
+            if (serializedAppConfiguredStorage == null) {
+                applicationConfiguredStorage = null;
+            } else {
+                try {
+                    applicationConfiguredStorage =
+                            serializedAppConfiguredStorage.deserializeValue(classLoader);
+                } catch (IOException | ClassNotFoundException e) {
+                    throw new JobExecutionException(
+                            jobId,
+                            "Could not deserialize application-defined checkpoint storage.",
+                            e);
+                }
+            }
+
+            final CheckpointStorage rootStorage;
+            try {
+                rootStorage =
+                        CheckpointStorageLoader.load(
+                                applicationConfiguredStorage,
+                                rootBackend,
+                                jobGraph.getJobConfiguration(),
+                                jobManagerConfig,
+                                classLoader,
+                                log);
+            } catch (IllegalConfigurationException | DynamicCodeLoadingException e) {
+                throw new JobExecutionException(
+                        jobId, "Could not instantiate configured checkpoint storage", e);
+            }
+
+            final CheckpointCoordinatorConfiguration chkConfig =
+                    snapshotSettings.getCheckpointCoordinatorConfiguration();
+
+            executionGraph.enableCheckpointingForBoundedExecution(
+                    chkConfig,
+                    checkpointIdCounter,
+                    completedCheckpointStore,
+                    rootBackend,
+                    rootStorage,
+                    checkpointStatsTracker,
+                    checkpointsCleaner,
+                    jobManagerConfig.get(STATE_CHANGE_LOG_STORAGE));
         } else if (isCheckpointingEnabled(jobGraph)) {
             JobCheckpointingSettings snapshotSettings = jobGraph.getCheckpointingSettings();
 

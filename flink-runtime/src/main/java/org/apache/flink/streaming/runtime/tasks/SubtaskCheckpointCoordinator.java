@@ -65,6 +65,17 @@ public interface SubtaskCheckpointCoordinator extends Closeable {
             Supplier<Boolean> isRunning)
             throws Exception;
 
+    default void checkpointStateForBoundedExecution(
+            CheckpointMetaData metadata,
+            CheckpointOptions options,
+            CheckpointMetricsBuilder metrics,
+            OperatorChain<?, ?> operatorChain,
+            boolean isTaskFinished,
+            Supplier<Boolean> isRunning)
+            throws Exception {
+        throw new UnsupportedOperationException();
+    }
+
     /**
      * Notified on the task side once a distributed checkpoint has been completed.
      *

@@ -331,14 +331,17 @@ public class OperatorCoordinatorHolder
                         mainThreadExecutor));
 
         try {
-            subtaskGatewayMap.forEach(
-                    (subtask, gateway) -> gateway.markForCheckpoint(checkpointId));
+            markForCheckpoint(checkpointId);
             coordinator.checkpointCoordinator(checkpointId, coordinatorCheckpoint);
         } catch (Throwable t) {
             ExceptionUtils.rethrowIfFatalErrorOrOOM(t);
             result.completeExceptionally(t);
             globalFailureHandler.handleGlobalFailure(t);
         }
+    }
+
+    public void markForCheckpoint(long checkpointId) {
+        subtaskGatewayMap.forEach((subtask, gateway) -> gateway.markForCheckpoint(checkpointId));
     }
 
     private boolean closeGateways(final long checkpointId) {
@@ -440,9 +443,7 @@ public class OperatorCoordinatorHolder
                 new SubtaskGatewayImpl(sta, mainThreadExecutor, unconfirmedEvents);
 
         // We don't need to maintain subtaskGatewayMap when checkpoint coordinator is null.
-        if (context.getCheckpointCoordinator() != null) {
-            subtaskGatewayMap.put(gateway.getSubtask(), gateway);
-        }
+        subtaskGatewayMap.put(gateway.getSubtask(), gateway);
 
         // We need to do this synchronously here, otherwise we violate the contract that
         // 'subtaskFailed()' will never overtake 'subtaskReady()'.

@@ -124,7 +124,8 @@ public class NumberSequenceSource
     public SplitEnumerator<NumberSequenceSplit, Collection<NumberSequenceSplit>> restoreEnumerator(
             final SplitEnumeratorContext<NumberSequenceSplit> enumContext,
             Collection<NumberSequenceSplit> checkpoint) {
-        return new IteratorSourceEnumerator<>(enumContext, checkpoint);
+        System.out.println("### oops, restore enumerator");
+        return createEnumerator(enumContext);
     }
 
     @Override

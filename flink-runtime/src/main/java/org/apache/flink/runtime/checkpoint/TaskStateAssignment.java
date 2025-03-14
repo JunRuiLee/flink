@@ -221,6 +221,7 @@ class TaskStateAssignment {
         if (hasDownstreamInputStates == null) {
             hasDownstreamInputStates =
                     Arrays.stream(getDownstreamAssignments())
+                            .filter(Objects::nonNull)
                             .anyMatch(assignment -> assignment.hasInputState);
         }
         return hasDownstreamInputStates;
@@ -255,6 +256,11 @@ class TaskStateAssignment {
             Map<Integer, SubtasksRescaleMapping> subtaskGateOrPartitionMappings,
             Function<Integer, SubtasksRescaleMapping> subtaskMappingCalculator) {
         if (!expectedOperatorID.equals(instanceID.getOperatorId())) {
+            return InflightDataRescalingDescriptor.NO_RESCALE;
+        }
+
+        // TODO for aligned checkpoint
+        if (true) {
             return InflightDataRescalingDescriptor.NO_RESCALE;
         }
 

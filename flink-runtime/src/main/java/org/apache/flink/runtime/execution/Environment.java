@@ -28,7 +28,9 @@ import org.apache.flink.core.fs.Path;
 import org.apache.flink.runtime.accumulators.AccumulatorRegistry;
 import org.apache.flink.runtime.broadcast.BroadcastVariableManager;
 import org.apache.flink.runtime.checkpoint.CheckpointException;
+import org.apache.flink.runtime.checkpoint.CheckpointMetaData;
 import org.apache.flink.runtime.checkpoint.CheckpointMetrics;
+import org.apache.flink.runtime.checkpoint.CheckpointOptions;
 import org.apache.flink.runtime.checkpoint.TaskStateSnapshot;
 import org.apache.flink.runtime.checkpoint.channel.ChannelStateWriteRequestExecutorFactory;
 import org.apache.flink.runtime.executiongraph.ExecutionAttemptID;
@@ -161,9 +163,7 @@ public interface Environment {
      */
     MemoryManager getMemoryManager();
 
-    /**
-     * @return the resources shared among all tasks of this task manager.
-     */
+    /** @return the resources shared among all tasks of this task manager. */
     SharedResources getSharedResources();
 
     /** Returns the user code class loader. */
@@ -280,4 +280,12 @@ public interface Environment {
     }
 
     ChannelStateWriteRequestExecutorFactory getChannelStateExecutorFactory();
+
+    default CheckpointOptions getGlobalCheckpointOptions() {
+        throw new UnsupportedOperationException();
+    }
+
+    default CheckpointMetaData getGlobalCheckpointMetaData() {
+        throw new UnsupportedOperationException();
+    }
 }

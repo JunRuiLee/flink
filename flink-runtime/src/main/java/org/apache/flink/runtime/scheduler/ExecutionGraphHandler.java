@@ -21,6 +21,7 @@ package org.apache.flink.runtime.scheduler;
 import org.apache.flink.api.common.JobID;
 import org.apache.flink.api.common.JobStatus;
 import org.apache.flink.core.io.InputSplit;
+import org.apache.flink.runtime.checkpoint.BoundedExecutionStateSnapshotHandler;
 import org.apache.flink.runtime.checkpoint.CheckpointCoordinator;
 import org.apache.flink.runtime.checkpoint.CheckpointMetrics;
 import org.apache.flink.runtime.checkpoint.SubTaskInitializationMetrics;
@@ -90,7 +91,7 @@ public class ExecutionGraphHandler {
             return;
         }
 
-        processCheckpointCoordinatorMessage(
+        processBoundedStateSnapshotMessage(
                 "ReportInitializationMetrics",
                 coordinator ->
                         coordinator.reportInitializationMetrics(
@@ -103,7 +104,7 @@ public class ExecutionGraphHandler {
             final long checkpointId,
             final CheckpointMetrics checkpointMetrics,
             final TaskStateSnapshot checkpointState) {
-        processCheckpointCoordinatorMessage(
+        processBoundedStateSnapshotMessage(
                 "AcknowledgeCheckpoint",
                 coordinator ->
                         coordinator.receiveAcknowledgeMessage(
@@ -144,6 +145,33 @@ public class ExecutionGraphHandler {
         } else {
             String errorMessage =
                     "Received " + messageType + " message for job {} with no CheckpointCoordinator";
+            if (executionGraph.getState() == JobStatus.RUNNING) {
+                log.error(errorMessage, executionGraph.getJobID());
+            } else {
+                log.debug(errorMessage, executionGraph.getJobID());
+            }
+        }
+    }
+
+    private void processBoundedStateSnapshotMessage(
+            String messageType,
+            ThrowingConsumer<BoundedExecutionStateSnapshotHandler, Exception> process) {
+        mainThreadExecutor.assertRunningInMainThread();
+
+        final BoundedExecutionStateSnapshotHandler handler =
+                executionGraph.getBoundedExecutionStateSnapshotHandler();
+
+        if (handler != null) {
+            ioExecutor.execute(
+                    () -> {
+                        try {
+                            process.accept(handler);
+                        } catch (Exception t) {
+                            log.warn("Error while processing " + messageType + " message", t);
+                        }
+                    });
+        } else {
+            String errorMessage = "Received " + messageType + " message for job {} with no handler";
             if (executionGraph.getState() == JobStatus.RUNNING) {
                 log.error(errorMessage, executionGraph.getJobID());
             } else {

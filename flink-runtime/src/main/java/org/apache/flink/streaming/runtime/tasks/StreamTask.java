@@ -975,7 +975,16 @@ public abstract class StreamTask<OUT, OP extends StreamOperator<OUT>>
     protected void afterInvoke() throws Exception {
         LOG.debug("Finished task {}", getName());
         getCompletionFuture().exceptionally(unused -> null).join();
-
+        subtaskCheckpointCoordinator.checkpointStateForBoundedExecution(
+                environment.getGlobalCheckpointMetaData(),
+                environment.getGlobalCheckpointOptions(),
+                new CheckpointMetricsBuilder()
+                        .setAlignmentDurationNanos(0L)
+                        .setBytesProcessedDuringAlignment(0L)
+                        .setCheckpointStartDelayNanos(0),
+                operatorChain,
+                finishedOperators,
+                this::isRunning);
         Set<CompletableFuture<Void>> terminationConditions = new HashSet<>();
         // If checkpoints are enabled, waits for all the records get processed by the downstream
         // tasks. During this process, this task could coordinate with its downstream tasks to
@@ -1031,7 +1040,7 @@ public abstract class StreamTask<OUT, OP extends StreamOperator<OUT>>
         // make sure all buffered data is flushed
         operatorChain.flushOutputs();
 
-        if (areCheckpointsWithFinishedTasksEnabled()) {
+        if (true) {
             // No new checkpoints could be triggered since mailbox has been drained.
             subtaskCheckpointCoordinator.waitForPendingCheckpoints();
             LOG.debug("All pending checkpoints are finished");

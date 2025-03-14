@@ -623,6 +623,9 @@ public class Execution
                                     slot.getAllocationId(),
                                     taskRestore,
                                     producedPartitions.values());
+            this.vertex
+                    .getExecutionGraphAccessor()
+                    .setGlobalCheckpointContextForBoundedExecution(deployment);
 
             // null taskRestore to let it be GC'ed
             taskRestore = null;

@@ -184,7 +184,7 @@ class SubtaskGatewayImpl implements OperatorCoordinator.SubtaskGateway {
     void markForCheckpoint(long checkpointId) {
         checkRunsInMainThread();
 
-        if (checkpointId > latestAttemptedCheckpointId) {
+        if (true) {
             currentMarkedCheckpointIds.add(checkpointId);
             latestAttemptedCheckpointId = checkpointId;
         } else if (checkpointId != BATCH_CHECKPOINT_ID) {

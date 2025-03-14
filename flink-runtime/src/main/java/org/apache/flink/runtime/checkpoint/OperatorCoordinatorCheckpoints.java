@@ -94,10 +94,45 @@ final class OperatorCoordinatorCheckpoints {
                 acknowledgeExecutor);
     }
 
+    private static CompletableFuture<Void> triggerAndAcknowledgeAllCoordinatorCheckpoints(
+            final Collection<OperatorCoordinatorCheckpointContext> coordinators,
+            final BoundedExecutionPendingCheckpoint checkpoint,
+            final Executor acknowledgeExecutor)
+            throws Exception {
+
+        final CompletableFuture<AllCoordinatorSnapshots> snapshots =
+                triggerAllCoordinatorCheckpoints(coordinators, checkpoint.getCheckpointID());
+
+        return snapshots.thenAcceptAsync(
+                (allSnapshots) -> {
+                    try {
+                        acknowledgeAllCoordinators(checkpoint, allSnapshots.snapshots);
+                    } catch (Exception e) {
+                        throw new CompletionException(e);
+                    }
+                },
+                acknowledgeExecutor);
+    }
+
     public static CompletableFuture<Void>
             triggerAndAcknowledgeAllCoordinatorCheckpointsWithCompletion(
                     final Collection<OperatorCoordinatorCheckpointContext> coordinators,
                     final PendingCheckpoint checkpoint,
+                    final Executor acknowledgeExecutor)
+                    throws CompletionException {
+
+        try {
+            return triggerAndAcknowledgeAllCoordinatorCheckpoints(
+                    coordinators, checkpoint, acknowledgeExecutor);
+        } catch (Exception e) {
+            throw new CompletionException(e);
+        }
+    }
+
+    public static CompletableFuture<Void>
+            triggerAndAcknowledgeAllCoordinatorCheckpointsWithCompletion(
+                    final Collection<OperatorCoordinatorCheckpointContext> coordinators,
+                    final BoundedExecutionPendingCheckpoint checkpoint,
                     final Executor acknowledgeExecutor)
                     throws CompletionException {
 
@@ -119,6 +154,35 @@ final class OperatorCoordinatorCheckpoints {
                     checkpoint.acknowledgeCoordinatorState(snapshot.coordinator, snapshot.state);
 
             if (result != PendingCheckpoint.TaskAcknowledgeResult.SUCCESS) {
+                final String errorMessage =
+                        "Coordinator state not acknowledged successfully: " + result;
+                final Throwable error =
+                        checkpoint.isDisposed() ? checkpoint.getFailureCause() : null;
+
+                CheckpointFailureReason reason = CheckpointFailureReason.TRIGGER_CHECKPOINT_FAILURE;
+                if (error != null) {
+                    final Optional<IOException> ioExceptionOptional =
+                            ExceptionUtils.findThrowable(error, IOException.class);
+                    if (ioExceptionOptional.isPresent()) {
+                        reason = CheckpointFailureReason.IO_EXCEPTION;
+                    }
+
+                    throw new CheckpointException(errorMessage, reason, error);
+                } else {
+                    throw new CheckpointException(errorMessage, reason);
+                }
+            }
+        }
+    }
+
+    private static void acknowledgeAllCoordinators(
+            BoundedExecutionPendingCheckpoint checkpoint, Collection<CoordinatorSnapshot> snapshots)
+            throws CheckpointException {
+        for (final CoordinatorSnapshot snapshot : snapshots) {
+            final BoundedExecutionPendingCheckpoint.TaskAcknowledgeResult result =
+                    checkpoint.acknowledgeCoordinatorState(snapshot.coordinator, snapshot.state);
+
+            if (result != BoundedExecutionPendingCheckpoint.TaskAcknowledgeResult.SUCCESS) {
                 final String errorMessage =
                         "Coordinator state not acknowledged successfully: " + result;
                 final Throwable error =

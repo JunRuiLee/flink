@@ -17,18 +17,22 @@
 
 package org.apache.flink.streaming.examples.wordcount;
 
+import org.apache.flink.api.common.RuntimeExecutionMode;
 import org.apache.flink.api.common.eventtime.WatermarkStrategy;
 import org.apache.flink.api.common.functions.FlatMapFunction;
 import org.apache.flink.api.common.serialization.SimpleStringEncoder;
 import org.apache.flink.api.java.tuple.Tuple2;
+import org.apache.flink.configuration.CheckpointingOptions;
 import org.apache.flink.configuration.Configuration;
+import org.apache.flink.configuration.ExternalizedCheckpointRetention;
 import org.apache.flink.configuration.MemorySize;
 import org.apache.flink.configuration.StateBackendOptions;
+import org.apache.flink.configuration.StateRecoveryOptions;
 import org.apache.flink.connector.file.sink.FileSink;
 import org.apache.flink.connector.file.src.FileSource;
 import org.apache.flink.connector.file.src.reader.TextLineInputFormat;
+import org.apache.flink.core.execution.RecoveryClaimMode;
 import org.apache.flink.streaming.api.datastream.DataStream;
-import org.apache.flink.streaming.api.datastream.KeyedStream;
 import org.apache.flink.streaming.api.environment.StreamExecutionEnvironment;
 import org.apache.flink.streaming.api.functions.sink.filesystem.rollingpolicies.DefaultRollingPolicy;
 import org.apache.flink.streaming.examples.wordcount.util.CLI;
@@ -37,7 +41,7 @@ import org.apache.flink.util.Collector;
 
 import java.time.Duration;
 
-import static org.apache.flink.runtime.state.StateBackendLoader.FORST_STATE_BACKEND_NAME;
+import static org.apache.flink.configuration.CheckpointingOptions.EXTERNALIZED_CHECKPOINT_RETENTION;
 
 /**
  * Implements the "WordCount" program that computes a simple word occurrence histogram over text
@@ -58,7 +62,6 @@ import static org.apache.flink.runtime.state.StateBackendLoader.FORST_STATE_BACK
  *       </code>.
  *   <li><code>--execution-mode &lt;mode&gt;</code>The execution mode (BATCH, STREAMING, or
  *       AUTOMATIC) of this pipeline.
- *   <li><code>--async-state</code> Whether enable async state.
  * </ul>
  *
  * <p>This example shows how to:
@@ -80,17 +83,26 @@ public class WordCount {
 
         // Create the execution environment. This is the main entrypoint
         // to building a Flink application.
-        final StreamExecutionEnvironment env = StreamExecutionEnvironment.getExecutionEnvironment();
+        Configuration configuration = new Configuration();
+        configuration.set(CheckpointingOptions.CHECKPOINT_STORAGE, "filesystem");
+        configuration.set(CheckpointingOptions.INCREMENTAL_CHECKPOINTS, true);
+        configuration.set(
+                CheckpointingOptions.CHECKPOINTS_DIRECTORY,
+                "file:///Users/jrl/Downloads/temp/sp-1");
+        configuration.set(
+                EXTERNALIZED_CHECKPOINT_RETENTION,
+                ExternalizedCheckpointRetention.RETAIN_ON_CANCELLATION);
+        configuration.set(
+                StateRecoveryOptions.SAVEPOINT_PATH,
+                "file:///Users/jrl/Downloads/temp/sp-1/0c7bd45159c470e1d509a6cd3594218d/chk-1");
+        configuration.set(StateRecoveryOptions.RESTORE_MODE, RecoveryClaimMode.CLAIM);
+        configuration.set(CheckpointingOptions.INCREMENTAL_CHECKPOINTS, true);
+        configuration.set(StateBackendOptions.STATE_BACKEND, "hashmap");
+        configuration.set(CheckpointingOptions.MAX_RETAINED_CHECKPOINTS, 100000);
 
-        // For async state, by default we will use the forst state backend.
-        if (params.isAsyncState()) {
-            Configuration config = Configuration.fromMap(env.getConfiguration().toMap());
-            if (!config.containsKey(StateBackendOptions.STATE_BACKEND.key())) {
-                config.set(StateBackendOptions.STATE_BACKEND, FORST_STATE_BACKEND_NAME);
-                env.configure(config);
-            }
-        }
-
+        final StreamExecutionEnvironment env =
+                StreamExecutionEnvironment.getExecutionEnvironment(configuration);
+        env.setRuntimeMode(RuntimeExecutionMode.BATCH);
         // Apache Flink’s unified approach to stream and batch processing means that a DataStream
         // application executed over bounded input will produce the same final results regardless
         // of the configured execution mode. It is important to note what final means here: a job
@@ -98,19 +110,6 @@ public class WordCount {
         // a database) while in BATCH mode, it would only produce one final result at the end. The
         // final result will be the same if interpreted correctly, but getting there can be
         // different.
-        //
-        // The “classic” execution behavior of the DataStream API is called STREAMING execution
-        // mode. Applications should use streaming execution for unbounded jobs that require
-        // continuous incremental processing and are expected to stay online indefinitely.
-        //
-        // By enabling BATCH execution, we allow Flink to apply additional optimizations that we
-        // can only do when we know that our input is bounded. For example, different
-        // join/aggregation strategies can be used, in addition to a different shuffle
-        // implementation that allows more efficient task scheduling and failure recovery behavior.
-        //
-        // By setting the runtime mode to AUTOMATIC, Flink will choose BATCH if all sources
-        // are bounded and otherwise STREAMING.
-        env.setRuntimeMode(params.getExecutionMode());
 
         // This optional step makes the input parameters
         // available in the Flink UI.
@@ -133,7 +132,7 @@ public class WordCount {
             text = env.fromData(WordCountData.WORDS).name("in-memory-input");
         }
 
-        KeyedStream<Tuple2<String, Integer>, String> keyedStream =
+        DataStream<Tuple2<String, Integer>> counts =
                 // The text lines read from the source are split into words
                 // using a user-defined function. The tokenizer, implemented below,
                 // will output each word as a (2-tuple) containing (word, 1)
@@ -143,12 +142,7 @@ public class WordCount {
                         // Using a keyBy allows performing aggregations and other
                         // stateful transformations over data on a per-key basis.
                         // This is similar to a GROUP BY clause in a SQL query.
-                        .keyBy(value -> value.f0);
-        if (params.isAsyncState()) {
-            keyedStream.enableAsyncState();
-        }
-        DataStream<Tuple2<String, Integer>> counts =
-                keyedStream
+                        .keyBy(value -> value.f0)
                         // For each key, we perform a simple sum of the "1" field, the count.
                         // If the input data stream is bounded, sum will output a final count for
                         // each word. If it is unbounded, it will continuously output updates
@@ -176,6 +170,8 @@ public class WordCount {
 
         // Apache Flink applications are composed lazily. Calling execute
         // submits the Job and begins processing.
+        env.disableOperatorChaining();
+
         env.execute("WordCount");
     }
 

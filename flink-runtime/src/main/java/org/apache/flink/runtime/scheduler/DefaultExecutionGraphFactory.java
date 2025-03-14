@@ -20,6 +20,7 @@ package org.apache.flink.runtime.scheduler;
 
 import org.apache.flink.configuration.Configuration;
 import org.apache.flink.runtime.blob.BlobWriter;
+import org.apache.flink.runtime.checkpoint.BoundedExecutionStateSnapshotHandler;
 import org.apache.flink.runtime.checkpoint.CheckpointCoordinator;
 import org.apache.flink.runtime.checkpoint.CheckpointIDCounter;
 import org.apache.flink.runtime.checkpoint.CheckpointStatsTracker;
@@ -183,6 +184,9 @@ public class DefaultExecutionGraphFactory implements ExecutionGraphFactory {
         final CheckpointCoordinator checkpointCoordinator =
                 newExecutionGraph.getCheckpointCoordinator();
 
+        final BoundedExecutionStateSnapshotHandler boundedExecutionStateSnapshotHandler =
+                newExecutionGraph.getBoundedExecutionStateSnapshotHandler();
+
         if (checkpointCoordinator != null) {
             // check whether we find a valid checkpoint
             if (!checkpointCoordinator.restoreInitialCheckpointIfPresent(
@@ -192,6 +196,11 @@ public class DefaultExecutionGraphFactory implements ExecutionGraphFactory {
                 tryRestoreExecutionGraphFromSavepoint(
                         newExecutionGraph, jobGraph.getSavepointRestoreSettings());
             }
+        }
+
+        if (boundedExecutionStateSnapshotHandler != null) {
+            boundedExecutionStateSnapshotHandler.restoreSavepoint(
+                    jobGraph.getSavepointRestoreSettings(), userCodeClassLoader);
         }
 
         return newExecutionGraph;

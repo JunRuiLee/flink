@@ -126,6 +126,41 @@ public class CheckpointFailureManager {
         }
     }
 
+    public void handleCheckpointException(
+            @Nullable BoundedExecutionPendingCheckpoint pendingCheckpoint,
+            CheckpointProperties checkpointProperties,
+            CheckpointException exception,
+            @Nullable ExecutionAttemptID executionAttemptID,
+            JobID job,
+            @Nullable PendingCheckpointStats pendingCheckpointStats,
+            CheckpointStatsTracker statsTracker) {
+        long checkpointId =
+                pendingCheckpoint == null
+                        ? UNKNOWN_CHECKPOINT_ID
+                        : pendingCheckpoint.getCheckpointID();
+
+        if (CheckpointFailureReason.NOT_ALL_REQUIRED_TASKS_RUNNING.equals(
+                exception.getCheckpointFailureReason())) {
+            LOG.info(
+                    "Failed to trigger checkpoint for job {} since {}.",
+                    job,
+                    exception.getMessage());
+        } else {
+            LOG.warn(
+                    "Failed to trigger or complete checkpoint {} for job {}. ({} consecutive failed attempts so far)",
+                    checkpointId == UNKNOWN_CHECKPOINT_ID ? "UNKNOWN_CHECKPOINT_ID" : checkpointId,
+                    job,
+                    continuousFailureCounter.get(),
+                    exception);
+        }
+        if (isJobManagerFailure(exception, executionAttemptID)) {
+            handleJobLevelCheckpointException(checkpointProperties, exception, checkpointId);
+        } else {
+            handleTaskLevelCheckpointException(
+                    checkNotNull(pendingCheckpoint), exception, checkNotNull(executionAttemptID));
+        }
+    }
+
     /**
      * Updating checkpoint statistics after checkpoint failed.
      *
@@ -195,6 +230,21 @@ public class CheckpointFailureManager {
         }
     }
 
+    void handleTaskLevelCheckpointException(
+            BoundedExecutionPendingCheckpoint pendingCheckpoint,
+            CheckpointException exception,
+            ExecutionAttemptID executionAttemptID) {
+        CheckpointProperties checkpointProps = pendingCheckpoint.getProps();
+        if (checkpointProps.isSavepoint() && checkpointProps.isSynchronous()) {
+            failureCallback.failJob(exception);
+        } else {
+            checkFailureAgainstCounter(
+                    exception,
+                    pendingCheckpoint.getCheckpointID(),
+                    e -> failureCallback.failJobDueToTaskFailure(e, executionAttemptID));
+        }
+    }
+
     private void checkFailureAgainstCounter(
             CheckpointException exception,
             long checkpointId,
@@ -230,7 +280,7 @@ public class CheckpointFailureManager {
             case CHECKPOINT_COORDINATOR_SHUTDOWN:
             case CHANNEL_STATE_SHARED_STREAM_EXCEPTION:
             case JOB_FAILOVER_REGION:
-            // for compatibility purposes with user job behavior
+                // for compatibility purposes with user job behavior
             case CHECKPOINT_DECLINED_TASK_NOT_READY:
             case CHECKPOINT_DECLINED_TASK_CLOSING:
             case CHECKPOINT_DECLINED_ON_CANCELLATION_BARRIER:
@@ -240,7 +290,7 @@ public class CheckpointFailureManager {
             case TASK_FAILURE:
             case TASK_CHECKPOINT_FAILURE:
             case UNKNOWN_TASK_CHECKPOINT_NOTIFICATION_FAILURE:
-            // there are some edge cases shouldn't be counted as a failure, e.g. shutdown
+                // there are some edge cases shouldn't be counted as a failure, e.g. shutdown
             case TRIGGER_CHECKPOINT_FAILURE:
             case BLOCKING_OUTPUT_EXIST:
                 // ignore

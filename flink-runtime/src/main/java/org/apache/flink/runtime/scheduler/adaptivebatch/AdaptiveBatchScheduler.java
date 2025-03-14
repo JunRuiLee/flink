@@ -292,6 +292,7 @@ public class AdaptiveBatchScheduler extends DefaultScheduler implements JobGraph
         speculativeExecutionHandler.init(
                 getExecutionGraph(), getMainThreadExecutor(), jobManagerJobMetricGroup);
         jobRecoveryHandler.initialize(new DefaultBatchJobRecoveryContext());
+        getExecutionGraph().startWaitCheckpointForFinishedJob();
 
         if (jobRecoveryHandler.needRecover()) {
             jobRecoveryHandler.startRecovering();
@@ -653,6 +654,8 @@ public class AdaptiveBatchScheduler extends DefaultScheduler implements JobGraph
     private void notifyJobVertexFinishedIfPossible(ExecutionJobVertex jobVertex) {
         Optional<Map<IntermediateDataSetID, BlockingResultInfo>> producedResultsInfo =
                 getProducedResultsInfo(jobVertex);
+
+        getExecutionGraph().onJobVertexFinished(jobVertex);
 
         producedResultsInfo.ifPresent(
                 resultInfo ->

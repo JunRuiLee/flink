@@ -34,6 +34,7 @@ import org.apache.flink.util.function.BiConsumerWithException;
 
 import java.util.ArrayList;
 import java.util.Collections;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
 import java.util.concurrent.ScheduledFuture;
@@ -56,6 +57,8 @@ public class InternalTimerServiceImpl<K, N> implements InternalTimerService<N> {
     /** Event time timers that are currently in-flight. */
     protected final KeyGroupedInternalPriorityQueue<TimerHeapInternalTimer<K, N>>
             eventTimeTimersQueue;
+
+    private final Set<K> map = new HashSet<>();
 
     /** Context that allows us to stop firing timers if the containing task has been cancelled. */
     protected final StreamTaskCancellationContext cancellationContext;
@@ -246,6 +249,13 @@ public class InternalTimerServiceImpl<K, N> implements InternalTimerService<N> {
                 new TimerHeapInternalTimer<>(time, (K) keyContext.getCurrentKey(), namespace));
     }
 
+    public void registerEventTimeTimerIfNotPresent(N namespace, long time) {
+        if (!map.contains(keyContext.getCurrentKey())) {
+            eventTimeTimersQueue.add(
+                    new TimerHeapInternalTimer<>(time, (K) keyContext.getCurrentKey(), namespace));
+        }
+    }
+
     @Override
     public void deleteProcessingTimeTimer(N namespace, long time) {
         processingTimeTimersQueue.remove(
@@ -256,6 +266,7 @@ public class InternalTimerServiceImpl<K, N> implements InternalTimerService<N> {
     public void deleteEventTimeTimer(N namespace, long time) {
         eventTimeTimersQueue.remove(
                 new TimerHeapInternalTimer<>(time, (K) keyContext.getCurrentKey(), namespace));
+        map.clear();
     }
 
     @Override

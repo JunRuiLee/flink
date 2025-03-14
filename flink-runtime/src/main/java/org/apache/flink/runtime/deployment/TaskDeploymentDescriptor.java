@@ -21,6 +21,8 @@ package org.apache.flink.runtime.deployment;
 import org.apache.flink.api.common.JobID;
 import org.apache.flink.runtime.blob.PermanentBlobKey;
 import org.apache.flink.runtime.blob.PermanentBlobService;
+import org.apache.flink.runtime.checkpoint.CheckpointMetaData;
+import org.apache.flink.runtime.checkpoint.CheckpointOptions;
 import org.apache.flink.runtime.checkpoint.JobManagerTaskRestore;
 import org.apache.flink.runtime.clusterframework.types.AllocationID;
 import org.apache.flink.runtime.deployment.TaskDeploymentDescriptorFactory.ShuffleDescriptorGroup;
@@ -140,6 +142,32 @@ public final class TaskDeploymentDescriptor implements Serializable {
 
     /** Information to restore the task. This can be null if there is no state to restore. */
     @Nullable private final JobManagerTaskRestore taskRestore;
+
+    private @Nullable CheckpointMetaData globalCheckpointMetaDataForBoundedExecution;
+
+    private @Nullable CheckpointOptions globalCheckpointOptionsForBoundedExecution;
+
+    @Nullable
+    public CheckpointMetaData getGlobalCheckpointMetaDataForBoundedExecution() {
+        return globalCheckpointMetaDataForBoundedExecution;
+    }
+
+    public void setGlobalCheckpointMetaDataForBoundedExecution(
+            @Nullable CheckpointMetaData globalCheckpointMetaDataForBoundedExecution) {
+        this.globalCheckpointMetaDataForBoundedExecution =
+                globalCheckpointMetaDataForBoundedExecution;
+    }
+
+    @Nullable
+    public CheckpointOptions getGlobalCheckpointOptionsForBoundedExecution() {
+        return globalCheckpointOptionsForBoundedExecution;
+    }
+
+    public void setGlobalCheckpointOptionsForBoundedExecution(
+            @Nullable CheckpointOptions globalCheckpointOptionsForBoundedExecution) {
+        this.globalCheckpointOptionsForBoundedExecution =
+                globalCheckpointOptionsForBoundedExecution;
+    }
 
     public TaskDeploymentDescriptor(
             JobID jobId,

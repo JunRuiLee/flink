@@ -167,10 +167,15 @@ public class DefaultOperatorCoordinatorHandler implements OperatorCoordinatorHan
         startOperatorCoordinators(coordinators);
     }
 
+    private void notifyOperatorCoordinatorInitialized(OperatorCoordinatorHolder coordinator) {
+        executionGraph.notifyOperatorCoordinatorInitialized(coordinator);
+    }
+
     private void startOperatorCoordinators(Collection<OperatorCoordinatorHolder> coordinators) {
         try {
             for (OperatorCoordinatorHolder coordinator : coordinators) {
                 coordinator.start();
+                notifyOperatorCoordinatorInitialized(coordinator);
             }
         } catch (Throwable t) {
             ExceptionUtils.rethrowIfFatalErrorOrOOM(t);

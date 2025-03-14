@@ -22,6 +22,7 @@ import org.apache.flink.api.common.JobID;
 import org.apache.flink.runtime.blob.BlobWriter;
 import org.apache.flink.runtime.blob.PermanentBlobKey;
 import org.apache.flink.runtime.concurrent.ComponentMainThreadExecutor;
+import org.apache.flink.runtime.deployment.TaskDeploymentDescriptor;
 import org.apache.flink.runtime.deployment.TaskDeploymentDescriptorFactory;
 import org.apache.flink.runtime.execution.ExecutionState;
 import org.apache.flink.runtime.executiongraph.failover.partitionrelease.PartitionGroupReleaseStrategy;
@@ -128,4 +129,7 @@ public interface InternalExecutionGraphAccessor {
             JobVertexID jobVertexId, IntermediateDataSetID resultId);
 
     TaskDeploymentDescriptorFactory getTaskDeploymentDescriptorFactory();
+
+    default void setGlobalCheckpointContextForBoundedExecution(
+            TaskDeploymentDescriptor deployment) {}
 }

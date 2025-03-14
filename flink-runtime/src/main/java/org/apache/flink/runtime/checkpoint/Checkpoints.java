@@ -51,8 +51,10 @@ import java.io.DataOutputStream;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStream;
+import java.util.Collection;
 import java.util.HashMap;
 import java.util.Map;
+import java.util.stream.Collectors;
 
 import static org.apache.flink.util.Preconditions.checkNotNull;
 
@@ -150,9 +152,91 @@ public class Checkpoints {
             checkpointMetadata = loadCheckpointMetadata(dis, classLoader, checkpointPointer);
         }
 
-        // generate mapping from operator to task
+        // (2) validate it (parallelism, etc)
+        HashMap<OperatorID, OperatorState> operatorStates =
+                CollectionUtil.newHashMapWithExpectedSize(
+                        checkpointMetadata.getOperatorStates().size());
+
+        checkParallelismForAllJobVertices(
+                checkpointMetadata,
+                tasks.values(),
+                checkpointPointer,
+                allowNonRestoredState,
+                operatorStates);
+
+        return new CompletedCheckpoint(
+                jobId,
+                checkpointMetadata.getCheckpointId(),
+                0L,
+                0L,
+                operatorStates,
+                checkpointMetadata.getMasterStates(),
+                checkpointProperties,
+                location,
+                null,
+                checkpointMetadata.getCheckpointProperties());
+    }
+
+    public static CompletedCheckpoint loadAndValidateCheckpoint(
+            JobID jobId,
+            Map<JobVertexID, ExecutionJobVertex> tasks,
+            CompletedCheckpointStorageLocation location,
+            ClassLoader classLoader,
+            CheckpointProperties checkpointProperties,
+            CheckpointMetadata checkpointMetadata)
+            throws IOException {
+
+        checkNotNull(jobId, "jobId");
+        checkNotNull(tasks, "tasks");
+        checkNotNull(location, "location");
+        checkNotNull(classLoader, "classLoader");
+
+        HashMap<OperatorID, OperatorState> operatorStates =
+                CollectionUtil.newHashMapWithExpectedSize(
+                        checkpointMetadata.getOperatorStates().size());
+        for (OperatorState operatorState : checkpointMetadata.getOperatorStates()) {
+            operatorStates.put(operatorState.getOperatorID(), operatorState);
+        }
+
+        return new CompletedCheckpoint(
+                jobId,
+                checkpointMetadata.getCheckpointId(),
+                0L,
+                0L,
+                operatorStates,
+                checkpointMetadata.getMasterStates(),
+                checkpointProperties,
+                location,
+                null,
+                checkpointMetadata.getCheckpointProperties());
+    }
+
+    private static void checkParallelism(
+            ExecutionJobVertex executionJobVertex,
+            OperatorState operatorState,
+            CheckpointMetadata checkpointMetadata) {
+        if (executionJobVertex.getMaxParallelism() != operatorState.getMaxParallelism()
+                && executionJobVertex.canRescaleMaxParallelism(operatorState.getMaxParallelism())) {
+            String msg =
+                    String.format(
+                            "Failed to rollback to checkpoint/savepoint %s. "
+                                    + "Max parallelism mismatch between checkpoint/savepoint state and new program. "
+                                    + "Cannot map operator %s with max parallelism %d to new program with "
+                                    + "max parallelism %d. This indicates that the program has been changed "
+                                    + "in a non-compatible way after the checkpoint/savepoint.",
+                            checkpointMetadata,
+                            operatorState.getOperatorID(),
+                            operatorState.getMaxParallelism(),
+                            executionJobVertex.getMaxParallelism());
+
+            throw new IllegalStateException(msg);
+        }
+    }
+
+    private static Map<OperatorID, ExecutionJobVertex> getOperatorIDExecutionJobVertexMap(
+            Collection<ExecutionJobVertex> tasks) {
         Map<OperatorID, ExecutionJobVertex> operatorToJobVertexMapping = new HashMap<>();
-        for (ExecutionJobVertex task : tasks.values()) {
+        for (ExecutionJobVertex task : tasks) {
             for (OperatorIDPair operatorIDPair : task.getOperatorIDs()) {
                 operatorToJobVertexMapping.put(operatorIDPair.getGeneratedOperatorID(), task);
                 operatorIDPair
@@ -160,11 +244,44 @@ public class Checkpoints {
                         .ifPresent(id -> operatorToJobVertexMapping.put(id, task));
             }
         }
+        return operatorToJobVertexMapping;
+    }
 
-        // (2) validate it (parallelism, etc)
-        HashMap<OperatorID, OperatorState> operatorStates =
-                CollectionUtil.newHashMapWithExpectedSize(
-                        checkpointMetadata.getOperatorStates().size());
+    public static void validateParallelismByJobVertex(
+            Map<OperatorID, OperatorState> originalStates,
+            Collection<ExecutionJobVertex> tasks,
+            CheckpointMetadata checkpointMetadata) {
+        Map<OperatorID, ExecutionJobVertex> operatorIDExecutionJobVertexMap =
+                getOperatorIDExecutionJobVertexMap(tasks);
+
+        operatorIDExecutionJobVertexMap.forEach(
+                (operatorID, executionJobVertex) -> {
+                    OperatorState operatorState = originalStates.get(operatorID);
+
+                    checkParallelism(executionJobVertex, operatorState, checkpointMetadata);
+                });
+    }
+
+    public static Map<OperatorID, OperatorState> getExecutionJobVertexOperatorStates(
+            Collection<ExecutionJobVertex> tasks, Map<OperatorID, OperatorState> originalStates) {
+        Map<OperatorID, ExecutionJobVertex> operatorIDExecutionJobVertexMap =
+                getOperatorIDExecutionJobVertexMap(tasks);
+
+        return operatorIDExecutionJobVertexMap.keySet().stream()
+                .filter(originalStates::containsKey)
+                .collect(Collectors.toMap(id -> id, originalStates::get));
+    }
+
+    public static void checkParallelismForAllJobVertices(
+            CheckpointMetadata checkpointMetadata,
+            Collection<ExecutionJobVertex> executionJobVertices,
+            String checkpointPointer,
+            boolean allowNonRestoredState,
+            Map<OperatorID, OperatorState> operatorStates) {
+        // generate mapping from operator to task
+        Map<OperatorID, ExecutionJobVertex> operatorToJobVertexMapping =
+                getOperatorIDExecutionJobVertexMap(executionJobVertices);
+
         for (OperatorState operatorState : checkpointMetadata.getOperatorStates()) {
 
             ExecutionJobVertex executionJobVertex =
@@ -172,25 +289,8 @@ public class Checkpoints {
 
             if (executionJobVertex != null) {
 
-                if (executionJobVertex.getMaxParallelism() == operatorState.getMaxParallelism()
-                        || executionJobVertex.canRescaleMaxParallelism(
-                                operatorState.getMaxParallelism())) {
-                    operatorStates.put(operatorState.getOperatorID(), operatorState);
-                } else {
-                    String msg =
-                            String.format(
-                                    "Failed to rollback to checkpoint/savepoint %s. "
-                                            + "Max parallelism mismatch between checkpoint/savepoint state and new program. "
-                                            + "Cannot map operator %s with max parallelism %d to new program with "
-                                            + "max parallelism %d. This indicates that the program has been changed "
-                                            + "in a non-compatible way after the checkpoint/savepoint.",
-                                    checkpointMetadata,
-                                    operatorState.getOperatorID(),
-                                    operatorState.getMaxParallelism(),
-                                    executionJobVertex.getMaxParallelism());
-
-                    throw new IllegalStateException(msg);
-                }
+                checkParallelism(executionJobVertex, operatorState, checkpointMetadata);
+                operatorStates.put(operatorState.getOperatorID(), operatorState);
             } else if (allowNonRestoredState) {
                 LOG.info(
                         "Skipping savepoint state for operator {}.", operatorState.getOperatorID());
@@ -212,18 +312,6 @@ public class Checkpoints {
                         operatorState.getOperatorID());
             }
         }
-
-        return new CompletedCheckpoint(
-                jobId,
-                checkpointMetadata.getCheckpointId(),
-                0L,
-                0L,
-                operatorStates,
-                checkpointMetadata.getMasterStates(),
-                checkpointProperties,
-                location,
-                null,
-                checkpointMetadata.getCheckpointProperties());
     }
 
     private static void throwNonRestoredStateException(
